@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+{% block title %}리뷰 목록{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">📝 상품 리뷰</h2>
+
+<!-- ✅ 리뷰 작성 폼 -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">리뷰 작성하기</h5>
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="product" class="form-label">상품명</label>
+        <input type="text" class="form-control" id="product" name="product" placeholder="예: 시원한 반팔 티셔츠">
+      </div>
+      <div class="mb-3">
+        <label for="review" class="form-label">리뷰 내용</label>
+        <textarea class="form-control" id="review" name="review" rows="3" placeholder="리뷰를 입력하세요."></textarea>
+      </div>
+      <div class="mb-3">
+        <label for="author" class="form-label">작성자</label>
+        <input type="text" class="form-control" id="author" name="author" placeholder="닉네임 또는 이름">
+      </div>
+      <button type="submit" class="btn btn-primary">제출</button>
+    </form>
+  </div>
+</div>
+
+<!-- ✅ 리뷰 목록 -->
+<div class="list-group">
+  <div class="list-group-item">
+    <h5 class="mb-1">기본 반팔 티셔츠</h5>
+    <p class="mb-1">재질이 시원해서 여름에 입기 딱 좋아요.</p>
+    <small>작성자: 무신사유저1</small>
+  </div>
+  <div class="list-group-item">
+    <h5 class="mb-1">린넨 셔츠</h5>
+    <p class="mb-1">핏이 예쁘고 구김도 잘 안 가요!</p>
+    <small>작성자: 스타일고수</small>
+  </div>
+</div>
+{% endblock %}

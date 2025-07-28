@@ -1,0 +1,32 @@
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}My Shop{% endblock %}</title>
+  {% bootstrap_css %}
+  {% bootstrap_javascript %}
+</head>
+<body class="bg-light">
+
+  <!-- ✅ 상단 툴바 (네비게이션 바) -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="/">MyShop</a>
+      <div class="d-flex gap-2">
+        <!-- 원하는 순서대로 배치: 추천 → 리뷰 → 장바구니 -->
+        <a class="btn btn-outline-light" href="{% url 'recommendation_home' %}">🎯 추천</a>
+        <a class="btn btn-outline-light" href="{% url 'review' %}">📝 리뷰</a>
+        <a class="btn btn-outline-light" href="{% url 'cart' %}">🛒 장바구니</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ✅ 본문 영역 -->
+  <div class="container py-4">
+    {% block content %}
+    {% endblock %}
+  </div>
+
+</body>
+</html>

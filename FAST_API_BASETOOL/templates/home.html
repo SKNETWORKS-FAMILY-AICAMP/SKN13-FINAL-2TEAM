@@ -5,8 +5,8 @@
         <!-- Hero Section -->
         <section class="hero-section">
             <div class="hero-content">
-                <h1>Ivle Malle</h1>
-                <p>입을래 말래 입을래 말래 입을래 말래 입을래 말래 입을래 말래 애매하긴해</p>
+                <h1>추천 콘텐츠 제목</h1>
+                <p>이곳은 추천 콘텐츠에 대한 간략한 설명이 들어갑니다. 사용자 취향에 맞는 흥미로운 내용을 담을 예정입니다.</p>
                 <div class="hero-buttons">
                     <button class="play-button">▶ 재생</button>
                     <button class="info-button">ℹ️ 상세 정보</button>
@@ -14,37 +14,56 @@
             </div>
         </section>
 
-        <!-- Content Rows -->
+        <!-- Content Rows - Dynamic Data -->
         <section class="content-row">
             <h2>지민님이 좋아할 만한 콘텐츠</h2>
-            <div class="row-posters">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/07/303642807_NJ62847.jpg" alt="Poster 1">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/05/303643805_PC62079.jpg" alt="Poster 2">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/63/303648763_TU96166.jpg" alt="Poster 3">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/62/303698462_GG13519.jpg" alt="Poster 4">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/18/303731318_IW60982.jpg" alt="Poster 5">
+            <div class="scroll-container">
+                <div class="scroll-arrow left">&#10094;</div>
+                <div class="row-posters">
+                    {% for item in section1_items %}
+                    <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
+                    {% endfor %}
+                </div>
+                <div class="scroll-arrow right">&#10095;</div>
             </div>
         </section>
 
         <section class="content-row">
             <h2>지금 뜨는 콘텐츠</h2>
-            <div class="row-posters">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/73/305690273_WD24776.jpg" alt="Poster 6">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/67/305690567_HG16921.jpg" alt="Poster 7">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/26/305719426_SY73315.jpg" alt="Poster 8">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/38/305736038_VR63610.jpg" alt="Poster 9">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/78/305769978_CE36037.jpg" alt="Poster 10">
+            <div class="scroll-container">
+                <div class="scroll-arrow left">&#10094;</div>
+                <div class="row-posters">
+                    {% for item in section2_items %}
+                    <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
+                    {% endfor %}
+                </div>
+                <div class="scroll-arrow right">&#10095;</div>
             </div>
         </section>
 
         <section class="content-row">
             <h2>새로 추가된 콘텐츠</h2>
-            <div class="row-posters">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/26/305793726_LA86574.jpg" alt="Poster 11">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/78/305658778_OG12148.jpg" alt="Poster 12">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/94/305022794_SD74032.jpg" alt="Poster 13">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/05/305198505_GG15715.jpg" alt="Poster 14">
-                <img src="https://product-image.wconcept.co.kr/productimg/image/img2/82/305684782_XA69283.jpg" alt="Poster 15">
+            <div class="scroll-container">
+                <div class="scroll-arrow left">&#10094;</div>
+                <div class="row-posters">
+                    {% for item in section3_items %}
+                    <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
+                    {% endfor %}
+                </div>
+                <div class="scroll-arrow right">&#10095;</div>
+            </div>
+        </section>
+
+        <section class="content-row">
+            <h2>추가 추천 콘텐츠</h2>
+            <div class="scroll-container">
+                <div class="scroll-arrow left">&#10094;</div>
+                <div class="row-posters">
+                    {% for item in section4_items %}
+                    <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
+                    {% endfor %}
+                </div>
+                <div class="scroll-arrow right">&#10095;</div>
             </div>
         </section>
 

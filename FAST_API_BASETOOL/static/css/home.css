@@ -72,12 +72,17 @@
     padding-left: 20px;
 }
 
+.scroll-container {
+    position: relative;
+}
+
 .row-posters {
     display: flex;
     overflow-x: scroll; /* Enable horizontal scrolling */
-    padding: 10px 20px;
+    padding: 10px 0;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     scrollbar-width: none; /* Hide scrollbar for Firefox */
+    scroll-behavior: smooth;
 }
 
 .row-posters::-webkit-scrollbar {
@@ -96,4 +101,33 @@
 
 .row-posters img:hover {
     transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+.scroll-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 20px 10px;
+    cursor: pointer;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-size: 2em;
+}
+
+.scroll-container:hover .scroll-arrow {
+    opacity: 1;
+}
+
+.scroll-arrow.left {
+    left: 0;
+    border-radius: 0 5px 5px 0;
+}
+
+.scroll-arrow.right {
+    right: 0;
+    border-radius: 5px 0 0 5px;
 }

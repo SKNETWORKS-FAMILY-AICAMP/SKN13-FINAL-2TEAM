@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>의류 추천 시스템</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/">홈</a></li>
+                <li><a href="/recommend/">추천</a></li>
+                <li><a href="/recommend/taste">취향 기반 추천</a></li>
+                <li><a href="/review/">리뷰</a></li>
+                <li><a href="/cart/">장바구니</a></li>
+                <li><a href="/products/">카테고리 검색</a></li>
+                <li><a href="/auth/login">로그인</a></li>
+                <li><a href="/auth/signup">회원가입</a></li>
+                <li><a href="/survey/">설문조사</a></li>
+                <li><a href="/faq/">FAQ</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        <!-- Child templates will insert their content here -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2025 의류 추천 시스템. All rights reserved.</p>
+    </footer>
+</body>
+</html>

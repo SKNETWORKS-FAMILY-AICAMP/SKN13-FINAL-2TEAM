@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="login-container">
+        <form class="login-form">
+            <h1>로그인</h1>
+            <div class="input-group">
+                <input type="email" id="email" placeholder="이메일 주소 또는 전화번호" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="비밀번호" required>
+            </div>
+            <button type="submit" class="login-button">로그인</button>
+            <div class="form-help">
+                <div class="remember-me">
+                    <input type="checkbox" id="rememberMe">
+                    <label for="rememberMe">로그인 정보 저장</label>
+                </div>
+                <a href="#" class="need-help">도움이 필요하신가요?</a>
+            </div>
+            <div class="signup-link">
+                <p>Netflix 회원이 아닌가요? <a href="/auth/signup">지금 가입하세요.</a></p>
+            </div>
+        </form>
+    </div>
+{% endblock %}

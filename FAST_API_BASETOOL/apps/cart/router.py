@@ -7,4 +7,4 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def cart(request: Request):
-    return templates.TemplateResponse("cart.html", {"request": request})
+    return templates.TemplateResponse("cart/cart.html", {"request": request})

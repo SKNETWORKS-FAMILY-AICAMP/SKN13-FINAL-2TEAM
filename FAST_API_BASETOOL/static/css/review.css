@@ -47,16 +47,22 @@ body {
   background-color: #777;
 }
 
-
-
-
-
-.review-form {
+/* .review-form {
   background-color: #1e1e1e;
   padding: 20px;
   margin-bottom: 30px;
   border-radius: 10px;
+} */
+
+.review-form {
+  background-color: #1e1e1e;
+  padding: 20px;
+  margin: 30px auto;         /* 위아래 간격 + 중앙 정렬 */
+  border-radius: 10px;
+  max-width: 600px;          /* 폭 제한 */
+  width: 100%;               /* 작은 화면에선 100% 유지 */
 }
+
 
 .review-form label {
   display: block;

@@ -7,4 +7,4 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def products(request: Request):
-    return templates.TemplateResponse("products.html", {"request": request})
+    return templates.TemplateResponse("products/products.html", {"request": request})

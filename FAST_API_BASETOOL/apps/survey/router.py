@@ -13,7 +13,7 @@ class SurveyData(BaseModel):
 
 @router.get("/", response_class=HTMLResponse)
 async def survey(request: Request):
-    return templates.TemplateResponse("survey.html", {"request": request})
+    return templates.TemplateResponse("survey/survey.html", {"request": request})
 
 @router.post("/", response_class=JSONResponse)
 async def submit_survey(survey_data: SurveyData):

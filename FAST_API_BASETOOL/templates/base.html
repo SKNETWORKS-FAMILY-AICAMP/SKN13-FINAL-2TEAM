@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', path='css/signup.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/survey.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/review.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/preference.css') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -18,7 +19,7 @@
             <ul>
                 <li><a href="/">홈</a></li>
                 <li><a href="/recommend/">추천</a></li>
-                <li><a href="/recommend/taste">취향 기반 추천</a></li>
+                <li><a href="/preference">취향 기반 추천</a></li>
                 <li><a href="/review/">리뷰</a></li>
                 <li><a href="/cart/">장바구니</a></li>
                 <li><a href="/products/">카테고리 검색</a></li>

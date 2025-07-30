@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from apps.home.router import router as home_router
 from apps.auth.router import router as auth_router
 from apps.recommend.router import router as recommend_router
+from apps.preference.router import router as preference_router
 from apps.review.router import router as review_router
 from apps.cart.router import router as cart_router
 from apps.products.router import router as products_router
@@ -21,7 +22,6 @@ app = FastAPI()
 load_dotenv()
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
 
-
 # Static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -35,6 +35,7 @@ app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(google_oauth_router, prefix="/auth", tags=["Google"])
 app.include_router(kakao_oauth_router, prefix="/auth", tags=["Kakao"])
 app.include_router(recommend_router, prefix="/recommend", tags=["Recommendation"])
+app.include_router(preference_router, prefix="/preference", tags=["Preference"]) 
 app.include_router(review_router, prefix="/review", tags=["Review"])
 app.include_router(cart_router, prefix="/cart", tags=["Cart"])
 app.include_router(products_router, prefix="/products", tags=["Products"])

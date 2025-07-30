@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/recommend.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/preference.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="recommend-container">
-    <div class="recommend-header">
+<div class="preference-container">
+    <div class="preference-header">
         <h1>지민님을 위한 오늘의 스타일 제안</h1>
         <p>엄선된 취향 기반 추천 아이템들을 만나보세요.</p>
     </div>
 
-    <div class="recommend-grid">
+    <div class="preference-grid">
         {% for item in recommended_items %}
         <div class="product-card">
             <img class="product-image" src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}">

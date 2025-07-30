@@ -1,25 +1,25 @@
-/* Taste Recommend Page Styles */
-.recommend-container {
+/* preference Page Styles */
+.preference-container {
     padding: 40px 20px;
 }
 
-.recommend-header {
+.preference-header {
     text-align: center;
     margin-bottom: 40px;
 }
 
-.recommend-header h1 {
+.preference-header h1 {
     font-size: 2.8em;
     color: #fff;
     margin-bottom: 10px;
 }
 
-.recommend-header p {
+.preference-header p {
     font-size: 1.2em;
     color: #b3b3b3;
 }
 
-.recommend-grid {
+.preference-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 30px;
@@ -27,6 +27,7 @@
     margin: 0 auto;
 }
 
+/* 이하 recommend 스타일 그대로 유지 */
 .product-card {
     background-color: #1f1f1f;
     border-radius: 8px;

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-secondary mb-4">리뷰 상세</h2>
+
+{% if review %}
+<div class="card shadow">
+  <div class="card-body">
+    <h4 class="card-title">{{ review.product }}</h4>
+    <p class="card-text text-warning fs-4">{{ "⭐" * review.rating }}</p>
+    <p class="card-text">{{ review.content }}</p>
+    <p class="card-text"><small class="text-muted">작성자: {{ review.user }}</small></p>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-danger">
+  해당 리뷰를 찾을 수 없습니다.
+</div>
+{% endif %}
+
+<a href="/review" class="back-btn">← 리뷰 목록으로</a>
+
+{% endblock %}

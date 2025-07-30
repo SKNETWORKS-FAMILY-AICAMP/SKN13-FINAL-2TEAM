@@ -1,0 +1,136 @@
+body {
+  background-color: #121212;
+  color: #f1f1f1;
+}
+
+.page-title {
+  color: white;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.sort-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.sort-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sort-form label {
+  color: #fff;
+  font-weight: bold;
+}
+
+.sort-form select {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background-color: #222;
+  color: #fff;
+}
+
+.sort-form button {
+  padding: 6px 12px;
+  border: none;
+  background-color: #555;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sort-form button:hover {
+  background-color: #777;
+}
+
+
+
+
+
+.review-form {
+  background-color: #1e1e1e;
+  padding: 20px;
+  margin-bottom: 30px;
+  border-radius: 10px;
+}
+
+.review-form label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.review-form input,
+.review-form select,
+.review-form textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  background-color: #2c2c2c;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.review-form button {
+  margin-top: 15px;
+  width: 100%;
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.review-card {
+  background-color: #1f1f1f;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.review-card h4 a {
+  color: #87ceeb;
+  text-decoration: none;
+}
+
+.review-card .rating {
+  color: #ffd700;
+  font-size: 18px;
+}
+
+.review-card .author {
+  color: #999;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.no-review {
+  text-align: center;
+  color: #777;
+}
+
+.back-btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border: 1px solid #fff;
+  color: #fff;
+  background-color: transparent;
+  text-decoration: none;
+  font-weight: bold;
+  border-radius: 5px;
+  transition: background 0.2s ease;
+}
+.back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}

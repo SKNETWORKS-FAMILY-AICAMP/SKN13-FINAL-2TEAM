@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.templating import Jinja2Templates
 
 router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
-@router.get('/')
-def read_root():
-    return {"message": "Hello from recommend"}
+@router.get("/recommend-page")
+def recommend_page(request: Request):
+    return templates.TemplateResponse("recommend.html", {"request": request, "title": "추천"})

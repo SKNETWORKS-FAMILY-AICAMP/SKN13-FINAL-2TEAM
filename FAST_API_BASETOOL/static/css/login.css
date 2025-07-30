@@ -104,3 +104,27 @@
 .signup-link a:hover {
     text-decoration: underline;
 }
+
+/* Google Login Button */
+/*  소셜 로그인 버튼 영역 */
+.social-login {
+    display: flex;
+    flex-direction: column !important; /* 강제 위아래 정렬 */
+    align-items: center;
+    gap: 16px;  /* 버튼 사이 여백 */
+    margin-top: 30px;
+}
+
+.login-image-button {
+    width: 200px;           
+    height: auto;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    border-radius: 6px;
+    object-fit: contain;    /* 비율 유지하며 축소 */
+}
+
+.login-image-button:hover {
+    transform: scale(1.05);
+}

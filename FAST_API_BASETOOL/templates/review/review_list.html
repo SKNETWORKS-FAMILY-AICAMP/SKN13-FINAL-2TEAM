@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/review.css') }}">
+{% endblock %}
+{% block content %}
+
+<h2 class="page-title">📝 상품 리뷰</h2>
+
+<!-- ✅ 정렬 드롭다운 -->
+<div class="sort-container">
+  <form method="get" class="sort-form">
+    <label for="sort">정렬:</label>
+    <select id="sort" name="sort">
+      <option value="recent" {% if sort == "recent" %}selected{% endif %}>최신순</option>
+      <option value="rating_desc" {% if sort == "rating_desc" %}selected{% endif %}>별점 높은 순</option>
+      <option value="rating_asc" {% if sort == "rating_asc" %}selected{% endif %}>별점 낮은 순</option>
+    </select>
+    <button type="submit">적용</button>
+  </form>
+</div>
+
+<!-- ✅ 리뷰 작성 폼 -->
+<div class="review-form">
+  <h3>리뷰 작성하기</h3>
+  <form method="post" action="/reviews/create">
+    <label for="product">상품명</label>
+    <input type="text" id="product" name="product" placeholder="예: 시원한 반팔 티셔츠">
+
+    <label for="rating">별점</label>
+    <select id="rating" name="rating">
+      <option value="5">⭐⭐⭐⭐⭐(5점)</option>
+      <option value="4">⭐⭐⭐⭐(4점)</option>
+      <option value="3">⭐⭐⭐(3점)</option>
+      <option value="2">⭐⭐(2점)</option>
+      <option value="1">⭐(1점)</option>
+    </select>
+
+    <label for="content">리뷰 내용</label>
+    <textarea id="content" name="content" rows="3" placeholder="리뷰를 입력하세요."></textarea>
+
+    <label for="author">작성자</label>
+    <input type="text" id="author" name="author" placeholder="닉네임 또는 이름">
+
+    <button type="submit">제출</button>
+  </form>
+</div>
+
+<!-- ✅ 리뷰 카드 목록 -->
+<div class="review-grid">
+  {% for review in reviews %}
+  <div class="review-card">
+    <h4>
+      <a href="/review/{{ review.id }}">{{ review.product }}</a>
+    </h4>
+    <p class="rating">{{ "⭐" * review.rating }}</p>
+    <p>{{ review.content }}</p>
+    <p class="author">작성자: {{ review.user }}</p>
+  </div>
+  {% else %}
+  <p class="no-review">리뷰가 아직 없습니다.</p>
+  {% endfor %}
+</div>
+
+{% endblock %}

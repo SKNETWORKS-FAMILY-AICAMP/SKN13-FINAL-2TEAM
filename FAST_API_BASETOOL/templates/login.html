@@ -21,6 +21,17 @@
             <div class="signup-link">
                 <p>Netflix 회원이 아닌가요? <a href="/auth/signup">지금 가입하세요.</a></p>
             </div>
+            <div class="social-login">
+            <!-- Google 로그인 버튼 (이미지 전체가 클릭 가능) -->
+                <a href="/auth/google/login">
+                    <img src="/static/img/google_icon.svg" alt="Google 로그인" class="login-image-button">
+                </a>
+
+            <!-- Kakao 로그인 버튼 -->
+                <a href="/auth/kakao/login">
+                    <img src="/static/img/kakao_icon.png" alt="Kakao 로그인" class="login-image-button">
+                </a>
+            </div> 
         </form>
     </div>
 {% endblock %}

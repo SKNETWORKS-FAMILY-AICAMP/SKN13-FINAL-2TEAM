@@ -1,0 +1,37 @@
+.mypage-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  color: #f1f1f1;
+}
+
+.mypage-title {
+  font-size: 2em;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.mypage-section p {
+  margin-bottom: 15px;
+}
+
+.mypage-menu {
+  list-style: none;
+  padding: 0;
+}
+
+.mypage-menu li {
+  margin-bottom: 10px;
+}
+
+.mypage-menu a {
+  color: #87ceeb;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.mypage-menu a:hover {
+  text-decoration: underline;
+}

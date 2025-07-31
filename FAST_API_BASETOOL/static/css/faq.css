@@ -1,0 +1,67 @@
+body {
+    background-color: #141414; /* Netflix dark background */
+    color: #e5e5e5; /* Light grey text */
+}
+
+.faq-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: #1a1a1a; /* Main container background */
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Darker shadow */
+}
+
+.faq-container h1 {
+    text-align: center;
+    color: #e50914; /* Netflix red for heading */
+    margin-bottom: 30px;
+    font-size: 2.5em;
+}
+
+.faq-list {
+    margin-top: 20px;
+}
+
+.faq-item {
+    background-color: #222222; /* Background for each FAQ item */
+    border: 1px solid #333; /* Border for each FAQ item */
+    border-radius: 5px;
+    margin-bottom: 15px;
+    padding: 15px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.faq-item:last-child {
+    margin-bottom: 0;
+}
+
+.faq-question {
+    font-size: 1.4em;
+    cursor: pointer;
+    color: #ffffff; /* White for questions */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: 10px;
+}
+
+.faq-question::after {
+    content: '-'; /* Initial state is minus */
+    font-size: 1.5em;
+    color: #e50914; /* Netflix red for icon */
+    transition: transform 0.3s ease;
+}
+
+.faq-question.collapsed::after {
+    content: '+'; /* When collapsed, show plus */
+    transform: rotate(0deg);
+}
+
+.faq-answer {
+    margin-top: 15px;
+    padding-left: 20px;
+    color: #cccccc; /* Lighter grey for answers */
+    line-height: 1.6;
+    display: block; /* Initially visible */
+}

@@ -1,0 +1,108 @@
+body {
+    background-color: #141414; /* Netflix dark background */
+    color: #e5e5e5; /* Light grey text */
+}
+
+.category-browse-container {
+    display: flex;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #1a1a1a; /* Slightly lighter dark for container */
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Darker shadow */
+}
+
+.category-sidebar {
+    width: 250px;
+    padding-right: 20px;
+    border-right: 1px solid #333; /* Darker border */
+}
+
+.category-sidebar h2 {
+    font-size: 1.5em;
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #e5e5e5;
+}
+
+.category-sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.category-sidebar ul li {
+    margin-bottom: 10px;
+}
+
+.category-sidebar ul li a {
+    text-decoration: none;
+    color: #e5e5e5; /* Light grey for links */
+    font-size: 1.1em;
+}
+
+.category-sidebar ul li a:hover {
+    color: #e50914; /* Netflix red on hover */
+    text-decoration: underline;
+}
+
+.product-listing-area {
+    flex-grow: 1;
+    padding-left: 20px;
+}
+
+.product-listing-area h1 {
+    font-size: 1.8em;
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #e5e5e5;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    border: 1px solid #333; /* Darker border */
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    background-color: #222; /* Darker card background */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); /* Darker shadow */
+}
+
+.product-card img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.product-card h3 {
+    font-size: 1.2em;
+    margin-bottom: 5px;
+    color: #e5e5e5;
+}
+
+.product-card .price {
+    font-size: 1.1em;
+    color: #e50914; /* Netflix red for price */
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.product-card button {
+    background-color: #e50914; /* Netflix red for buttons */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.product-card button:hover {
+    background-color: #f6121d; /* Slightly brighter red on hover */
+}

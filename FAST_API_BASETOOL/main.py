@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # Corrected imports
 from apps.home.router import router as home_router
@@ -7,7 +10,7 @@ from apps.auth.router import router as auth_router
 from apps.recommend.router import router as recommend_router
 from apps.preference.router import router as preference_router
 from apps.review.router import router as review_router
-from apps.cart.router import router as cart_router
+from apps.jjim.router import router as jjim_router
 from apps.products.router import router as products_router
 from apps.survey.router import router as survey_router
 from apps.faq.router import router as faq_router
@@ -20,6 +23,8 @@ from apps.auth.oauth.google_oauth import router as google_oauth_router  # Google
 from apps.auth.oauth.kakao_oauth import router as kakao_oauth_router # Kakao OAuth 라우터
 
 app = FastAPI()
+
+templates = Jinja2Templates(directory="templates")
 
 load_dotenv()
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
@@ -39,8 +44,14 @@ app.include_router(kakao_oauth_router, prefix="/auth", tags=["Kakao"])
 app.include_router(recommend_router, prefix="/recommend", tags=["Recommendation"])
 app.include_router(preference_router, prefix="/preference", tags=["Preference"]) 
 app.include_router(review_router, prefix="/review", tags=["Review"])
-app.include_router(cart_router, prefix="/cart", tags=["Cart"])
+app.include_router(jjim_router, prefix="/jjim", tags=["Jjim"])
 app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(survey_router, prefix="/survey", tags=["Survey"])
 app.include_router(faq_router, prefix="/faq", tags=["FAQ"])
 app.include_router(mypage_router, prefix="/mypage", tags=["MyPage"])
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 404:
+        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+    return await http_exception_handler(request, exc)

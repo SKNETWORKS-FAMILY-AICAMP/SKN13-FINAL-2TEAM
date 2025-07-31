@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/jjim.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="jjim-container">
+        <h1>찜 목록</h1>
+        <p>선택된 의류들을 비교해 보세요.</p>
+
+        <div class="compare-selection">
+            <h2>비교할 상품 선택</h2>
+            <p>비교하고 싶은 상품들을 클릭하여 선택하세요. (최대 2개)</p>
+            <div class="selected-products-display" id="selected-products-display">
+                <!-- Selected products will be displayed here -->
+            </div>
+            <button id="start-compare-btn" class="compare-button" disabled>선택 상품 비교하기</button>
+        </div>
+
+        <div class="all-products-for-selection">
+            <h2>모든 상품 목록</h2>
+            <div class="product-selection-grid">
+                {% for product in jjim_products %}
+                <div class="product-selection-card" data-product-name="{{ product['상품명'] }}" data-product-index="{{ loop.index0 }}">
+                    <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
+                    <h3>{{ product['상품명'] }}</h3>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectedProducts = new Map(); // Use Map to store product name and its element
+            const selectedProductsDisplay = document.getElementById('selected-products-display');
+            const startCompareBtn = document.getElementById('start-compare-btn');
+            const productSelectionCards = document.querySelectorAll('.product-selection-card');
+
+            function updateSelectedDisplay() {
+                selectedProductsDisplay.innerHTML = '';
+                selectedProducts.forEach((element, productName) => {
+                    const span = document.createElement('span');
+                    span.textContent = productName;
+                    span.classList.add('selected-product-tag');
+                    selectedProductsDisplay.appendChild(span);
+                });
+                const isDisabled = selectedProducts.size < 1 || selectedProducts.size > 2;
+                startCompareBtn.disabled = isDisabled;
+                console.log("Selected products count:", selectedProducts.size, "Button disabled:", isDisabled);
+            }
+
+            productSelectionCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const productName = this.dataset.productName;
+                    console.log("Clicked product:", productName);
+
+                    if (selectedProducts.has(productName)) {
+                        selectedProducts.delete(productName);
+                        this.classList.remove('selected');
+                        console.log("Product removed:", productName);
+                    } else if (selectedProducts.size < 2) {
+                        selectedProducts.set(productName, this); // Store the element reference
+                        this.classList.add('selected');
+                        console.log("Product added:", productName);
+                    }
+                    updateSelectedDisplay();
+                });
+            });
+
+            startCompareBtn.addEventListener('click', function() {
+                if (selectedProducts.size >= 1 && selectedProducts.size <= 2) {
+                    const productNames = Array.from(selectedProducts.keys()).map(encodeURIComponent).join(',');
+                    console.log("Generated URL:", `/jjim/compare/${productNames}`);
+                    window.location.href = `/jjim/compare/${productNames}`;
+                }
+            });
+        });
+    </script>
+{% endblock %}

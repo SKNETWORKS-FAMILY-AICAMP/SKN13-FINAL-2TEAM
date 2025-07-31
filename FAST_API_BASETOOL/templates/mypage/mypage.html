@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/mypage.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="mypage-container">
+  <h1 class="mypage-title">마이페이지</h1>
+  <div class="mypage-section">
+    <p>환영합니다, {{ request.session.get('user_name', '사용자') }}님 👋</p>
+    <ul class="mypage-menu">
+      <li><a href="#">내 정보 보기</a></li>
+      <li><a href="#">찜한 상품</a></li>
+      <li><a href="#">내 리뷰</a></li>
+      <li><a href="#">로그아웃</a></li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

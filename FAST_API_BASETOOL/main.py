@@ -11,6 +11,8 @@ from apps.cart.router import router as cart_router
 from apps.products.router import router as products_router
 from apps.survey.router import router as survey_router
 from apps.faq.router import router as faq_router
+from apps.mypage.router import router as mypage_router
+
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 import os
@@ -41,3 +43,4 @@ app.include_router(cart_router, prefix="/cart", tags=["Cart"])
 app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(survey_router, prefix="/survey", tags=["Survey"])
 app.include_router(faq_router, prefix="/faq", tags=["FAQ"])
+app.include_router(mypage_router, prefix="/mypage", tags=["MyPage"])

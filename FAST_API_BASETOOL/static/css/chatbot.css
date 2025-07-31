@@ -1,0 +1,131 @@
+.welcome-message {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    color: #eee;
+}
+
+.chat-container {
+    width: 400px;
+    margin: 50px auto;
+    border: 1px solid #333;
+    border-radius: 10px;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background-color: #141414;
+}
+
+.chat-header {
+    background-color: #E50914;
+    color: white;
+    padding: 15px;
+    text-align: center;
+}
+
+.chat-header h2 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.chat-box {
+    height: 400px;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-message-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.chat-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #555;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.8em;
+    flex-shrink: 0;
+}
+
+.chat-message {
+    padding: 10px 15px;
+    border-radius: 20px;
+    max-width: 70%;
+    word-wrap: break-word;
+}
+
+.user-message {
+    background-color: #fef01b;
+    color: #333;
+    align-self: flex-end;
+}
+
+.user-message-wrapper {
+    align-self: flex-end;
+}
+
+.bot-message {
+    background-color: #333;
+    color: white;
+    align-self: flex-start;
+}
+
+.chat-input {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #333;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 20px;
+    background-color: #333;
+    color: white;
+}
+
+.chat-input button {
+    padding: 10px 20px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 20px;
+    background-color: #E50914;
+    color: white;
+    cursor: pointer;
+}
+
+.chat-input button:hover {
+    background-color: #f6121d;
+}
+
+.loading-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #E50914;
+    animation: bounce 0.6s infinite alternate;
+    margin: 0 2px;
+}
+
+.loading-indicator:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.loading-indicator:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-5px); }
+}

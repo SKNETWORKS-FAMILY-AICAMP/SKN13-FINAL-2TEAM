@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/category_browse.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="category-browse-container">
+        <aside class="category-sidebar">
+            <h2>카테고리</h2>
+            <ul>
+                <li><a href="#">모든 카테고리</a></li>
+                <li><a href="#">전자기기</a></li>
+                <li><a href="#">도서</a></li>
+                <li><a href="#">생활/주방</a></li>
+                <li><a href="#">패션</a></li>
+                <li><a href="#">스포츠/아웃도어</a></li>
+                <li><a href="#">장난감/게임</a></li>
+                <!-- More categories can be added here -->
+            </ul>
+        </aside>
+        <main class="product-listing-area">
+            <h1>선택된 카테고리 상품</h1>
+            <div class="product-grid">
+                {% for product in products %}
+                <div class="product-card">
+                    <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
+                    <h3>{{ product['상품명'] }}</h3>
+                    <p class="price">{{ product['가격'] }}</p>
+                    <button>장바구니에 추가</button>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+{% endblock %}

@@ -21,5 +21,29 @@
             <button id="send-btn">Send</button>
         </div>
     </div>
+
+    <!-- 플로팅 챗봇 위젯 -->
+    <button id="chatbot-toggle-btn" class="chatbot-toggle-btn">💬</button>
+    
+    <div id="floating-chatbot-widget" class="floating-chatbot-widget">
+        <div class="widget-header">
+            <h3>의류 추천 챗봇</h3>
+            <button id="widget-close-btn" class="widget-close-btn">×</button>
+        </div>
+        
+        <div class="widget-content">
+            <div id="widget-messages" class="widget-messages">
+                <!-- 위젯 메시지들이 여기에 추가됩니다 -->
+            </div>
+        </div>
+        
+        <div class="widget-input">
+            <form id="widget-form" class="widget-form">
+                <input type="text" id="widget-input" placeholder="메시지를 입력하세요..." autocomplete="off">
+                <button type="submit">전송</button>
+            </form>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', path='js/chatbot.js') }}"></script>
 {% endblock %}

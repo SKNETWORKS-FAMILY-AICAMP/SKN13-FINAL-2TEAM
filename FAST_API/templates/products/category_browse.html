@@ -2,35 +2,234 @@
 
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', path='css/category_browse.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/filters.css') }}">
 {% endblock %}
 
 {% block content %}
     <div class="category-browse-container">
         <aside class="category-sidebar">
-            <h2>카테고리</h2>
-            <ul>
-                <li><a href="#">모든 카테고리</a></li>
-                <li><a href="#">전자기기</a></li>
-                <li><a href="#">도서</a></li>
-                <li><a href="#">생활/주방</a></li>
-                <li><a href="#">패션</a></li>
-                <li><a href="#">스포츠/아웃도어</a></li>
-                <li><a href="#">장난감/게임</a></li>
-                <!-- More categories can be added here -->
-            </ul>
+            <h2>필터</h2>
+            
+            <!-- 성별 필터 -->
+            <div class="filter-section">
+                <h3>성별</h3>
+                <div class="filter-options">
+                    <label class="filter-option">
+                        <input type="checkbox" name="gender" value="male" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        남성
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="gender" value="female" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        여성
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="gender" value="unisex" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        유니섹스
+                    </label>
+                </div>
+            </div>
+
+            <!-- 의류 타입 필터 -->
+            <div class="filter-section">
+                <h3>의류 타입</h3>
+                <div class="filter-options">
+                    <label class="filter-option">
+                        <input type="checkbox" name="clothing_type" value="top" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        상의
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="clothing_type" value="bottom" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        하의
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="clothing_type" value="skirt" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        스커트
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="clothing_type" value="outer" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        아우터
+                    </label>
+                </div>
+            </div>
+
+            <!-- 상의 소분류 필터 -->
+            <div class="filter-section" id="top-subcategories" style="display: none;">
+                <h3>상의 소분류</h3>
+                <div class="filter-options">
+                    <label class="filter-option">
+                        <input type="checkbox" name="top_subcategory" value="tshirt" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        티셔츠
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="top_subcategory" value="sweatshirt" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        맨투맨/후드
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="top_subcategory" value="shirt" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        셔츠/블라우스
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="top_subcategory" value="knit" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        니트
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="top_subcategory" value="sleeveless" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        민소매
+                    </label>
+                </div>
+            </div>
+
+            <!-- 가격 필터 -->
+            <div class="filter-section">
+                <h3>가격 범위</h3>
+                <div class="price-filter">
+                    <div class="price-inputs">
+                        <input type="number" id="min-price" placeholder="최소가격" class="price-input">
+                        <span class="price-separator">~</span>
+                        <input type="number" id="max-price" placeholder="최대가격" class="price-input">
+                    </div>
+                    <div class="price-buttons">
+                        <button class="price-btn" data-min="0" data-max="30000">3만원 이하</button>
+                        <button class="price-btn" data-min="30000" data-max="50000">3-5만원</button>
+                        <button class="price-btn" data-min="50000" data-max="100000">5-10만원</button>
+                        <button class="price-btn" data-min="100000" data-max="999999">10만원 이상</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 평점 필터 -->
+            <div class="filter-section">
+                <h3>평점</h3>
+                <div class="filter-options">
+                    <label class="filter-option">
+                        <input type="checkbox" name="rating" value="5" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        ⭐⭐⭐⭐⭐ 5점 (완벽)
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="rating" value="4.5" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        ⭐⭐⭐⭐☆ 4.5점 이상 (매우 좋음)
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="rating" value="4" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        ⭐⭐⭐⭐ 4점 이상 (좋음)
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="rating" value="3.5" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        ⭐⭐⭐☆ 3.5점 이상 (보통 이상)
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="rating" value="3" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        ⭐⭐⭐ 3점 이상 (보통)
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="rating" value="2.5" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        ⭐⭐☆ 2.5점 이상 (보통 이하)
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="rating" value="2" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        ⭐⭐ 2점 이상 (나쁨)
+                    </label>
+                </div>
+            </div>
+
+            <!-- 브랜드 필터 -->
+            <div class="filter-section">
+                <h3>브랜드</h3>
+                <div class="brand-search">
+                    <input type="text" id="brand-search" placeholder="브랜드 검색..." class="brand-input">
+                </div>
+                <div class="filter-options" id="brand-options">
+                    <!-- 브랜드 옵션들이 동적으로 로드됩니다 -->
+                </div>
+            </div>
+
+            <!-- 필터 초기화 -->
+            <div class="filter-actions">
+                <button id="clear-filters" class="clear-btn">필터 초기화</button>
+                <button id="apply-filters" class="apply-btn">필터 적용</button>
+            </div>
         </aside>
+
         <main class="product-listing-area">
-            <h1>선택된 카테고리 상품</h1>
-            <div class="product-grid">
+            <div class="listing-header">
+                <h1>상품 목록</h1>
+                <div class="sort-options">
+                    <select id="sort-select" class="sort-select">
+                        <option value="default">기본순</option>
+                        <option value="price-low">가격 낮은순</option>
+                        <option value="price-high">가격 높은순</option>
+                        <option value="rating">평점순</option>
+                        <option value="name">이름순</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="active-filters" id="active-filters">
+                <!-- 활성화된 필터들이 여기에 표시됩니다 -->
+            </div>
+
+            <div class="product-grid" id="product-grid">
                 {% for product in products %}
-                <div class="product-card">
+                <div class="product-card" 
+                     data-gender="{{ product.get('성별', '') }}"
+                     data-type="{{ product.get('의류타입', '') }}"
+                     data-subcategory="{{ product.get('소분류', '') }}"
+                     data-price="{{ product.get('processed_price', '0') }}"
+                     data-rating="{{ product.get('평점', '0') }}"
+                     data-brand="{{ product.get('브랜드', '') }}">
                     <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
                     <h3>{{ product['상품명'] }}</h3>
+                    <p class="brand">{{ product.get('브랜드', '') }}</p>
                     <p class="price">{{ product['가격'] }}</p>
-                    <button>장바구니에 추가</button>
+                    <div class="rating">
+                        <span class="stars" data-rating="{{ product.get('평점', '0') }}">
+                            {% set rating = product.get('평점', 0) | float %}
+                            {% for i in range(5) %}
+                                {% if rating >= i + 1 %}
+                                    ⭐
+                                {% elif rating >= i + 0.5 %}
+                                    ☆
+                                {% else %}
+                                    ☆
+                                {% endif %}
+                            {% endfor %}
+                        </span>
+                        <span class="rating-text">{{ product.get('평점', '0') }}/5</span>
+                    </div>
+                    <button class="add-to-cart">장바구니에 추가</button>
                 </div>
                 {% endfor %}
             </div>
+
+            <div class="no-results" id="no-results" style="display: none;">
+                <p>조건에 맞는 상품이 없습니다.</p>
+                <button onclick="clearAllFilters()" class="clear-all-btn">모든 필터 초기화</button>
+            </div>
+            
+            <div class="load-more-container" id="load-more-container" style="display: none;">
+                <button id="load-more-btn" class="load-more-btn">더 많은 상품 보기</button>
+            </div>
         </main>
     </div>
+
+    <script src="{{ url_for('static', path='js/filters.js') }}"></script>
 {% endblock %}

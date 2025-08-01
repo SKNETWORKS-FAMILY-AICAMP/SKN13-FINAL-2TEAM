@@ -35,7 +35,7 @@ async def login_post(request: Request, username: str = Form(...), password: str 
         return templates.TemplateResponse("login.html", {"request": request, "error": "아이디 또는 비밀번호가 올바르지 않습니다."})
     
     request.session["user_name"] = username
-    return RedirectResponse(url="/mypage", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/mypage/", status_code=status.HTTP_302_FOUND)
 
 @router.get("/signup", response_class=HTMLResponse)
 async def signup(request: Request):

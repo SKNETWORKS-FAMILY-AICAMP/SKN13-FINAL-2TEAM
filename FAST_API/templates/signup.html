@@ -2,16 +2,16 @@
 
 {% block content %}
     <div class="signup-container">
-        <form class="signup-form">
+        <form class="signup-form" method="post" action="/auth/signup">
             <h1>회원가입</h1>
+            {% if error %}
+            <p style="color: red; text-align: center;">{{ error }}</p>
+            {% endif %}
             <div class="input-group">
-                <input type="email" id="signupEmail" placeholder="이메일 주소" required>
+                <input type="text" name="username" placeholder="아이디" required>
             </div>
             <div class="input-group">
-                <input type="password" id="signupPassword" placeholder="비밀번호" required>
-            </div>
-            <div class="input-group">
-                <input type="password" id="confirmPassword" placeholder="비밀번호 확인" required>
+                <input type="password" name="password" placeholder="비밀번호" required>
             </div>
             <button type="submit" class="signup-button">회원가입</button>
             <div class="login-link">

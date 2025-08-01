@@ -13,7 +13,7 @@ async def jjim_list(request: Request):
     random_jjim_products = get_random_products(4)
     return templates.TemplateResponse("jjim/jjim.html", {"request": request, "jjim_products": random_jjim_products})
 
-@router.get("/compare/{product_names}", response_class=HTMLResponse)
+@router.get("/compare/{product_names:path}", response_class=HTMLResponse)
 async def compare_products(request: Request, product_names: str):
     all_products = get_all_products()
     decoded_product_names = urllib.parse.unquote(product_names)

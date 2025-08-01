@@ -5,16 +5,76 @@
 {% endblock %}
 
 {% block content %}
-<div class="mypage-container">
-  <h1 class="mypage-title">마이페이지</h1>
-  <div class="mypage-section">
-    <p>환영합니다, {{ request.session.get('user_name', '사용자') }}님 👋</p>
-    <ul class="mypage-menu">
-      <li><a href="#">내 정보 보기</a></li>
-      <li><a href="#">찜한 상품</a></li>
-      <li><a href="#">내 리뷰</a></li>
-      <li><a href="#">로그아웃</a></li>
-    </ul>
+<div class="mypage-dashboard">
+  <!-- 내 정보 섹션 -->
+  <section class="profile-section">
+    <div class="profile-card">
+      <img src="https://i.namu.wiki/i/63SUjoeSkbefiyy1x19TThehoFExxifYSYHERHsI6YVWv2yCg1e4TnR7cqKmOUFDyeqsuW27d8gK6gyrJ3LPTQ.webp" alt="Profile Picture" class="profile-picture">
+      <div class="profile-info">
+        <h1 class="username">{{ request.session.get('user_name', 'GUEST') }}</h1>
+        <p class="userid">@{{ request.session.get('user_id', 'guest_user') }}</p>
+        <div class="profile-actions">
+          <div class="profile-actions">
+          <button class="edit-profile-btn">프로필 수정</button>
+          <a href="/auth/logout" class="logout-btn">로그아웃</a>
+        </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 활동 기록 섹션 -->
+  <div class="activity-grid">
+    <!-- 최근 본 상품 -->
+    <section class="activity-section">
+      <h2 class="section-title">최근 본 상품</h2>
+      {% if viewed_products %}
+      <div class="product-grid">
+        {% for product in viewed_products %}
+        <div class="product-card">
+          <img src="{{ product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('상품명') }}">
+          <p class="product-name">{{ product.get('상품명') }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="no-records-message">최근 본 상품 기록이 없습니다.</p>
+      {% endif %}
+    </section>
+
+    <!-- 추천 상품 -->
+    <section class="activity-section">
+      <h2 class="section-title">회원님을 위한 추천</h2>
+      {% if recommended_products %}
+      <div class="product-grid">
+        {% for product in recommended_products %}
+        <div class="product-card">
+          <img src="{{ product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('상품명') }}">
+          <p class="product-name">{{ product.get('상품명') }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="no-records-message">추천 상품 기록이 없습니다.</p>
+      {% endif %}
+    </section>
+
+    <!-- 찜한 상품 -->
+    <section class="activity-section">
+      <h2 class="section-title">내가 찜한 상품</h2>
+      {% if jjim_products %}
+      <div class="product-grid">
+        {% for product in jjim_products %}
+        <div class="product-card">
+          <img src="{{ product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('상품명') }}">
+          <p class="product-name">{{ product.get('상품명') }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="no-records-message">찜한 상품 기록이 없습니다.</p>
+      {% endif %}
+    </section>
   </div>
 </div>
 {% endblock %}

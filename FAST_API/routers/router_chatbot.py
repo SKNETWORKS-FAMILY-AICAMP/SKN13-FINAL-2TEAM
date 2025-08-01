@@ -364,7 +364,7 @@ def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
     
     return result
 
-@router.post("/chat", response_class=JSONResponse)
+@router.post("/", response_class=JSONResponse)
 async def chat_recommend(user_input: str = Form(...)):
     """챗봇 추천 API - 정확 매칭 + 랜덤"""
     try:

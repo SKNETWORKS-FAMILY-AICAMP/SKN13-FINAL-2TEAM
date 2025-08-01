@@ -1,37 +1,149 @@
-.mypage-container {
-  max-width: 800px;
-  margin: 40px auto;
-  padding: 20px;
-  background-color: #1a1a1a;
-  border-radius: 10px;
-  color: #f1f1f1;
+body {
+    background-color: #f4f6f8;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.mypage-title {
-  font-size: 2em;
-  margin-bottom: 20px;
-  color: #fff;
+.mypage-dashboard {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px;
 }
 
-.mypage-section p {
-  margin-bottom: 15px;
+/* 프로필 섹션 */
+.profile-section {
+    margin-bottom: 40px;
 }
 
-.mypage-menu {
-  list-style: none;
-  padding: 0;
+.profile-card {
+    background-color: #fff;
+    border-radius: 15px;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
 }
 
-.mypage-menu li {
-  margin-bottom: 10px;
+.profile-picture {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-right: 30px;
+    object-fit: cover;
+    border: 4px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.mypage-menu a {
-  color: #87ceeb;
-  text-decoration: none;
-  font-weight: bold;
+.profile-info .username {
+    font-size: 2.2em;
+    font-weight: 700;
+    margin: 0;
+    color: #2c3e50;
 }
 
-.mypage-menu a:hover {
-  text-decoration: underline;
+.profile-info .userid {
+    font-size: 1.1em;
+    color: #7f8c8d;
+    margin: 5px 0 15px;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 10px; /* 버튼 사이 간격 */
+    margin-top: 15px; /* 프로필 정보와의 간격 */
+}
+
+.edit-profile-btn,
+.logout-btn {
+    font-size: 0.9em; /* 글자 크기 통일 */
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    text-decoration: none; /* <a> 태그 스타일 */
+    display: inline-block; /* <a> 태그 스타일 */
+    text-align: center;
+}
+
+.edit-profile-btn {
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+}
+
+.edit-profile-btn:hover {
+    background-color: #2980b9;
+}
+
+.logout-btn {
+    background-color: transparent;
+    color: #3498db;
+    border: 2px solid #3498db;
+}
+
+.logout-btn:hover {
+    background-color: #3498db;
+    color: #fff;
+}
+
+/* 활동 기록 섹션 */
+.activity-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+}
+
+.activity-section .section-title {
+    font-size: 1.8em;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+    color: #34495e;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    background-color: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+}
+
+.product-card img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+}
+
+.product-card .product-name {
+    padding: 15px;
+    font-weight: 600;
+    text-align: center;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.no-records-message {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 1.1em;
+    padding: 20px;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    margin-top: 20px;
 }

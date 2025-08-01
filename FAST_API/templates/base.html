@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="{{ url_for('static', path='css/login.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/signup.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/survey.css') }}">
-    
     <link rel="stylesheet" href="{{ url_for('static', path='css/preference.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/chatbot.css') }}">
 
     {% block head %}{% endblock %}
 </head>
@@ -19,9 +19,7 @@
         <nav>
             <ul>
                 <li><a href="/">홈</a></li>
-                <li><a href="/recommend/">추천</a></li>
                 <li><a href="/preference">취향 기반 추천</a></li>
-                
                 <li><a href="/jjim/">찜목록 & 비교</a></li>
                 <li><a href="/products/">카테고리 검색</a></li>
                 <li><a href="/auth/login">로그인</a></li>
@@ -39,10 +37,34 @@
         {% endblock %}
     </main>
 
+    <!-- 플로팅 챗봇 위젯 (모든 페이지에 표시) -->
+    <button id="chatbot-toggle-btn" class="chatbot-toggle-btn">💬</button>
+    
+    <div id="floating-chatbot-widget" class="floating-chatbot-widget">
+        <div class="widget-header">
+            <h3>의류 추천 챗봇</h3>
+            <button id="widget-close-btn" class="widget-close-btn">×</button>
+        </div>
+        
+        <div class="widget-content">
+            <div id="widget-messages" class="widget-messages">
+                <!-- 위젯 메시지들이 여기에 추가됩니다 -->
+            </div>
+        </div>
+        
+        <div class="widget-input">
+            <form id="widget-form" class="widget-form">
+                <input type="text" id="widget-input" placeholder="메시지를 입력하세요..." autocomplete="off">
+                <button type="submit">전송</button>
+            </form>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2025 Ivle Malle All rights reserved.</p>
     </footer>
 
     <script src="{{ url_for('static', path='js/carousel.js') }}"></script>
+    <script src="{{ url_for('static', path='js/chatbot.js') }}"></script>
 </body>
 </html>

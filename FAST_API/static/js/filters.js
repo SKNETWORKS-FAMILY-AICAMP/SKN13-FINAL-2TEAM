@@ -19,7 +19,7 @@ class ProductFilter {
     }
 
     initializeEventListeners() {
-        // 상의 체크박스 변경 시 소분류 표시/숨김
+        // 의류 타입 체크박스 변경 시 소분류 표시/숨김
         document.querySelectorAll('input[name="clothing_type"]').forEach(checkbox => {
             checkbox.addEventListener('change', this.handleClothingTypeChange.bind(this));
         });
@@ -27,6 +27,11 @@ class ProductFilter {
         // 가격 버튼 클릭 이벤트
         this.priceButtons.forEach(button => {
             button.addEventListener('click', this.handlePriceButtonClick.bind(this));
+        });
+
+        // 평점 버튼 클릭 이벤트
+        document.querySelectorAll('.rating-btn').forEach(button => {
+            button.addEventListener('click', this.handleRatingButtonClick.bind(this));
         });
 
         // 필터 체크박스 이벤트
@@ -48,17 +53,54 @@ class ProductFilter {
         document.getElementById('min-price').addEventListener('input', this.applyFilters.bind(this));
         document.getElementById('max-price').addEventListener('input', this.applyFilters.bind(this));
 
+        // 평점 입력 필드 변경 시 필터링
+        document.getElementById('min-rating').addEventListener('input', this.applyFilters.bind(this));
+        document.getElementById('max-rating').addEventListener('input', this.applyFilters.bind(this));
+
         // Load More 이벤트
         this.loadMoreBtn.addEventListener('click', this.loadMoreProducts.bind(this));
     }
 
     handleClothingTypeChange(event) {
-        if (event.target.value === 'top' && event.target.checked) {
-            this.topSubcategories.style.display = 'block';
-        } else if (event.target.value === 'top' && !event.target.checked) {
-            this.topSubcategories.style.display = 'none';
-            // 상의 소분류 체크박스들 해제
-            document.querySelectorAll('input[name="top_subcategory"]').forEach(cb => cb.checked = false);
+        const isChecked = event.target.checked;
+        const value = event.target.value;
+        
+        // 현재 선택된 의류 타입들 확인
+        const selectedTypes = Array.from(document.querySelectorAll('input[name="clothing_type"]:checked')).map(cb => cb.value);
+        
+        // 모든 소분류 숨기기
+        this.topSubcategories.style.display = 'none';
+        document.getElementById('bottom-subcategories').style.display = 'none';
+        document.getElementById('skirt-subcategories').style.display = 'none';
+        
+        // 선택된 의류 타입에 따라 해당하는 소분류들 표시
+        selectedTypes.forEach(type => {
+            switch(type) {
+                case 'top':
+                    this.topSubcategories.style.display = 'block';
+                    break;
+                case 'bottom':
+                    document.getElementById('bottom-subcategories').style.display = 'block';
+                    break;
+                case 'skirt':
+                    document.getElementById('skirt-subcategories').style.display = 'block';
+                    break;
+            }
+        });
+        
+        // 체크 해제 시 해당 소분류 체크박스들도 해제
+        if (!isChecked) {
+            switch(value) {
+                case 'top':
+                    document.querySelectorAll('input[name="top_subcategory"]').forEach(cb => cb.checked = false);
+                    break;
+                case 'bottom':
+                    document.querySelectorAll('input[name="bottom_subcategory"]').forEach(cb => cb.checked = false);
+                    break;
+                case 'skirt':
+                    document.querySelectorAll('input[name="skirt_subcategory"]').forEach(cb => cb.checked = false);
+                    break;
+            }
         }
     }
 
@@ -67,16 +109,27 @@ class ProductFilter {
         const maxPrice = event.target.dataset.max;
         document.getElementById('min-price').value = minPrice;
         document.getElementById('max-price').value = maxPrice;
+        this.applyFilters(); // Automatically apply filters when button is clicked
+    }
+
+    handleRatingButtonClick(event) {
+        const minRating = event.target.dataset.min;
+        const maxRating = event.target.dataset.max;
+        document.getElementById('min-rating').value = minRating;
+        document.getElementById('max-rating').value = maxRating;
+        this.applyFilters(); // Automatically apply filters when button is clicked
     }
 
     applyFilters() {
         const selectedGenders = Array.from(document.querySelectorAll('input[name="gender"]:checked')).map(cb => cb.value);
         const selectedTypes = Array.from(document.querySelectorAll('input[name="clothing_type"]:checked')).map(cb => cb.value);
         const selectedSubcategories = Array.from(document.querySelectorAll('input[name="top_subcategory"]:checked')).map(cb => cb.value);
-        const selectedRatings = Array.from(document.querySelectorAll('input[name="rating"]:checked')).map(cb => cb.value);
         const minPrice = document.getElementById('min-price').value;
         const maxPrice = document.getElementById('max-price').value;
-        const brandSearchTerm = this.brandSearch.value.toLowerCase();
+        const minRating = document.getElementById('min-rating').value;
+        const maxRating = document.getElementById('max-rating').value;
+        const brandSearchTerm = this.brandSearch.value.trim();
+        const selectedBrands = brandSearchTerm ? brandSearchTerm.split(',').map(brand => brand.trim()).filter(brand => brand.length > 0) : [];
 
         let visibleCount = 0;
 
@@ -91,19 +144,26 @@ class ProductFilter {
                 }
             }
 
-            // 의류 타입 필터
-            if (selectedTypes.length > 0) {
-                const cardType = card.dataset.type.toLowerCase();
-                if (!selectedTypes.some(type => cardType.includes(type))) {
+            // 소분류 필터 (소분류가 선택되면 의류 타입 필터는 무시)
+            const selectedTopSubcategories = Array.from(document.querySelectorAll('input[name="top_subcategory"]:checked')).map(cb => cb.value);
+            const selectedBottomSubcategories = Array.from(document.querySelectorAll('input[name="bottom_subcategory"]:checked')).map(cb => cb.value);
+            const selectedSkirtSubcategories = Array.from(document.querySelectorAll('input[name="skirt_subcategory"]:checked')).map(cb => cb.value);
+            
+            const allSelectedSubcategories = [...selectedTopSubcategories, ...selectedBottomSubcategories, ...selectedSkirtSubcategories];
+            
+            if (allSelectedSubcategories.length > 0) {
+                // 소분류가 선택된 경우, 소분류로만 필터링
+                const cardSubcategory = card.dataset.subcategory.toLowerCase();
+                if (!allSelectedSubcategories.some(sub => cardSubcategory === sub.toLowerCase())) {
                     shouldShow = false;
                 }
-            }
-
-            // 상의 소분류 필터
-            if (selectedSubcategories.length > 0) {
-                const cardSubcategory = card.dataset.subcategory.toLowerCase();
-                if (!selectedSubcategories.some(sub => cardSubcategory.includes(sub))) {
-                    shouldShow = false;
+            } else {
+                // 소분류가 선택되지 않은 경우에만 의류 타입 필터 적용
+                if (selectedTypes.length > 0) {
+                    const cardType = card.dataset.type.toLowerCase();
+                    if (!selectedTypes.some(type => cardType.includes(type))) {
+                        shouldShow = false;
+                    }
                 }
             }
 
@@ -114,22 +174,17 @@ class ProductFilter {
                 if (maxPrice && cardPrice > parseInt(maxPrice)) shouldShow = false;
             }
 
-                                // 평점 필터
-                    if (selectedRatings.length > 0) {
-                        const cardRating = parseFloat(card.dataset.rating);
-                        const hasMatchingRating = selectedRatings.some(rating => {
-                            const minRating = parseFloat(rating);
-                            return cardRating >= minRating;
-                        });
-                        if (!hasMatchingRating) {
-                            shouldShow = false;
-                        }
-                    }
+            // 평점 필터
+            if (minRating || maxRating) {
+                const cardRating = parseFloat(card.dataset.rating);
+                if (minRating && cardRating < parseFloat(minRating)) shouldShow = false;
+                if (maxRating && cardRating > parseFloat(maxRating)) shouldShow = false;
+            }
 
-            // 브랜드 검색
-            if (brandSearchTerm) {
+            // 브랜드 필터
+            if (selectedBrands.length > 0) {
                 const cardBrand = card.dataset.brand.toLowerCase();
-                if (!cardBrand.includes(brandSearchTerm)) {
+                if (!selectedBrands.some(brand => cardBrand.includes(brand.toLowerCase()))) {
                     shouldShow = false;
                 }
             }
@@ -154,19 +209,57 @@ class ProductFilter {
         const activeFiltersContainer = document.getElementById('active-filters');
         const activeFilters = [];
 
-        // 선택된 필터들 수집
+        // 소분류가 선택되었는지 확인
+        const selectedTopSubcategories = Array.from(document.querySelectorAll('input[name="top_subcategory"]:checked')).map(cb => cb.value);
+        const selectedBottomSubcategories = Array.from(document.querySelectorAll('input[name="bottom_subcategory"]:checked')).map(cb => cb.value);
+        const selectedSkirtSubcategories = Array.from(document.querySelectorAll('input[name="skirt_subcategory"]:checked')).map(cb => cb.value);
+        const allSelectedSubcategories = [...selectedTopSubcategories, ...selectedBottomSubcategories, ...selectedSkirtSubcategories];
+
+        // 선택된 필터들 수집 (소분류가 선택된 경우 의류 타입은 제외)
         document.querySelectorAll('.filter-checkbox:checked').forEach(cb => {
-            activeFilters.push(cb.parentElement.textContent.trim());
+            const filterText = cb.parentElement.textContent.trim();
+            const filterType = this.getFilterType(cb);
+            
+            // 소분류가 선택된 경우 의류 타입 필터는 제외
+            if (allSelectedSubcategories.length > 0 && filterType === 'clothing_type') {
+                return; // 이 필터는 건너뛰기
+            }
+            
+            activeFilters.push({
+                text: filterText,
+                type: filterType,
+                element: cb
+            });
         });
 
         const minPrice = document.getElementById('min-price').value;
         const maxPrice = document.getElementById('max-price').value;
         if (minPrice || maxPrice) {
-            activeFilters.push(`가격: ${minPrice || '0'}원 ~ ${maxPrice || '∞'}원`);
+            activeFilters.push({
+                text: `가격: ${minPrice || '0'}원 ~ ${maxPrice || '∞'}원`,
+                type: 'price',
+                element: null
+            });
         }
 
-        if (this.brandSearch.value) {
-            activeFilters.push(`브랜드: ${this.brandSearch.value}`);
+        const minRating = document.getElementById('min-rating').value;
+        const maxRating = document.getElementById('max-rating').value;
+        if (minRating || maxRating) {
+            activeFilters.push({
+                text: `평점: ${minRating || '0'} ~ ${maxRating || '5'}점`,
+                type: 'rating',
+                element: null
+            });
+        }
+
+        // 브랜드 필터 수집
+        const brandSearchTerm = this.brandSearch.value.trim();
+        if (brandSearchTerm) {
+            activeFilters.push({
+                text: `브랜드: ${brandSearchTerm}`,
+                type: 'brand',
+                element: null
+            });
         }
 
         // 활성 필터 표시
@@ -174,7 +267,10 @@ class ProductFilter {
             activeFiltersContainer.innerHTML = `
                 <div class="active-filter-tags">
                     ${activeFilters.map(filter => `
-                        <span class="filter-tag">${filter}</span>
+                        <span class="filter-tag" data-filter-type="${filter.type}">
+                            ${filter.text}
+                            <button class="remove-filter" onclick="window.productFilter.removeFilter('${filter.type}')">×</button>
+                        </span>
                     `).join('')}
                 </div>
             `;
@@ -183,10 +279,50 @@ class ProductFilter {
         }
     }
 
+    getFilterType(checkbox) {
+        const name = checkbox.name;
+        if (name === 'gender') return 'gender';
+        if (name === 'clothing_type') return 'clothing_type';
+        if (name === 'top_subcategory' || name === 'bottom_subcategory' || name === 'skirt_subcategory') return 'subcategory';
+        return 'other';
+    }
+
+    removeFilter(filterType) {
+        switch(filterType) {
+            case 'gender':
+                document.querySelectorAll('input[name="gender"]:checked').forEach(cb => cb.checked = false);
+                break;
+            case 'clothing_type':
+                document.querySelectorAll('input[name="clothing_type"]:checked').forEach(cb => cb.checked = false);
+                // Hide all subcategory sections
+                document.getElementById('top-subcategories').style.display = 'none';
+                document.getElementById('bottom-subcategories').style.display = 'none';
+                document.getElementById('skirt-subcategories').style.display = 'none';
+                break;
+            case 'subcategory':
+                document.querySelectorAll('input[name="top_subcategory"]:checked, input[name="bottom_subcategory"]:checked, input[name="skirt_subcategory"]:checked').forEach(cb => cb.checked = false);
+                break;
+            case 'price':
+                document.getElementById('min-price').value = '';
+                document.getElementById('max-price').value = '';
+                break;
+            case 'rating':
+                document.getElementById('min-rating').value = '';
+                document.getElementById('max-rating').value = '';
+                break;
+            case 'brand':
+                this.brandSearch.value = '';
+                break;
+        }
+        this.applyFilters();
+    }
+
     clearAllFilters() {
         document.querySelectorAll('.filter-checkbox').forEach(cb => cb.checked = false);
         document.getElementById('min-price').value = '';
         document.getElementById('max-price').value = '';
+        document.getElementById('min-rating').value = '';
+        document.getElementById('max-rating').value = '';
         this.brandSearch.value = '';
         this.topSubcategories.style.display = 'none';
         this.sortSelect.value = 'default';

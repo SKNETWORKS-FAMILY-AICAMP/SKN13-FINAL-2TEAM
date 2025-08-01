@@ -24,11 +24,7 @@
                         <span class="checkmark"></span>
                         여성
                     </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="gender" value="unisex" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        유니섹스
-                    </label>
+
                 </div>
             </div>
 
@@ -51,11 +47,7 @@
                         <span class="checkmark"></span>
                         스커트
                     </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="clothing_type" value="outer" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        아우터
-                    </label>
+
                 </div>
             </div>
 
@@ -91,6 +83,70 @@
                 </div>
             </div>
 
+            <!-- 하의 소분류 필터 -->
+            <div class="filter-section" id="bottom-subcategories" style="display: none;">
+                <h3>하의 소분류</h3>
+                <div class="filter-options">
+                    <label class="filter-option">
+                        <input type="checkbox" name="bottom_subcategory" value="jeans" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        청바지
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="bottom_subcategory" value="pants" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        팬츠
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="bottom_subcategory" value="shorts" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        반바지
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="bottom_subcategory" value="leggings" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        레깅스
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="bottom_subcategory" value="joggers" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        조거팬츠
+                    </label>
+                </div>
+            </div>
+
+            <!-- 스커트 소분류 필터 -->
+            <div class="filter-section" id="skirt-subcategories" style="display: none;">
+                <h3>스커트 소분류</h3>
+                <div class="filter-options">
+                    <label class="filter-option">
+                        <input type="checkbox" name="skirt_subcategory" value="mini" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        미니스커트
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="skirt_subcategory" value="midi" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        미디스커트
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="skirt_subcategory" value="maxi" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        맥시스커트
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="skirt_subcategory" value="pleated" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        플리츠스커트
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="skirt_subcategory" value="a_line" class="filter-checkbox">
+                        <span class="checkmark"></span>
+                        A라인스커트
+                    </label>
+                </div>
+            </div>
+
             <!-- 가격 필터 -->
             <div class="filter-section">
                 <h3>가격 범위</h3>
@@ -112,42 +168,18 @@
             <!-- 평점 필터 -->
             <div class="filter-section">
                 <h3>평점</h3>
-                <div class="filter-options">
-                    <label class="filter-option">
-                        <input type="checkbox" name="rating" value="5" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        ⭐⭐⭐⭐⭐ 5점 (완벽)
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="rating" value="4.5" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        ⭐⭐⭐⭐☆ 4.5점 이상 (매우 좋음)
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="rating" value="4" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        ⭐⭐⭐⭐ 4점 이상 (좋음)
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="rating" value="3.5" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        ⭐⭐⭐☆ 3.5점 이상 (보통 이상)
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="rating" value="3" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        ⭐⭐⭐ 3점 이상 (보통)
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="rating" value="2.5" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        ⭐⭐☆ 2.5점 이상 (보통 이하)
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="rating" value="2" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        ⭐⭐ 2점 이상 (나쁨)
-                    </label>
+                <div class="rating-filter">
+                    <div class="rating-inputs">
+                        <input type="number" id="min-rating" placeholder="최소" min="0" max="5" step="0.1" class="rating-input">
+                        <span class="rating-separator">~</span>
+                        <input type="number" id="max-rating" placeholder="최대" min="0" max="5" step="0.1" class="rating-input">
+                    </div>
+                    <div class="rating-buttons">
+                        <button type="button" class="rating-btn" data-min="4.0" data-max="5.0">4.0점 이상</button>
+                        <button type="button" class="rating-btn" data-min="3.0" data-max="5.0">3.0점 이상</button>
+                        <button type="button" class="rating-btn" data-min="2.0" data-max="5.0">2.0점 이상</button>
+                        <button type="button" class="rating-btn" data-min="0" data-max="5.0">전체</button>
+                    </div>
                 </div>
             </div>
 
@@ -155,10 +187,7 @@
             <div class="filter-section">
                 <h3>브랜드</h3>
                 <div class="brand-search">
-                    <input type="text" id="brand-search" placeholder="브랜드 검색..." class="brand-input">
-                </div>
-                <div class="filter-options" id="brand-options">
-                    <!-- 브랜드 옵션들이 동적으로 로드됩니다 -->
+                    <input type="text" id="brand-search" placeholder="브랜드명을 입력하세요 (쉼표로 구분)" class="brand-input">
                 </div>
             </div>
 

@@ -1,9 +1,0 @@
-from fastapi import APIRouter, Request
-from fastapi.templating import Jinja2Templates
-
-router = APIRouter()
-templates = Jinja2Templates(directory="templates")
-
-@router.get("/user-page")
-def user_page(request: Request):
-    return templates.TemplateResponse("user.html", {"request": request, "title": "유저"})

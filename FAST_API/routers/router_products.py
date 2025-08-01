@@ -1,12 +1,168 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request, Query
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from database import get_random_products
+from database import get_random_products, get_all_products
+import re
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
+def process_product_data(products):
+    """상품 데이터를 필터링에 필요한 형태로 가공합니다."""
+    processed_products = []
+    
+    for product in products:
+        processed_product = product.copy()
+        
+        # 가격 정보 처리
+        price_text = product.get('가격', '')
+        if price_text:
+            # 할인가격 추출 (쿠폰적용가, 할인적용가 등)
+            discount_match = re.search(r'할인적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+            coupon_match = re.search(r'쿠폰적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+            normal_match = re.search(r'정상가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+            
+            if discount_match:
+                processed_product['processed_price'] = int(discount_match.group(1).replace(',', ''))
+            elif coupon_match:
+                processed_product['processed_price'] = int(coupon_match.group(1).replace(',', ''))
+            elif normal_match:
+                processed_product['processed_price'] = int(normal_match.group(1).replace(',', ''))
+            else:
+                processed_product['processed_price'] = 0
+        else:
+            processed_product['processed_price'] = 0
+        
+        # 성별 판단 (상품명과 브랜드 기반)
+        product_name = product.get('상품명', '').lower()
+        brand = product.get('브랜드', '').lower()
+        
+        if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
+            processed_product['성별'] = '여성'
+        elif any(word in product_name for word in ['남성', 'men', 'man', '남자']):
+            processed_product['성별'] = '남성'
+        elif any(word in product_name for word in ['unisex', '유니섹스']):
+            processed_product['성별'] = '유니섹스'
+        else:
+            processed_product['성별'] = '여성'  # 기본값
+        
+        # 의류 타입 판단
+        if any(word in product_name for word in ['티셔츠', 't-shirt', 'tshirt', '티', 'shirt']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '티셔츠'
+        elif any(word in product_name for word in ['맨투맨', '후드', 'sweatshirt', 'hoodie', '맨투맨']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '맨투맨/후드'
+        elif any(word in product_name for word in ['셔츠', 'blouse', '블라우스']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '셔츠/블라우스'
+        elif any(word in product_name for word in ['니트', 'knit', '스웨터']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '니트'
+        elif any(word in product_name for word in ['민소매', '탑', 'top', '크롭']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '민소매'
+        elif any(word in product_name for word in ['바지', '팬츠', 'pants', 'jeans']):
+            processed_product['의류타입'] = '하의'
+        elif any(word in product_name for word in ['스커트', 'skirt']):
+            processed_product['의류타입'] = '스커트'
+        elif any(word in product_name for word in ['아우터', 'outer', '코트', '자켓']):
+            processed_product['의류타입'] = '아우터'
+        else:
+            processed_product['의류타입'] = '상의'  # 기본값
+            processed_product['소분류'] = '기타'
+        
+        # 평점 (더 현실적인 분포로 생성)
+        import random
+        # 평점 분포: 5점(20%), 4.5점(25%), 4점(30%), 3.5점(15%), 3점(8%), 2.5점(2%)
+        rating_distribution = [
+            (5.0, 20), (4.5, 25), (4.0, 30), (3.5, 15), (3.0, 8), (2.5, 2)
+        ]
+        
+        # 가중치 기반 랜덤 선택
+        total_weight = sum(weight for _, weight in rating_distribution)
+        random_value = random.uniform(0, total_weight)
+        
+        current_weight = 0
+        selected_rating = 4.0  # 기본값
+        
+        for rating, weight in rating_distribution:
+            current_weight += weight
+            if random_value <= current_weight:
+                selected_rating = rating
+                break
+        
+        # 약간의 변동 추가 (±0.2)
+        variation = random.uniform(-0.2, 0.2)
+        final_rating = max(1.0, min(5.0, selected_rating + variation))
+        processed_product['평점'] = round(final_rating, 1)
+        
+        processed_products.append(processed_product)
+    
+    return processed_products
+
 @router.get("/", response_class=HTMLResponse)
 async def products(request: Request):
-    random_products = get_random_products(10)
-    return templates.TemplateResponse("products/category_browse.html", {"request": request, "products": random_products})
+    # 모든 상품을 가져와서 처리
+    all_products = get_all_products()
+    processed_products = process_product_data(all_products)
+    
+    # 기본적으로 20개 상품만 표시 (필터링으로 더 보기 가능)
+    display_products = processed_products[:20]
+    
+    return templates.TemplateResponse("products/category_browse.html", {
+        "request": request, 
+        "products": display_products
+    })
+
+@router.get("/api/products", response_class=JSONResponse)
+async def get_products_api(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    gender: str = Query(None),
+    clothing_type: str = Query(None),
+    subcategory: str = Query(None),
+    min_price: int = Query(None),
+    max_price: int = Query(None),
+    min_rating: float = Query(None),
+    brand: str = Query(None)
+):
+    """API endpoint for getting filtered products"""
+    all_products = get_all_products()
+    processed_products = process_product_data(all_products)
+    
+    # 필터링 적용
+    filtered_products = []
+    for product in processed_products:
+        include_product = True
+        
+        if gender and product.get('성별', '') != gender:
+            include_product = False
+        if clothing_type and product.get('의류타입', '') != clothing_type:
+            include_product = False
+        if subcategory and product.get('소분류', '') != subcategory:
+            include_product = False
+        if min_price and product.get('processed_price', 0) < min_price:
+            include_product = False
+        if max_price and product.get('processed_price', 0) > max_price:
+            include_product = False
+        if min_rating and product.get('평점', 0) < min_rating:
+            include_product = False
+        if brand and brand.lower() not in product.get('브랜드', '').lower():
+            include_product = False
+            
+        if include_product:
+            filtered_products.append(product)
+    
+    # 페이지네이션
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_products = filtered_products[start_idx:end_idx]
+    
+    return {
+        "products": paginated_products,
+        "total": len(filtered_products),
+        "page": page,
+        "limit": limit,
+        "has_more": end_idx < len(filtered_products)
+    }

@@ -1,0 +1,341 @@
+/* Filter Components Styles */
+
+/* Filter Section */
+.filter-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #333;
+    position: relative;
+    z-index: 1;
+}
+
+.filter-section:last-child {
+    border-bottom: none;
+}
+
+.filter-section h3 {
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    color: #e5e5e5;
+    font-weight: 600;
+}
+
+/* Filter Options */
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.95em;
+    color: #e5e5e5;
+    transition: color 0.2s ease;
+}
+
+.filter-option:hover {
+    color: #e50914;
+}
+
+/* Custom Checkboxes */
+.filter-checkbox {
+    display: none;
+}
+
+.checkmark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #555;
+    border-radius: 3px;
+    margin-right: 10px;
+    position: relative;
+    background-color: #333;
+    transition: all 0.2s ease;
+}
+
+.filter-checkbox:checked + .checkmark {
+    background-color: #e50914;
+    border-color: #e50914;
+}
+
+.filter-checkbox:checked + .checkmark::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Price Filter */
+.price-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.price-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    margin-bottom: 8px;
+}
+
+.price-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #e5e5e5;
+    font-size: 0.85em;
+    height: 28px;
+    box-sizing: border-box;
+    max-width: 120px;
+}
+
+.price-input:focus {
+    outline: none;
+    border-color: #e50914;
+}
+
+.price-separator {
+    color: #888;
+    font-weight: bold;
+}
+
+.price-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.price-btn {
+    padding: 6px 8px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #e5e5e5;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: all 0.2s ease;
+    height: 28px;
+}
+
+.price-btn:hover {
+    background-color: #e50914;
+    border-color: #e50914;
+}
+
+/* Brand Search */
+.brand-search {
+    margin-bottom: 15px;
+}
+
+.brand-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #e5e5e5;
+    font-size: 0.9em;
+}
+
+.brand-input:focus {
+    outline: none;
+    border-color: #e50914;
+}
+
+/* Filter Actions */
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.clear-btn, .apply-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.clear-btn {
+    background-color: #555;
+    color: #e5e5e5;
+}
+
+.clear-btn:hover {
+    background-color: #666;
+}
+
+.apply-btn {
+    background-color: #e50914;
+    color: white;
+}
+
+.apply-btn:hover {
+    background-color: #f6121d;
+}
+
+/* Active Filter Tags */
+.active-filters {
+    margin-bottom: 20px;
+}
+
+.active-filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-tag {
+    background-color: #e50914;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+/* Sort Options */
+.sort-select {
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #e5e5e5;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: #e50914;
+}
+
+/* Load More Button */
+.load-more-container {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+}
+
+.load-more-btn {
+    background-color: #e50914;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.load-more-btn:hover {
+    background-color: #f6121d;
+}
+
+/* Rating Display */
+.rating .stars {
+    font-size: 0.9em;
+    letter-spacing: 1px;
+}
+
+.rating .stars[data-rating="5.0"],
+.rating .stars[data-rating="4.9"],
+.rating .stars[data-rating="4.8"],
+.rating .stars[data-rating="4.7"],
+.rating .stars[data-rating="4.6"] {
+    color: #ffd700; /* Gold for high ratings */
+}
+
+.rating .stars[data-rating="4.5"],
+.rating .stars[data-rating="4.4"],
+.rating .stars[data-rating="4.3"],
+.rating .stars[data-rating="4.2"],
+.rating .stars[data-rating="4.1"],
+.rating .stars[data-rating="4.0"] {
+    color: #ffed4e; /* Yellow for good ratings */
+}
+
+.rating .stars[data-rating="3.9"],
+.rating .stars[data-rating="3.8"],
+.rating .stars[data-rating="3.7"],
+.rating .stars[data-rating="3.6"],
+.rating .stars[data-rating="3.5"] {
+    color: #ffb347; /* Orange for average ratings */
+}
+
+.rating .stars[data-rating="3.4"],
+.rating .stars[data-rating="3.3"],
+.rating .stars[data-rating="3.2"],
+.rating .stars[data-rating="3.1"],
+.rating .stars[data-rating="3.0"] {
+    color: #ff8c42; /* Dark orange for below average */
+}
+
+.rating .stars[data-rating="2.9"],
+.rating .stars[data-rating="2.8"],
+.rating .stars[data-rating="2.7"],
+.rating .stars[data-rating="2.6"],
+.rating .stars[data-rating="2.5"] {
+    color: #ff6347; /* Red for poor ratings */
+}
+
+/* No Results */
+.no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: #888;
+}
+
+.no-results p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.clear-all-btn {
+    background-color: #e50914;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.clear-all-btn:hover {
+    background-color: #f6121d;
+}
+
+/* Responsive Design for Filters */
+@media (max-width: 768px) {
+    .price-buttons {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+    }
+    
+    .active-filter-tags {
+        justify-content: center;
+    }
+} 

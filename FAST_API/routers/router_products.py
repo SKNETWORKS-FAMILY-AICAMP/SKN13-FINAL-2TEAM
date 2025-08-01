@@ -62,40 +62,47 @@ def process_product_data(products):
         elif any(word in product_name for word in ['민소매', '탑', 'top', '크롭']):
             processed_product['의류타입'] = '상의'
             processed_product['소분류'] = '민소매'
-        elif any(word in product_name for word in ['바지', '팬츠', 'pants', 'jeans']):
+        elif any(word in product_name for word in ['바지', '팬츠', 'pants', 'jeans', '청바지']):
             processed_product['의류타입'] = '하의'
+            if any(word in product_name for word in ['청바지', 'jeans']):
+                processed_product['소분류'] = '청바지'
+            elif any(word in product_name for word in ['반바지', 'shorts']):
+                processed_product['소분류'] = '반바지'
+            elif any(word in product_name for word in ['레깅스', 'leggings']):
+                processed_product['소분류'] = '레깅스'
+            elif any(word in product_name for word in ['조거', 'jogger']):
+                processed_product['소분류'] = '조거팬츠'
+            else:
+                processed_product['소분류'] = '팬츠'
         elif any(word in product_name for word in ['스커트', 'skirt']):
             processed_product['의류타입'] = '스커트'
-        elif any(word in product_name for word in ['아우터', 'outer', '코트', '자켓']):
-            processed_product['의류타입'] = '아우터'
+            if any(word in product_name for word in ['미니', 'mini']):
+                processed_product['소분류'] = '미니스커트'
+            elif any(word in product_name for word in ['미디', 'midi']):
+                processed_product['소분류'] = '미디스커트'
+            elif any(word in product_name for word in ['맥시', 'maxi']):
+                processed_product['소분류'] = '맥시스커트'
+            elif any(word in product_name for word in ['플리츠', 'pleated']):
+                processed_product['소분류'] = '플리츠스커트'
+            elif any(word in product_name for word in ['a라인', 'a-line']):
+                processed_product['소분류'] = 'A라인스커트'
+            else:
+                processed_product['소분류'] = '스커트'
         else:
             processed_product['의류타입'] = '상의'  # 기본값
             processed_product['소분류'] = '기타'
         
-        # 평점 (더 현실적인 분포로 생성)
-        import random
-        # 평점 분포: 5점(20%), 4.5점(25%), 4점(30%), 3.5점(15%), 3점(8%), 2.5점(2%)
-        rating_distribution = [
-            (5.0, 20), (4.5, 25), (4.0, 30), (3.5, 15), (3.0, 8), (2.5, 2)
-        ]
+        # 평점 (상품명 기반 일관된 평점 생성)
+        import hashlib
         
-        # 가중치 기반 랜덤 선택
-        total_weight = sum(weight for _, weight in rating_distribution)
-        random_value = random.uniform(0, total_weight)
+        # 상품명을 해시하여 일관된 숫자 생성
+        hash_object = hashlib.md5(product_name.encode())
+        hash_hex = hash_object.hexdigest()
+        hash_int = int(hash_hex[:8], 16)  # 첫 8자리를 정수로 변환
         
-        current_weight = 0
-        selected_rating = 4.0  # 기본값
-        
-        for rating, weight in rating_distribution:
-            current_weight += weight
-            if random_value <= current_weight:
-                selected_rating = rating
-                break
-        
-        # 약간의 변동 추가 (±0.2)
-        variation = random.uniform(-0.2, 0.2)
-        final_rating = max(1.0, min(5.0, selected_rating + variation))
-        processed_product['평점'] = round(final_rating, 1)
+        # 해시값을 기반으로 평점 결정 (1.0 ~ 5.0)
+        rating = 1.0 + (hash_int % 400) / 100.0  # 1.0 ~ 5.0 범위
+        processed_product['평점'] = round(rating, 1)
         
         processed_products.append(processed_product)
     

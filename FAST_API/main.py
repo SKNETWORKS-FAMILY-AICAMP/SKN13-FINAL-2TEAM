@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
+from dotenv import load_dotenv
 
 # 라우터 임포트
 from routers.router_home import router as home_router
@@ -17,13 +19,18 @@ from routers.router_survey import router as survey_router
 from routers.router_chatbot import router as chatbot_router
 from routers.router_chatbot_debug import router as chatbot_debug_router
 
+# 환경변수 로드
+load_dotenv()
+
 app = FastAPI()
 
-# 정적 파일 및 템플릿 설정
+# 미들웨어 및 정적 파일 설정
+app.add_middleware(SessionMiddleware, secret_key="123")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # 라우터 등록
+# Note: The home router does not have a prefix, so it handles the root path "/".
 app.include_router(home_router, tags=["Home"])
 app.include_router(auth_router, tags=["Auth"])
 app.include_router(preference_router, tags=["Preference"])

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request, Query
+from fastapi import APIRouter, Request, Query, Depends
+from dependencies import login_required
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from database import get_random_products, get_all_products
@@ -108,7 +109,7 @@ def process_product_data(products):
     
     return processed_products
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def products(request: Request):
     # 모든 상품을 가져와서 처리
     all_products = get_all_products()

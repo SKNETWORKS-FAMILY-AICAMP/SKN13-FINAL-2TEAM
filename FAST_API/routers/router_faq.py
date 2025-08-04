@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
+from dependencies import login_required
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -25,6 +26,6 @@ faq_data = [
     }
 ]
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def faq(request: Request):
     return templates.TemplateResponse("faq.html", {"request": request, "faq_data": faq_data})

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
+from dependencies import login_required
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from database import get_all_products, get_random_products
@@ -7,7 +8,7 @@ import urllib.parse
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def jjim_list(request: Request):
     # Select 4 random products for the jjim list
     random_jjim_products = get_random_products(4)
@@ -17,7 +18,7 @@ async def jjim_list(request: Request):
 async def compare_products(request: Request, product_names: str):
     all_products = get_all_products()
     decoded_product_names = urllib.parse.unquote(product_names)
-    selected_names = [name.strip() for name in decoded_product_names.split(',')]
+    selected_names = [name.strip() for name in decoded_product_names.split('|')]
     products_to_compare = []
 
     for name in selected_names:

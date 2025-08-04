@@ -71,7 +71,7 @@
 
             startCompareBtn.addEventListener('click', function() {
                 if (selectedProducts.size >= 1 && selectedProducts.size <= 2) {
-                    const productNames = Array.from(selectedProducts.keys()).map(encodeURIComponent).join(',');
+                    const productNames = Array.from(selectedProducts.keys()).map(encodeURIComponent).join('|');
                     console.log("Generated URL:", `/jjim/compare/${productNames}`);
                     window.location.href = `/jjim/compare/${productNames}`;
                 }

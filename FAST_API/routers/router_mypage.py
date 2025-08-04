@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
+from dependencies import login_required
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from database import get_random_products
@@ -6,7 +7,7 @@ from database import get_random_products
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def mypage(request: Request):
     # Placeholder data for the new dashboard sections
     viewed_products = get_random_products(6)      # 최근 본 상품

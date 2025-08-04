@@ -1,3 +1,9 @@
+import sys
+import os
+
+# 프로젝트 루트 경로를 시스템 경로에 추가
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.staticfiles import StaticFiles

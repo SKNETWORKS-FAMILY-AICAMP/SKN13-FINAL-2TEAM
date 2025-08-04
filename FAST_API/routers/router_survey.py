@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
+from dependencies import login_required
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -11,7 +12,7 @@ templates = Jinja2Templates(directory="templates")
 class SurveyData(BaseModel):
     styles: List[str]
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def survey(request: Request):
     return templates.TemplateResponse("survey/survey.html", {"request": request})
 

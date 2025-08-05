@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+
+# 환경변수 로드 (가장 먼저 실행)
+load_dotenv()
+
 import sys
 import os
 
@@ -11,7 +16,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
-from dotenv import load_dotenv
 
 # 라우터 임포트
 from routers.router_home import router as home_router
@@ -24,9 +28,7 @@ from routers.router_products import router as products_router
 from routers.router_survey import router as survey_router
 from routers.router_chatbot import router as chatbot_router
 from routers.router_chatbot_debug import router as chatbot_debug_router
-
-# 환경변수 로드
-load_dotenv()
+from routers.router_cache_admin import router as cache_admin_router
 
 app = FastAPI()
 
@@ -47,6 +49,7 @@ app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(survey_router, prefix="/survey", tags=["Survey"])
 app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
 app.include_router(chatbot_debug_router, prefix="/chat-debug", tags=["Chatbot Debug"])
+app.include_router(cache_admin_router, prefix="/admin", tags=["Cache Admin"])
 
 # 404 에러 핸들러
 @app.exception_handler(StarletteHTTPException)

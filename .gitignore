@@ -6,7 +6,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
 # C extensions
 *.so
 
@@ -177,3 +176,4 @@ pyrightconfig.json
 
 __pycache__
 *.pyc
+FAST_API/cache/

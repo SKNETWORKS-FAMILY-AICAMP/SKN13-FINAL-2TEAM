@@ -7,7 +7,7 @@
 .hero-section {
     position: relative;
     height: 500px; /* Adjust as needed */
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.7) 100%), url('https://images.unsplash.com/photo-1558769132-cb1aea458c5e') no-repeat center center/cover;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.7) 100%), url('/static/img/logo.png') no-repeat center center/cover;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -130,4 +130,33 @@
 .scroll-arrow.right {
     right: 0;
     border-radius: 5px 0 0 5px;
+}
+
+/* GSAP 애니메이션을 위한 초기 상태 설정 */
+.hero-content, .content-row {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+/* GSAP용 추가 스타일 */
+.scroll-arrow {
+    opacity: 0.5;
+}
+.scroll-arrow:hover {
+    opacity: 1;
+}
+
+/* 로고 스타일 추가 */
+.logo-container {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    overflow: hidden; /* 로고가 컨테이너 밖에서 슬라이드인 되도록 설정 */
+    width: 150px;  /* 로고 너비와 동일하게 설정 */
+    height: 100px; /* 로고가 들어올 충분한 높이 설정 */
+}
+
+.logo-container .logo {
+    width: 150px;
+    opacity: 0;
 }

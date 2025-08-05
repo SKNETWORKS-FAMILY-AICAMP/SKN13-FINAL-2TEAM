@@ -1,81 +1,103 @@
 {% extends "base.html" %}
 
 {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', path='css/jjim.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/jjim.css') }}">
 {% endblock %}
 
 {% block content %}
-    <div class="jjim-container">
+<div class="jjim-container">
+    <!-- Top Wishlist Grid -->
+    <div class="wishlist-grid">
         <h1>찜 목록</h1>
-        <p>선택된 의류들을 비교해 보세요.</p>
-
-        <div class="compare-selection">
-            <h2>비교할 상품 선택</h2>
-            <p>비교하고 싶은 상품들을 클릭하여 선택하세요. (최대 2개)</p>
-            <div class="selected-products-display" id="selected-products-display">
-                <!-- Selected products will be displayed here -->
-            </div>
-            <button id="start-compare-btn" class="compare-button" disabled>선택 상품 비교하기</button>
-        </div>
-
-        <div class="all-products-for-selection">
-            <h2>모든 상품 목록</h2>
-            <div class="product-selection-grid">
-                {% for product in jjim_products %}
-                <div class="product-selection-card" data-product-name="{{ product['상품명'] }}" data-product-index="{{ loop.index0 }}">
-                    <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
+        <div class="product-grid">
+            {% for product in jjim_products %}
+            <div class="product-card" data-product-id="{{ loop.index }}">
+                <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
+                <div class="product-card-info">
                     <h3>{{ product['상품명'] }}</h3>
                 </div>
-                {% endfor %}
+                <!-- Hidden full data for comparison -->
+                <div class="product-full-data" style="display: none;">
+                    <h3>{{ product['상품명'] }}</h3>
+                    <p><strong>브랜드:</strong> {{ product['브랜드'] }}</p>
+                    <p><strong>소재:</strong> {{ product['소재'] }}</p>
+                    <p><strong>가격:</strong> {{ product['가격'] }}</p>
+                </div>
             </div>
+            {% endfor %}
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectedProducts = new Map(); // Use Map to store product name and its element
-            const selectedProductsDisplay = document.getElementById('selected-products-display');
-            const startCompareBtn = document.getElementById('start-compare-btn');
-            const productSelectionCards = document.querySelectorAll('.product-selection-card');
+    <!-- Bottom Comparison Panel -->
+    <div class="comparison-panel">
+        <div class="comparison-slot" id="slot-1"><span>상품 1을 선택하세요</span></div>
+        <div class="vs-icon" id="vs-icon">VS</div>
+        <div class="comparison-slot" id="slot-2"><span>상품 2를 선택하세요</span></div>
+    </div>
+</div>
 
-            function updateSelectedDisplay() {
-                selectedProductsDisplay.innerHTML = '';
-                selectedProducts.forEach((element, productName) => {
-                    const span = document.createElement('span');
-                    span.textContent = productName;
-                    span.classList.add('selected-product-tag');
-                    selectedProductsDisplay.appendChild(span);
-                });
-                const isDisabled = selectedProducts.size < 1 || selectedProducts.size > 2;
-                startCompareBtn.disabled = isDisabled;
-                console.log("Selected products count:", selectedProducts.size, "Button disabled:", isDisabled);
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    gsap.registerPlugin(Flip);
+
+    const grid = document.querySelector('.product-grid');
+    const slots = Array.from(document.querySelectorAll('.comparison-slot'));
+    const vsIcon = document.getElementById('vs-icon');
+
+    // A single, reliable click handler on the container
+    document.querySelector('.jjim-container').addEventListener('click', e => {
+        const card = e.target.closest('.product-card');
+        if (!card) return;
+
+        // Get the state of the card BEFORE any changes
+        const state = Flip.getState(card);
+
+        // Decide where the card should go
+        const isSelected = card.classList.contains('in-slot');
+        let targetParent = null;
+
+        if (isSelected) {
+            // If selected, target is the main grid
+            targetParent = grid;
+        } else {
+            // If not selected, target is the first empty slot
+            targetParent = slots.find(slot => !slot.querySelector('.product-card'));
+        }
+
+        // If a valid target was found, move the card
+        if (targetParent) {
+            if (targetParent.classList.contains('comparison-slot') && targetParent.children.length > 0) {
+                targetParent.innerHTML = ''; // Clear placeholder text
             }
+            
+            // Move the card and toggle its state class
+            targetParent.appendChild(card);
+            card.classList.toggle('in-slot');
 
-            productSelectionCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    const productName = this.dataset.productName;
-                    console.log("Clicked product:", productName);
-
-                    if (selectedProducts.has(productName)) {
-                        selectedProducts.delete(productName);
-                        this.classList.remove('selected');
-                        console.log("Product removed:", productName);
-                    } else if (selectedProducts.size < 2) {
-                        selectedProducts.set(productName, this); // Store the element reference
-                        this.classList.add('selected');
-                        console.log("Product added:", productName);
-                    }
-                    updateSelectedDisplay();
-                });
+            // Animate from the old state to the new one
+            Flip.from(state, {
+                duration: 0.6,
+                ease: "power2.inOut",
+                scale: true,
+                onComplete: updateUI, // Update the rest of the UI after animation
             });
+        }
+    });
 
-            startCompareBtn.addEventListener('click', function() {
-                if (selectedProducts.size >= 1 && selectedProducts.size <= 2) {
-                    const productNames = Array.from(selectedProducts.keys()).map(encodeURIComponent).join('|');
-                    console.log("Generated URL:", `/jjim/compare/${productNames}`);
-                    window.location.href = `/jjim/compare/${productNames}`;
-                }
-            });
+    function updateUI() {
+        slots.forEach((slot, index) => {
+            const hasCard = slot.querySelector('.product-card');
+            slot.classList.toggle('filled', hasCard);
+            // Restore placeholder if the slot is now empty
+            if (!hasCard) {
+                slot.innerHTML = `<span>상품 ${index + 1}을 선택하세요</span>`;
+            }
         });
-    </script>
+
+        // Update the VS icon visibility
+        const filledCount = document.querySelectorAll('.comparison-slot.filled').length;
+        vsIcon.classList.toggle('visible', filledCount === 2);
+    }
+});
+</script>
 {% endblock %}

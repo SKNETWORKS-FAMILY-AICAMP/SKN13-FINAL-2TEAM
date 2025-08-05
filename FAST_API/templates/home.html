@@ -4,6 +4,9 @@
     <div class="netflix-home">
         <!-- Hero Section -->
         <section class="hero-section">
+            <div class="logo-container">
+                <img class="logo" src="/static/img/logo.png" alt="Ivle Malle 로고">
+            </div>
             <div class="hero-content">
                 <h1>Ivle Malle</h1>
                 <p>입을래 말래 입을래 말래 입을래 말래 입을래 말래 입을래 말래 입을래 말래 입을래 말래 애매하긴해</p>
@@ -14,58 +17,91 @@
             </div>
         </section>
 
-        <!-- Content Rows - Dynamic Data -->
+
+        <!-- Content Rows -->
+        {% for section_title, section_items in [
+            ("지민님이 좋아할 만한 콘텐츠", section1_items),
+            ("지금 뜨는 콘텐츠", section2_items),
+            ("새로 추가된 콘텐츠", section3_items),
+            ("추가 추천 콘텐츠", section4_items)
+        ] %}
         <section class="content-row">
-            <h2>지민님이 좋아할 만한 콘텐츠</h2>
+            <h2>{{ section_title }}</h2>
             <div class="scroll-container">
                 <div class="scroll-arrow left">&#10094;</div>
                 <div class="row-posters">
-                    {% for item in section1_items %}
+                    {% for item in section_items %}
                     <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
                     {% endfor %}
                 </div>
                 <div class="scroll-arrow right">&#10095;</div>
             </div>
         </section>
-
-        <section class="content-row">
-            <h2>지금 뜨는 콘텐츠</h2>
-            <div class="scroll-container">
-                <div class="scroll-arrow left">&#10094;</div>
-                <div class="row-posters">
-                    {% for item in section2_items %}
-                    <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
-                    {% endfor %}
-                </div>
-                <div class="scroll-arrow right">&#10095;</div>
-            </div>
-        </section>
-
-        <section class="content-row">
-            <h2>새로 추가된 콘텐츠</h2>
-            <div class="scroll-container">
-                <div class="scroll-arrow left">&#10094;</div>
-                <div class="row-posters">
-                    {% for item in section3_items %}
-                    <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
-                    {% endfor %}
-                </div>
-                <div class="scroll-arrow right">&#10095;</div>
-            </div>
-        </section>
-
-        <section class="content-row">
-            <h2>추가 추천 콘텐츠</h2>
-            <div class="scroll-container">
-                <div class="scroll-arrow left">&#10094;</div>
-                <div class="row-posters">
-                    {% for item in section4_items %}
-                    <img src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
-                    {% endfor %}
-                </div>
-                <div class="scroll-arrow right">&#10095;</div>
-            </div>
-        </section>
-
+        {% endfor %}
     </div>
+
+    <!-- GSAP Animation Script -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 로고 등장 효과 (from을 사용하여 시작 상태를 정의)
+        gsap.from(".logo-container .logo", {
+            opacity: 0,
+            y: -100, // 시작 Y 위치를 -100px로 설정
+            duration: 1.2,
+            ease: "power2.out",
+            delay: 0.2
+        });
+
+        // Hero Section 등장 효과 (로고 등장 후 등장하도록 딜레이 추가)
+        gsap.to(".hero-content", { 
+            opacity: 1, 
+            y: 0, 
+            duration: 1.2,
+            ease: "power2.out",
+            delay: 0.8
+        });
+
+        // 콘텐츠 row 등장 효과
+        gsap.utils.toArray(".content-row").forEach(function(section) {
+            gsap.to(section, {
+                scrollTrigger: {
+                    trigger: section,
+                    start: "top 80%",
+                    end: "bottom 20%",
+                    toggleActions: "play none none none"
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                ease: "power1.out"
+            });
+        });
+
+        // 이미지 hover 효과
+        const posters = document.querySelectorAll('.row-posters img');
+        posters.forEach(img => {
+            img.addEventListener('mouseenter', () => {
+                gsap.to(img, { scale: 1.08, duration: 0.3 });
+            });
+            img.addEventListener('mouseleave', () => {
+                gsap.to(img, { scale: 1.0, duration: 0.3 });
+            });
+        });
+
+        // 화살표 클릭 스크롤 효과
+        document.querySelectorAll('.scroll-container').forEach(container => {
+            const leftArrow = container.querySelector('.scroll-arrow.left');
+            const rightArrow = container.querySelector('.scroll-arrow.right');
+            const posterContainer = container.querySelector('.row-posters');
+
+            leftArrow.addEventListener('click', () => {
+                gsap.to(posterContainer, {scrollTo: {x: "-=600"}, duration: 0.8, ease: "power1.out"});
+            });
+            rightArrow.addEventListener('click', () => {
+                gsap.to(posterContainer, {scrollTo: {x: "+=600"}, duration: 0.8, ease: "power1.out"});
+            });
+        });
+    });
+
+    </script>
 {% endblock %}

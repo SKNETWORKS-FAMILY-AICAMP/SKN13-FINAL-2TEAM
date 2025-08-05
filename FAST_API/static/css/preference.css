@@ -1,119 +1,120 @@
-/* preference Page Styles */
+/* Preference Page - Card Swipe UI */
+
 .preference-container {
-    padding: 40px 20px;
-}
-
-.preference-header {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.preference-header h1 {
-    font-size: 2.8em;
-    color: #fff;
-    margin-bottom: 10px;
-}
-
-.preference-header p {
-    font-size: 1.2em;
-    color: #b3b3b3;
-}
-
-.preference-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 30px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-/* 이하 recommend 스타일 그대로 유지 */
-.product-card {
-    background-color: #1f1f1f;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 80px); /* Adjust based on header height */
+    padding: 20px;
+    overflow: hidden;
+    background: radial-gradient(circle, #2a2a2a, #141414);
 }
 
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
+.card-stack-container {
+    position: relative;
+    width: 320px;
+    height: 500px;
+    margin-bottom: 30px;
 }
 
-.product-card .product-image {
+.preference-card {
+    position: absolute;
     width: 100%;
-    height: 400px;
+    height: 100%;
+    background-color: #1f1f1f;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: grab;
+    user-select: none;
+    transform-origin: center bottom;
+}
+
+.card-image {
+    width: 100%;
+    height: 70%;
     object-fit: cover;
 }
 
-.product-card .product-info {
+.card-info {
     padding: 20px;
+    text-align: center;
+    color: #fff;
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
 }
 
-.product-card .product-title {
-    font-size: 1.4em;
+.card-title {
+    font-size: 1.5em;
     font-weight: bold;
-    color: #fff;
-    margin: 0 0 10px 0;
+    margin: 0 0 5px 0;
 }
 
-.product-card .product-brand {
+.card-brand {
     font-size: 1em;
     color: #b3b3b3;
-    margin: 0 0 15px 0;
 }
 
-.product-card .product-tags {
-    margin-bottom: 15px;
-}
-
-.product-card .product-tag {
-    display: inline-block;
-    background-color: #333;
-    color: #e5e5e5;
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 0.8em;
-    margin-right: 5px;
-    margin-bottom: 5px;
-}
-
-.product-card .product-price {
-    font-size: 1.2em;
-    color: #e50914;
-    font-weight: bold;
-    margin-top: auto; /* Pushes price to the bottom */
-}
-
-.product-card .product-actions {
-    padding: 15px 20px;
-    background-color: #2a2a2a;
+.action-buttons {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 20px;
 }
 
-.product-card .action-btn {
-    background: none;
-    border: 1px solid #8c8c8c;
-    color: #fff;
-    padding: 8px 15px;
-    border-radius: 5px;
+.action-btn {
+    background-color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 2em;
     cursor: pointer;
-    transition: background-color 0.3s, border-color 0.3s;
-    font-size: 0.9em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.product-card .action-btn.like:hover {
-    background-color: #e50914;
-    border-color: #e50914;
+.action-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
 }
 
-.product-card .action-btn.jjim:hover {
-    background-color: #565656;
-    border-color: #565656;
+.dislike-btn {
+    color: #ff4d4d;
+}
+
+.like-btn {
+    color: #4dff88;
+}
+
+/* Card Feedback Overlay Styles */
+.card-feedback {
+    position: absolute;
+    top: 40px;
+    font-size: 3em;
+    font-weight: bold;
+    opacity: 0; /* Initially hidden */
+    pointer-events: none; /* Prevent text from interfering with drag */
+}
+
+.card-feedback.like {
+    left: 20px;
+    color: #4dff88;
+    border: 5px solid #4dff88;
+    padding: 5px 15px;
+    transform: rotate(-20deg);
+}
+
+.card-feedback.dislike {
+    right: 20px;
+    color: #ff4d4d;
+    border: 5px solid #ff4d4d;
+    padding: 5px 15px;
+    transform: rotate(20deg);
 }

@@ -223,28 +223,28 @@
                      data-type="{{ product.get('의류타입', '') }}"
                      data-subcategory="{{ product.get('소분류', '') }}"
                      data-price="{{ product.get('processed_price', '0') }}"
-                     data-rating="{{ product.get('평점', '0') }}"
+                     data-rating="{{ product.get('평점', '') }}"
                      data-brand="{{ product.get('브랜드', '') }}">
                     <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
-                    <h3>{{ product['상품명'] }}</h3>
-                    <p class="brand">{{ product.get('브랜드', '') }}</p>
-                    <p class="price">{{ product['가격'] }}</p>
-                    <div class="rating">
-                        <span class="stars" data-rating="{{ product.get('평점', '0') }}">
-                            {% set rating = product.get('평점', 0) | float %}
-                            {% for i in range(5) %}
-                                {% if rating >= i + 1 %}
-                                    ⭐
-                                {% elif rating >= i + 0.5 %}
-                                    ☆
-                                {% else %}
-                                    ☆
-                                {% endif %}
-                            {% endfor %}
-                        </span>
-                        <span class="rating-text">{{ product.get('평점', '0') }}/5</span>
+                    <div class="product-card-content">
+                        <h3>{{ product['상품명'] }}</h3>
+                        <p class="brand">{{ product.get('브랜드', '') }}</p>
+                        <p class="price">{{ product['가격'] }}</p>
+                        <div class="rating">
+                            <span class="stars" data-rating="{{ product.get('평점', '0') }}">
+                                {% set rating = product.get('평점', 0) | float %}
+                                {% for i in range(5) %}
+                                    {% if rating >= i + 0.5 %}
+                                        ★
+                                    {% else %}
+                                        ☆
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                            <span class="rating-text">{{ product.get('평점', '0') }}/5</span>
+                        </div>
+                        <button class="add-to-cart">장바구니에 추가</button>
                     </div>
-                    <button class="add-to-cart">장바구니에 추가</button>
                 </div>
                 {% endfor %}
             </div>
@@ -261,4 +261,20 @@
     </div>
 
     <script src="{{ url_for('static', path='js/filters.js') }}"></script>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 로딩 오버레이 숨기기 및 콘텐츠 표시
+        gsap.to(loadingOverlayCategory, {
+            opacity: 0,
+            duration: 0.5,
+            onComplete: () => {
+                loadingOverlayCategory.style.display = 'none';
+                gsap.to(categoryBrowseContainer, { opacity: 1, visibility: 'visible', duration: 0.5 });
+            }
+        });
+    });
+    </script>
 {% endblock %}

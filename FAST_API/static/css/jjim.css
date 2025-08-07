@@ -54,6 +54,48 @@ body {
 .comparison-slot.filled {
     border-style: solid;
     border-color: #a8c5e0;
+    padding: 0; /* 카드가 꽉 차도록 패딩 제거 */
+}
+
+/* --- 비교 슬롯 내부 카드 스타일 --- */
+.comparison-slot .product-card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    transition: none; /* 부모의 transition과 충돌 방지 */
+}
+
+.comparison-slot .product-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.comparison-slot .product-card img {
+    height: 70%;
+    object-fit: cover;
+    border-radius: 10px 10px 0 0;
+}
+
+.comparison-slot .product-card .product-card-info {
+    height: 30%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    text-align: center;
+}
+
+.comparison-slot .product-card .product-card-info h3 {
+    font-size: 1.1em;
+    font-weight: 500;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
 }
 
 /* --- 오른쪽: 찜 목록 사이드바 --- */
@@ -191,31 +233,43 @@ body {
     flex-direction: column;
     background-color: #f8f9fa;
     border-radius: 10px;
-    overflow: hidden;
+    overflow: hidden; /* This is important */
 }
 
 .modal-product-card img {
     width: 100%;
-    height: 60%;
-    object-fit: cover;
+    height: 50%; /* Adjust height to give more space to text */
+    object-fit: contain; /* Change to contain to see the whole image */
+    flex-shrink: 0; /* Prevent image from shrinking */
+    background-color: #fff; /* Add a background for letterboxing */
 }
 
 .modal-product-card .product-card-info {
     padding: 25px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Allow this section to grow */
+    overflow: hidden; /* Hide overflow from this container */
 }
 
 .modal-product-card .product-card-info h3 {
     font-size: 1.8em;
     margin-bottom: 15px;
+    color: #2c3e50; /* Darker color for title */
+    flex-shrink: 0; /* Prevent title from shrinking */
 }
 
 .modal-product-card .product-details {
     display: block;
     font-size: 1.1em;
+    flex-grow: 1; /* Allow details to take up available space */
+    overflow-y: auto; /* Add scroll for long descriptions */
+    color: #34495e; /* Darker, softer color for description */
 }
 
 .modal-product-card .product-details p {
     margin: 8px 0;
+    /* Color is inherited from .product-details now */
 }
 
 .modal-close-btn {

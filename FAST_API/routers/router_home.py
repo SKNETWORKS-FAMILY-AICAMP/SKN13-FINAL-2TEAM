@@ -10,28 +10,27 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def read_home(request: Request):
-    # --- 최종 디버깅 코드 ---
-    print(f"[최종 디버그] clothing_data의 첫 번째 항목: {clothing_data[0] if clothing_data else '데이터 없음'}")
-    
-    if clothing_data:
+    """
+    메인 홈페이지를 렌더링합니다.
+    서버 시작 시 미리 로드된 clothing_data를 사용합니다.
+    """
+    # 데이터가 비어있는 경우를 대비하여 안전하게 처리
+    if not clothing_data:
+        print("⚠️ [경고] clothing_data가 비어있습니다. S3 데이터 로딩을 확인하세요.")
+        sampled_data = []
+    else:
+        # 표시할 데이터 수를 100개 또는 전체 데이터 수 중 작은 값으로 제한
         count = min(100, len(clothing_data))
         sampled_data = random.sample(clothing_data, count)
-    else:
-        sampled_data = []
 
+    # 데이터를 4개의 섹션으로 분할
     section_size = len(sampled_data) // 4
-    section1_data = sampled_data[0:section_size]
-    section2_data = sampled_data[section_size:section_size*2]
-    section3_data = sampled_data[section_size*2:section_size*3]
-    section4_data = sampled_data[section_size*3:]
+    sections = {
+        f"section{i+1}_items": sampled_data[i*section_size : (i+1)*section_size]
+        for i in range(4)
+    }
 
     return templates.TemplateResponse(
         "home.html", 
-        {
-            "request": request,
-            "section1_items": section1_data,
-            "section2_items": section2_data,
-            "section3_items": section3_data,
-            "section4_items": section4_data
-        }
+        {"request": request, **sections}
     )

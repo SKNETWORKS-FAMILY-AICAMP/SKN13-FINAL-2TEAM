@@ -11,7 +11,7 @@ router = APIRouter()
 from data_store import clothing_data
 
 def initialize_chatbot_data():
-    """챗봇 데이터 초기화 - S3 또는 PostgreSQL 지원"""
+    """챗봇 데이터 초기화 - S3 전용"""
     global clothing_data
     import os
     from dotenv import load_dotenv
@@ -19,122 +19,25 @@ def initialize_chatbot_data():
     # 환경변수 로드
     load_dotenv()
     
-    # 데이터 소스 선택
-    data_source = os.getenv("DATA_SOURCE", "s3").lower()
-    
     try:
-        if data_source == "s3":
-            # S3에서 데이터 로드
-            print("🌟 S3에서 챗봇 데이터 로드 시작...")
-            from s3_data_loader import get_product_data_from_s3
-            
-            file_key = os.getenv("S3_PRODUCTS_FILE_KEY", "products/products.csv")
-            s3_data = get_product_data_from_s3(file_key)
-            
-            if s3_data:
-                clothing_data.clear()  # 리스트 내용만 지웁니다.
-                clothing_data.extend(s3_data)  # 새로운 데이터로 채웁니다.
-                print(f"✅ S3 챗봇 데이터 로드 완료: {len(clothing_data)}개 상품")
-            else:
-                print("⚠️ S3에서 데이터를 찾을 수 없습니다. PostgreSQL로 폴백합니다.")
-                raise Exception("S3 데이터 로드 실패")
-                
-        elif data_source == "postgresql":
-            # PostgreSQL에서 데이터 로드 (기존 방식)
-            print("🗄️ PostgreSQL에서 챗봇 데이터 로드 시작...")
-            from sqlalchemy import create_engine
-            
-            DB_USER = os.getenv("DB_USER", "postgres")
-            DB_PASSWORD = os.getenv("DB_PASSWORD", "1234")
-            DB_HOST = os.getenv("DB_HOST", "localhost")
-            DB_PORT = os.getenv("DB_PORT", "5432")
-            DB_NAME = os.getenv("DB_NAME", "musinsa")
-            
-            engine = create_engine(f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
-            df = pd.read_sql("SELECT * FROM product", con=engine)
-            df = df.replace({np.nan: None})
-            
-            # 이미지 URL 정리
-            def fix_image_url(url):
-                if pd.isna(url) or url is None:
-                    return ""
-                url = str(url).strip()
-                if url.startswith("https:/images/goods_img/") or url.startswith("images/goods_img/") or url.startswith("/images/goods_img/"):
-                    url = url.replace("https:/", "").lstrip("/")
-                    return f"https://image.msscdn.net/thumbnails/{url}"
-                if url.startswith("https://image.msscdn.net"):
-                    return url
-                return url
-            
-            df["사진"] = df["사진"].apply(fix_image_url)
-            raw_data = df.to_dict("records")
-            
-            # 데이터 매핑
-            clothing_data = []
-            for item in raw_data:
-                mapped_item = {
-                    "상품명": item.get("제품이름", "") or "",
-                    "상품영문명": item.get("제품영문이름", "") or "",
-                    "카테고리": f"{item.get('제품대분류', '') or ''} - {item.get('제품소분류', '') or ''}",
-                    "브랜드": item.get("브랜드", "") or "",
-                    "브랜드영문": item.get("브랜드영문", "") or "",
-                    "가격": int(item.get("할인가", item.get("원가", 0)) or 0),
-                    "사진": item.get("사진", "") or "",
-                    "제품대분류": item.get("제품대분류", "") or "",
-                    "제품소분류": item.get("제품소분류", "") or ""
-                }
-                clothing_data.append(mapped_item)
-                
-            print(f"✅ PostgreSQL 챗봇 데이터 로드 완료: {len(clothing_data)}개 상품")
-            
+        # S3에서 데이터 로드
+        print("🌟 S3에서 챗봇 데이터 로드 시작...")
+        from s3_data_loader import get_product_data_from_s3
+        
+        file_key = os.getenv("S3_PRODUCTS_FILE_KEY", "products/products.csv")
+        s3_data = get_product_data_from_s3(file_key)
+        
+        if s3_data:
+            clothing_data.clear()  # 리스트 내용만 지웁니다.
+            clothing_data.extend(s3_data)  # 새로운 데이터로 채웁니다.
+            print(f"✅ S3 챗봇 데이터 로드 완료: {len(clothing_data)}개 상품")
         else:
-            # CSV 폴백
-            print("📁 CSV 파일에서 챗봇 데이터 로드 시작...")
-            df = pd.read_csv("products.csv")
-            df = df.replace({np.nan: None})
-            
-            # 기본 데이터 매핑 (CSV 기반)
+            print("❌ S3에서 데이터를 찾을 수 없습니다.")
             clothing_data = []
-            raw_data = df.to_dict("records")
-            for item in raw_data:
-                mapped_item = {
-                    "상품명": item.get("상품명", "") or "",
-                    "상품영문명": item.get("상품영문명", "") or "",
-                    "카테고리": item.get("카테고리", "") or "",
-                    "브랜드": item.get("브랜드", "") or "",
-                    "브랜드영문": item.get("브랜드영문", "") or "",
-                    "가격": int(item.get("가격", 0) or 0),
-                    "사진": item.get("대표이미지URL", "") or "",
-                    "제품대분류": item.get("제품대분류", "") or "",
-                    "제품소분류": item.get("제품소분류", "") or ""
-                }
-                clothing_data.append(mapped_item)
-                
-            print(f"✅ CSV 챗봇 데이터 로드 완료: {len(clothing_data)}개 상품")
         
     except Exception as e:
-        print(f"❌ {data_source.upper()} 데이터 로드 실패: {e}")
-        
-        # 폴백 전략: CSV 파일 사용
-        try:
-            print("🔄 폴백: CSV 파일에서 데이터 로드 시도...")
-            df = pd.read_csv("products.csv")
-            raw_data = df.to_dict("records")
-            clothing_data = []
-            for item in raw_data:
-                mapped_item = {
-                    "상품명": item.get("상품명", "") or "",
-                    "브랜드": item.get("브랜드", "") or "",
-                    "가격": int(item.get("가격", 0) or 0),
-                    "사진": item.get("대표이미지URL", "") or "",
-                    "제품대분류": "",
-                    "제품소분류": ""
-                }
-                clothing_data.append(mapped_item)
-            print(f"✅ CSV 폴백 성공: {len(clothing_data)}개 상품")
-        except Exception as fallback_error:
-            print(f"❌ CSV 폴백도 실패: {fallback_error}")
-            clothing_data = []
+        print(f"❌ S3 데이터 로드 실패: {e}")
+        clothing_data = []
 
 def analyze_user_intent(user_input: str) -> dict:
     """사용자 의도 분석"""

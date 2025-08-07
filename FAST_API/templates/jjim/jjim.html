@@ -5,89 +5,130 @@
 {% endblock %}
 
 {% block content %}
-<div class="jjim-container">
-    <!-- Top Wishlist Grid -->
-    <div class="wishlist-grid">
-        <h1>찜 목록</h1>
+<div class="jjim-page-container">
+
+    <!-- 왼쪽: 상품 비교 영역 -->
+    <div class="comparison-area">
+        <div class="comparison-slots-container">
+            <div class="comparison-slot" data-slot-id="1"><span>상품 1을 선택하세요</span></div>
+            <div class="comparison-slot" data-slot-id="2"><span>상품 2를 선택하세요</span></div>
+        </div>
+        <div class="compare-button-container">
+            <button class="compare-button">비교하기</button>
+        </div>
+    </div>
+
+    <!-- 오른쪽: 찜 목록 사이드바 -->
+    <aside class="wishlist-sidebar">
+        <h2>찜 목록</h2>
         <div class="product-grid">
             {% for product in jjim_products %}
-            <div class="product-card" data-product-id="{{ loop.index }}">
+            <div class="product-card" data-product-id="{{ product['상품ID'] }}">
                 <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
                 <div class="product-card-info">
                     <h3>{{ product['상품명'] }}</h3>
                 </div>
-                <!-- Hidden full data for comparison -->
-                <div class="product-full-data" style="display: none;">
-                    <h3>{{ product['상품명'] }}</h3>
+                <!-- 상세 정보 (모달에서만 보임) -->
+                <div class="product-details">
                     <p><strong>브랜드:</strong> {{ product['브랜드'] }}</p>
                     <p><strong>소재:</strong> {{ product['소재'] }}</p>
                     <p><strong>가격:</strong> {{ product['가격'] }}</p>
+                    <p><strong>세탁법:</strong> {{ product['세탁법'] }}</p>
                 </div>
             </div>
             {% endfor %}
         </div>
-    </div>
+    </aside>
 
-    <!-- Bottom Comparison Panel -->
-    <div class="comparison-panel">
-        <div class="comparison-slot" id="slot-1"><span>상품 1을 선택하세요</span></div>
-        <div class="vs-icon" id="vs-icon">VS</div>
-        <div class="comparison-slot" id="slot-2"><span>상품 2를 선택하세요</span></div>
+</div>
+
+<!-- 비교 팝업 (Modal) -->
+<div class="modal-overlay">
+    <div class="comparison-modal">
+        <button class="modal-close-btn">&times;</button>
+        <!-- 팝업 내용은 JS로 채워집니다 -->
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const grid = document.querySelector('.product-grid');
-    const slots = Array.from(document.querySelectorAll('.comparison-slot'));
-    const vsIcon = document.getElementById('vs-icon');
+document.addEventListener("DOMContentLoaded", () => {
+    // GSAP는 버튼과 모달 애니메이션에만 사용됩니다.
 
-    // A single, reliable click handler on the container
-    document.querySelector('.jjim-container').addEventListener('click', e => {
-        const card = e.target.closest('.product-card');
-        if (!card) return;
+    const wishlistGrid = document.querySelector(".product-grid");
+    const slots = gsap.utils.toArray(".comparison-slot");
+    const compareBtn = document.querySelector(".compare-button");
+    const modalOverlay = document.querySelector(".modal-overlay");
+    const modalContainer = document.querySelector(".comparison-modal");
+    const modalCloseBtn = document.querySelector(".modal-close-btn");
 
-        // Decide where the card should go
-        const isSelected = card.classList.contains('in-slot');
-        let targetParent = null;
+    // --- 상태 관리 ---
+    function updateCompareButton() {
+        const filledSlots = slots.filter(slot => slot.querySelector('.product-card')).length;
+        gsap.to(compareBtn, {
+            className: "compare-button" + (filledSlots === 2 ? " visible" : ""),
+            duration: 0.4,
+            ease: "back.out(1.7)"
+        });
+    }
 
-        if (isSelected) {
-            // If selected, target is the main grid
-            targetParent = grid;
-        } else {
-            // If not selected, target is the first empty slot
-            targetParent = slots.find(slot => !slot.querySelector('.product-card'));
-        }
+    // --- 카드 이동 로직 (애니메이션 없음) ---
+    function moveCard(card) {
+        const isFromWishlist = card.parentElement.classList.contains('product-grid');
 
-        // If a valid target was found, move the card
-        if (targetParent) {
-            if (targetParent.classList.contains('comparison-slot') && targetParent.children.length > 0) {
-                targetParent.innerHTML = ''; // Clear placeholder text
+        if (isFromWishlist) {
+            const emptySlot = slots.find(slot => !slot.querySelector('.product-card'));
+            if (emptySlot) {
+                emptySlot.innerHTML = ''; // placeholder 제거
+                emptySlot.appendChild(card);
+                emptySlot.classList.add('filled');
             }
-            
-            // Move the card and toggle its state class
-            targetParent.appendChild(card);
-            card.classList.toggle('in-slot');
+        } else {
+            const parentSlot = card.parentElement;
+            wishlistGrid.appendChild(card);
+            parentSlot.classList.remove('filled');
+            parentSlot.innerHTML = `<span>상품 ${parentSlot.dataset.slotId}을 선택하세요</span>`;
+        }
+        
+        updateCompareButton(); // 즉시 상태 업데이트
+    }
 
-            // No animation, just update the UI directly
-            updateUI();
+    // --- 통합 클릭 리스너 ---
+    document.querySelector('.jjim-page-container').addEventListener('click', e => {
+        const card = e.target.closest('.product-card');
+        if (card) {
+            moveCard(card);
         }
     });
 
-    function updateUI() {
-        slots.forEach((slot, index) => {
-            const hasCard = slot.querySelector('.product-card');
-            slot.classList.toggle('filled', hasCard);
-            // Restore placeholder if the slot is now empty
-            if (!hasCard) {
-                slot.innerHTML = `<span>상품 ${index + 1}을 선택하세요</span>`;
-            }
+    // --- 모달 제어 ---
+    function showModal() {
+        const productsInSlots = slots.map(slot => slot.querySelector('.product-card'));
+        if (productsInSlots.some(p => !p)) return;
+
+        modalContainer.innerHTML = '';
+        modalContainer.appendChild(modalCloseBtn);
+
+        productsInSlots.forEach(product => {
+            const clone = product.cloneNode(true);
+            clone.className = 'modal-product-card';
+            modalContainer.appendChild(clone);
         });
 
-        // Update the VS icon visibility
-        const filledCount = document.querySelectorAll('.comparison-slot.filled').length;
-        vsIcon.classList.toggle('visible', filledCount === 2);
+        modalOverlay.classList.add('visible');
     }
+
+    function hideModal() {
+        modalOverlay.classList.remove('visible');
+    }
+
+    compareBtn.addEventListener("click", showModal);
+    modalCloseBtn.addEventListener("click", hideModal);
+    modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) {
+            hideModal();
+        }
+    });
+
 });
 </script>
 {% endblock %}

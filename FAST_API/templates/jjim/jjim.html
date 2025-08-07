@@ -38,8 +38,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    gsap.registerPlugin(Flip);
-
     const grid = document.querySelector('.product-grid');
     const slots = Array.from(document.querySelectorAll('.comparison-slot'));
     const vsIcon = document.getElementById('vs-icon');
@@ -48,9 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('.jjim-container').addEventListener('click', e => {
         const card = e.target.closest('.product-card');
         if (!card) return;
-
-        // Get the state of the card BEFORE any changes
-        const state = Flip.getState(card);
 
         // Decide where the card should go
         const isSelected = card.classList.contains('in-slot');
@@ -74,13 +69,8 @@ document.addEventListener('DOMContentLoaded', function () {
             targetParent.appendChild(card);
             card.classList.toggle('in-slot');
 
-            // Animate from the old state to the new one
-            Flip.from(state, {
-                duration: 0.6,
-                ease: "power2.inOut",
-                scale: true,
-                onComplete: updateUI, // Update the rest of the UI after animation
-            });
+            // No animation, just update the UI directly
+            updateUI();
         }
     });
 

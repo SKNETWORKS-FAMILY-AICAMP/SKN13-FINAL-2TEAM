@@ -2,6 +2,13 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', path='css/mypage.css') }}">
+<style>
+  /* GSAP 애니메이션을 위한 초기 상태 설정 */
+  .profile-card, .section-title, .product-card {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -14,10 +21,8 @@
         <h1 class="username">{{ request.session.get('user_name', 'GUEST') }}</h1>
         <p class="userid">@{{ request.session.get('user_id', 'guest_user') }}</p>
         <div class="profile-actions">
-          <div class="profile-actions">
           <button class="edit-profile-btn">프로필 수정</button>
           <a href="/auth/logout" class="logout-btn">로그아웃</a>
-        </div>
         </div>
       </div>
     </div>
@@ -77,4 +82,58 @@
     </section>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // --- 전체 타임라인 설정 ---
+    const masterTimeline = gsap.timeline({
+        defaults: { ease: "power3.out", duration: 0.8 }
+    });
+
+    // 1. 프로필 섹션 등장
+    masterTimeline.to(".profile-card", {
+        opacity: 1,
+        y: 0,
+        duration: 1
+    });
+
+    // 2. 각 활동 섹션 순차적 등장
+    const sections = document.querySelectorAll(".activity-section");
+    sections.forEach(section => {
+        const sectionTitle = section.querySelector(".section-title");
+        const productCards = section.querySelectorAll(".product-card");
+
+        masterTimeline
+            .to(sectionTitle, { opacity: 1, y: 0, duration: 0.7 }, "-=.6") // 이전 애니메이션과 살짝 겹치게
+            .to(productCards, {
+                opacity: 1,
+                y: 0,
+                stagger: 0.08, // 0.08초 간격으로 순차 등장
+                duration: 0.5
+            }, "-=0.5");
+    });
+
+    // --- 카드 호버 효과 ---
+    const cards = document.querySelectorAll(".product-card");
+    cards.forEach(card => {
+        gsap.set(card, { transformOrigin: "center center" });
+        card.addEventListener("mouseenter", () => {
+            gsap.to(card, {
+                duration: 0.3,
+                y: -8,
+                boxShadow: "0 12px 24px rgba(0,0,0,0.15)",
+                ease: "power2.out"
+            });
+        });
+        card.addEventListener("mouseleave", () => {
+            gsap.to(card, {
+                duration: 0.3,
+                y: 0,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                ease: "power2.out"
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

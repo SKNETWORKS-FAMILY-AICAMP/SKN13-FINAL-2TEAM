@@ -58,11 +58,29 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
         return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
     return await http_exception_handler(request, exc)
 
-# 애플리케이션 시작 시 챗봇 데이터 초기화
+# 애플리케이션 시작 시 데이터 초기화
 @app.on_event("startup")
 async def startup_event():
+    # S3에서 제품 데이터 로드 및 캐싱
+    from s3_data_loader import get_product_data_from_s3
+    from data_store import clothing_data
+    
+    # .env 파일에서 S3 파일 키를 가져옵니다.
+    s3_file_key = os.getenv("S3_FILE_KEY", "path/to/your/default/file.csv")
+    
+    print("🚀 애플리케이션 시작: S3 데이터 로드를 시작합니다...")
+    loaded_data = get_product_data_from_s3(s3_file_key)
+    if loaded_data:
+        clothing_data.extend(loaded_data)
+        print(f"✅ S3 데이터 로드 및 전역 데이터 저장소 초기화 완료: {len(clothing_data)}개 상품")
+    else:
+        print("⚠️ S3에서 데이터를 불러오지 못했거나 데이터가 비어있습니다.")
+
+    # 챗봇 데이터 초기화
     from routers.router_chatbot import initialize_chatbot_data
+    print("🤖 챗봇 데이터 초기화를 시작합니다...")
     initialize_chatbot_data()
+    print("✅ 챗봇 데이터 초기화 완료")
 
 if __name__ == "__main__":
     import uvicorn

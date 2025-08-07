@@ -34,9 +34,9 @@ class ProductFilter {
             button.addEventListener('click', this.handleRatingButtonClick.bind(this));
         });
 
-        // 필터 체크박스 이벤트
+        // 필터들은 이제 '필터 적용' 버튼으로 수동 제어됩니다.
         this.filterCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', this.applyFilters.bind(this));
+            checkbox.addEventListener('change', () => this.updateFilterConstraints());
         });
 
         // 정렬 이벤트
@@ -46,19 +46,36 @@ class ProductFilter {
         this.clearFiltersBtn.addEventListener('click', this.clearAllFilters.bind(this));
         this.applyFiltersBtn.addEventListener('click', this.applyFilters.bind(this));
 
-        // 브랜드 검색 실시간 필터링
-        this.brandSearch.addEventListener('input', this.applyFilters.bind(this));
-
-        // 가격 입력 필드 변경 시 필터링
-        document.getElementById('min-price').addEventListener('input', this.applyFilters.bind(this));
-        document.getElementById('max-price').addEventListener('input', this.applyFilters.bind(this));
-
-        // 평점 입력 필드 변경 시 필터링
-        document.getElementById('min-rating').addEventListener('input', this.applyFilters.bind(this));
-        document.getElementById('max-rating').addEventListener('input', this.applyFilters.bind(this));
-
         // Load More 이벤트
         this.loadMoreBtn.addEventListener('click', this.loadMoreProducts.bind(this));
+
+        this.updateFilterConstraints(); // Initial check
+    }
+
+    updateFilterConstraints() {
+        const maleCheckbox = document.querySelector('input[name="gender"][value="male"]');
+        const skirtCheckbox = document.querySelector('input[name="clothing_type"][value="skirt"]');
+
+        const skirtOption = skirtCheckbox.closest('.filter-option');
+        const maleOption = maleCheckbox.closest('.filter-option');
+
+        // 남성이 선택되면 스커트 비활성화
+        if (maleCheckbox.checked) {
+            skirtCheckbox.disabled = true;
+            skirtOption.classList.add('disabled');
+        } else {
+            skirtCheckbox.disabled = false;
+            skirtOption.classList.remove('disabled');
+        }
+
+        // 스커트가 선택되면 남성 비활성화
+        if (skirtCheckbox.checked) {
+            maleCheckbox.disabled = true;
+            maleOption.classList.add('disabled');
+        } else {
+            maleCheckbox.disabled = false;
+            maleOption.classList.remove('disabled');
+        }
     }
 
     handleClothingTypeChange(event) {
@@ -109,7 +126,7 @@ class ProductFilter {
         const maxPrice = event.target.dataset.max;
         document.getElementById('min-price').value = minPrice;
         document.getElementById('max-price').value = maxPrice;
-        this.applyFilters(); // Automatically apply filters when button is clicked
+        // this.applyFilters(); // '필터 적용' 버튼으로 수동 적용
     }
 
     handleRatingButtonClick(event) {
@@ -117,7 +134,7 @@ class ProductFilter {
         const maxRating = event.target.dataset.max;
         document.getElementById('min-rating').value = minRating;
         document.getElementById('max-rating').value = maxRating;
-        this.applyFilters(); // Automatically apply filters when button is clicked
+        // this.applyFilters(); // '필터 적용' 버튼으로 수동 적용
     }
 
     applyFilters() {

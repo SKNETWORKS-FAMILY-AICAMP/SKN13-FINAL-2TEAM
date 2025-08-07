@@ -78,16 +78,18 @@ class S3DataLoader:
             
         return fixed_url
 
+
+
     def load_product_data(self, file_key: str, use_cache: bool = True) -> List[Dict]:
         """제품 데이터를 S3에서 로드하고 가공하여 반환 (캐싱 지원 및 상세 로깅)"""
         from cache_manager import cache_manager
-        # 캐시 식별자에 버전(_v2)을 추가하여 이전 캐시를 무효화합니다.
-        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v2"
+        # 캐시 식별자에 버전(_v4)을 추가하여 이전 캐시를 무효화합니다.
+        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v4"
         
         if use_cache:
             cached_data = cache_manager.get(cache_identifier)
             if cached_data:
-                print(f"✅ 캐시(v2)에서 '{cache_identifier}' 데이터를 가져왔습니다.")
+                print(f"✅ 캐시(v4)에서 '{cache_identifier}' 데이터를 가져왔습니다.")
                 return cached_data
         
         print(f"ℹ️ 캐시에 데이터가 없어 S3에서 직접 로드합니다: {file_key}")
@@ -111,10 +113,20 @@ class S3DataLoader:
             
             clothing_data = []
             for item in raw_data:
+                # 가격 처리 - 할인가 우선, 없으면 원가 사용
+                discount_price = item.get("할인가", 0)
+                original_price = item.get("원가", 0)
+                
+                # 숫자가 아닌 경우 0으로 처리
+                if not isinstance(discount_price, (int, float)) or discount_price == 0:
+                    price = original_price if isinstance(original_price, (int, float)) else 0
+                else:
+                    price = discount_price
+                
                 mapped_item = {
                     "상품명": item.get("제품이름", item.get("상품명", "")),
                     "브랜드": item.get("브랜드", ""),
-                    "가격": item.get("가격", 0),
+                    "가격": int(price),
                     "사진": item.get('fixed_image_url', ''),
                 }
                 clothing_data.append(mapped_item)

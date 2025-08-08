@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
+from db import init_db, bootstrap_admin
 
 # 라우터 임포트
 from routers.router_home import router as home_router
@@ -33,7 +34,7 @@ from routers.router_cache_admin import router as cache_admin_router
 app = FastAPI()
 
 # 미들웨어 및 정적 파일 설정
-app.add_middleware(SessionMiddleware, secret_key="123")
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "change-me"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -61,6 +62,10 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
 # 애플리케이션 시작 시 데이터 초기화
 @app.on_event("startup")
 async def startup_event():
+    # DB 테이블 생성
+    init_db()
+    bootstrap_admin()
+
     # S3에서 제품 데이터 로드 및 캐싱
     from s3_data_loader import get_product_data_from_s3
     from data_store import clothing_data

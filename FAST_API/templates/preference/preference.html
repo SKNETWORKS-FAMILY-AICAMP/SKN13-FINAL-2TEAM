@@ -8,8 +8,8 @@
 <div class="preference-container">
     <div class="card-stack-container" id="card-stack">
         {% for item in recommended_items %}
-        <div class="preference-card">
-            <img class="card-image" src="{{ item['대표이미지URL'] }}" alt="{{ item['상품명'] }}">
+        <div class="preference-card" data-product-id="{{ item.get('상품ID') }}">
+            <img class="card-image" src="{{ item.get('사진') or item.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ item['상품명'] }}">
             <div class="card-info">
                 <h3 class="card-title">{{ item['상품명'] }}</h3>
                 <p class="card-brand">{{ item['브랜드'] }}</p>
@@ -118,8 +118,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    likeBtn.addEventListener('click', () => {
-        if (activeCard) swipeCard(activeCard, 1);
+    async function sendJjim(productId) {
+        try {
+            const fd = new FormData();
+            fd.append('product_id', productId);
+            await fetch('/preference/jjim', { method: 'POST', body: fd });
+        } catch (e) { console.error(e); }
+    }
+
+    likeBtn.addEventListener('click', async () => {
+        if (activeCard) {
+            const pid = activeCard.getAttribute('data-product-id');
+            if (pid) await sendJjim(pid);
+            swipeCard(activeCard, 1);
+        }
     });
 
     dislikeBtn.addEventListener('click', () => {

@@ -14,9 +14,8 @@ async def read_home(request: Request):
     메인 홈페이지를 렌더링합니다.
     서버 시작 시 미리 로드된 clothing_data를 사용합니다.
     """
-    # 데이터가 비어있는 경우를 대비하여 안전하게 처리
+    # 데이터가 비어있는 경우를 대비하여 안전하게 처리 (불필요한 대량 로그 제거)
     if not clothing_data:
-        print("⚠️ [경고] clothing_data가 비어있습니다. S3 데이터 로딩을 확인하세요.")
         sampled_data = []
     else:
         # 표시할 데이터 수를 100개 또는 전체 데이터 수 중 작은 값으로 제한

@@ -1,40 +1,145 @@
 {% extends "base.html" %}
 
 {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', path='css/faq.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/faq.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="faq-container">
-    <h1>자주 묻는 질문 (FAQ)</h1>
-    <div class="faq-list">
-        {% for item in faq_data %}
-        <div class="faq-item">
-            <h2 class="faq-question">{{ item.question }}</h2>
-            <p class="faq-answer">{{ item.answer }}</p>
-        </div>
-        {% endfor %}
+<section class="faq-wrap">
+  <div class="faq-hero">
+    <h1>FAQ</h1>
+    <p>Ivle Malle에 대한 자주 묻는 질문을 모았습니다. 아래에서 검색하거나 카테고리로 빠르게 찾아보세요.</p>
+    <div class="cta">
+      <a class="btn-primary btn" href="/contact">문의하기</a>
+      <button class="btn" id="expand-all">모두 펼치기</button>
+      <button class="btn" id="collapse-all">모두 접기</button>
     </div>
-</div>
+
+    <div class="faq-tools">
+      <div class="searchbar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input id="faq-search" type="text" placeholder="키워드로 검색 (예: 결제, 환불, 추천)" aria-label="FAQ 검색">
+      </div>
+      <div class="chips" id="faq-chips">
+        {% for cat in categories %}
+          <span class="chip {% if cat.key == 'all' %}active{% endif %}" data-cat="{{ cat.key }}">{{ cat.label }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-accordion" id="faq-list">
+    {% for item in faq_data %}
+    <div class="faq-item" data-cat="{{ item.category }}" id="{{ item.id }}">
+      <button class="faq-q" aria-expanded="false">
+        <span class="q-left">
+          <span class="badge-cat">
+            {% for cat in categories %}{% if cat.key == item.category %}{{ cat.label }}{% endif %}{% endfor %}
+          </span>
+          {{ item.question }}
+        </span>
+        <span class="chev">▶</span>
+      </button>
+      <div class="faq-a" role="region" aria-labelledby="{{ item.id }}">
+        <div class="faq-a-inner">
+          {{ item.answer }}
+        </div>
+      </div>
+      <div class="faq-footer">
+        <span>항목 링크를 복사해 공유할 수 있어요.</span>
+        <button class="copy-link" data-anchor="#{{ item.id }}">링크 복사</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const faqQuestions = document.querySelectorAll('.faq-question');
+document.addEventListener('DOMContentLoaded', function(){
+  const list = document.getElementById('faq-list');
+  const search = document.getElementById('faq-search');
+  const chips = document.getElementById('faq-chips');
+  const expandAll = document.getElementById('expand-all');
+  const collapseAll = document.getElementById('collapse-all');
 
-        faqQuestions.forEach(question => {
-            // Initially set all answers to visible and questions to active (minus sign)
-            question.classList.add('active');
-            question.nextElementSibling.style.display = 'block';
+  function setOpen(item, open){
+    item.classList.toggle('open', open);
+    const q = item.querySelector('.faq-q');
+    const a = item.querySelector('.faq-a');
+    if (q) q.setAttribute('aria-expanded', String(open));
+    if (a){
+      a.style.maxHeight = open ? (a.scrollHeight + 'px') : '0px';
+    }
+  }
 
-            question.addEventListener('click', function() {
-                const answer = this.nextElementSibling;
-                this.classList.toggle('active');
-                if (answer.style.display === 'block') {
-                    answer.style.display = 'none';
-                } else {
-                    answer.style.display = 'block';
-                }
-            });
-        });
+  // open/close on click
+  list.addEventListener('click', function(e){
+    const btn = e.target.closest('.faq-q');
+    if (!btn) return;
+    const item = btn.closest('.faq-item');
+    setOpen(item, !item.classList.contains('open'));
+  });
+
+  function filter(){
+    const q = (search?.value || '').toLowerCase();
+    const activeChip = chips.querySelector('.chip.active');
+    const cat = activeChip ? activeChip.dataset.cat : 'all';
+    let any = false;
+    list.querySelectorAll('.faq-item').forEach(item => {
+      const matchesCat = (cat === 'all') || (item.dataset.cat === cat);
+      const text = item.textContent.toLowerCase();
+      const matches = matchesCat && (!q || text.includes(q));
+      item.style.display = matches ? '' : 'none';
+      if (matches) any = true;
     });
+    return any;
+  }
+  search?.addEventListener('input', filter);
+
+  chips.addEventListener('click', function(e){
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    chips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    filter();
+  });
+
+  // expand/collapse visible only
+  expandAll?.addEventListener('click', function(){
+    list.querySelectorAll('.faq-item').forEach(item => {
+      if (item.style.display !== 'none') setOpen(item, true);
+    });
+  });
+  collapseAll?.addEventListener('click', function(){
+    list.querySelectorAll('.faq-item').forEach(item => setOpen(item, false));
+  });
+
+  // Deep-link open
+  if (location.hash){
+    const t = document.querySelector(location.hash);
+    if (t && t.classList.contains('faq-item')){
+      setOpen(t, true);
+      t.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  }
+
+  // Copy link
+  list.addEventListener('click', function(e){
+    const btn = e.target.closest('.copy-link');
+    if (!btn) return;
+    const anchor = btn.dataset.anchor || '';
+    const url = location.origin + location.pathname + anchor;
+    navigator.clipboard.writeText(url).then(()=>{
+      btn.textContent = '복사됨!';
+      setTimeout(()=> btn.textContent = '링크 복사', 1200);
+    });
+  });
+
+  // initial
+  filter();
+});
 </script>
 {% endblock %}

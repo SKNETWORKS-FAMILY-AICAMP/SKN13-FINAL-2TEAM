@@ -1,29 +1,14 @@
 {% extends "base.html" %}
 
 {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', path='css/category_browse.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/filters.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/category_browse.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/category_browse_clean.css') }}">
 {% endblock %}
 
 {% block content %}
-    <div class="category-browse-container">
-        <aside class="category-sidebar">
-            <h2>필터</h2>
-            
-            <!-- 성별 필터 -->
-            <div class="filter-section">
-                <h3>성별</h3>
-                <div class="filter-options">
-                    <label class="filter-option">
-                        <input type="checkbox" name="gender" value="male" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        남성
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="gender" value="female" class="filter-checkbox">
-                        <span class="checkmark"></span>
-                        여성
-                    </label>
+<section class="category-page">
+  <aside class="sidebar">
+    <h2>필터</h2>
 
                 </div>
             </div>
@@ -258,23 +243,183 @@
                 <button id="load-more-btn" class="load-more-btn">더 많은 상품 보기</button>
             </div>
         </main>
+    <div class="filter-group">
+      <h3>성별</h3>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="남성" data-filter="gender"> 남성</label>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="여성" data-filter="gender"> 여성</label>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="공용" data-filter="gender"> 공용</label>
     </div>
 
-    <script src="{{ url_for('static', path='js/filters.js') }}"></script>
+    <div class="filter-group">
+      <h3>의류 타입</h3>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="상의" data-filter="type"> 상의</label>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="하의" data-filter="type"> 하의</label>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="아우터" data-filter="type"> 아우터</label>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="원피스" data-filter="type"> 원피스</label>
+    </div>
+
+    <div class="filter-group">
+      <h3>브랜드</h3>
+      <input id="brand-search" type="text" placeholder="브랜드 검색" />
+    </div>
+
+    <div class="filter-group">
+      <h3>가격</h3>
+      <input id="price-min" type="number" placeholder="최소" min="0" />
+      <input id="price-max" type="number" placeholder="최대" min="0" />
+    </div>
+
+    <div class="filter-group">
+      <h3>평점</h3>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="4" data-filter="rating"> 4.0+</label>
+      <label class="filter-option"><input class="filter-checkbox" type="checkbox" value="3" data-filter="rating"> 3.0+</label>
+    </div>
+  </aside>
+
+  <main class="listing">
+    <header class="listing-header">
+      <div class="top-actions">
+        <div class="meta">총 <strong id="result-total">0</strong> 개</div>
+        <div class="view-toggle">
+          <button type="button" class="active" data-view="grid">Grid</button>
+          <button type="button" data-view="compact">Compact</button>
+        </div>
+        <select id="sort-select" class="sort-select" aria-label="정렬">
+          <option value="relevance">추천순</option>
+          <option value="price_asc">가격 낮은순</option>
+          <option value="price_desc">가격 높은순</option>
+          <option value="rating_desc">평점 높은순</option>
+        </select>
+      </div>
+
+      <div id="active-filters" class="active-filters"></div>
+    </header>
+
+    <div id="product-grid" class="product-grid">
+      {# 서버에서 넘겨준 products를 카드로 뿌립니다 #}
+      {% for product in products %}
+      <article class="product-card" 
+               data-gender="{{ product.gender }}" 
+               data-type="{{ product.type }}"
+               data-price="{{ product.price }}"
+               data-rating="{{ product.rating|default(0) }}"
+               data-brand="{{ product.brand|default('') }}">
+        <img src="{{ product.image_url }}" alt="{{ product.name }} 이미지" loading="lazy" />
+        <div class="card-content">
+          <h4 class="name">{{ product.name }}</h4>
+          <div class="brand">{{ product.brand }}</div>
+          <div class="price">{{ product.price_formatted }}</div>
+          <div class="stars" aria-label="rating">
+            {% set rating = product.rating|default(0) %}
+            {% for i in range(1, 6) %}
+              {% if rating >= i %}
+                <span class="star full">★</span>
+              {% elif rating >= i - 0.5 %}
+                <span class="star half">★</span>
+              {% else %}
+                <span class="star">☆</span>
+              {% endif %}
+            {% endfor %}
+            <span class="rating-num">{{ "%.1f"|format(rating) }}</span>
+          </div>
+        </div>
+        <div class="card-badges">
+          <span class="badge gender-badge">{{ product.gender }}</span>
+          <span class="badge type-badge">{{ product.type }}</span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <div class="load-more">
+      <button id="load-more" class="load-more-btn" type="button">더 보기</button>
+    </div>
+  </main>
+</section>
 {% endblock %}
 
 {% block scripts %}
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // 로딩 오버레이 숨기기 및 콘텐츠 표시
-        gsap.to(loadingOverlayCategory, {
-            opacity: 0,
-            duration: 0.5,
-            onComplete: () => {
-                loadingOverlayCategory.style.display = 'none';
-                gsap.to(categoryBrowseContainer, { opacity: 1, visibility: 'visible', duration: 0.5 });
-            }
-        });
+{{ super() }}
+<script>
+// 최소한의 UI 보조 스크립트 (필터 칩/카운트/뷰 토글) — API 로직은 건드리지 않음
+document.addEventListener('DOMContentLoaded', function(){
+  var grid = document.getElementById('product-grid');
+  var total = document.getElementById('result-total');
+  var chipsWrap = document.getElementById('active-filters');
+  var viewBtns = document.querySelectorAll('.view-toggle button');
+  var loadMoreBtn = document.getElementById('load-more');
+
+  function updateCount(){
+    if (!total) return;
+    var visible = Array.from(document.querySelectorAll('.product-card'))
+      .filter(function(c){ return c.offsetParent !== null; }).length;
+    total.textContent = String(visible);
+  }
+
+  function rebuildChips(){
+    if (!chipsWrap) return;
+    chipsWrap.innerHTML = '';
+    var checked = document.querySelectorAll('.filter-checkbox:checked');
+    checked.forEach(function(chk){
+      var label = chk.closest('.filter-option');
+      var text = label ? label.textContent.trim() : chk.value;
+      var chip = document.createElement('span');
+      chip.className = 'filter-chip';
+      chip.innerHTML = text + '<button aria-label="remove">×</button>';
+      chip.querySelector('button').addEventListener('click', function(){
+        chk.checked = false;
+        chk.dispatchEvent(new Event('change', {bubbles:true}));
+      });
+      chipsWrap.appendChild(chip);
     });
-    </script>
+    var brand = document.getElementById('brand-search');
+    if (brand && brand.value.trim()){
+      var chip = document.createElement('span');
+      chip.className = 'filter-chip';
+      chip.innerHTML = '브랜드: ' + brand.value + '<button aria-label="remove">×</button>';
+      chip.querySelector('button').addEventListener('click', function(){
+        brand.value='';
+        brand.dispatchEvent(new Event('input'));
+      });
+      chipsWrap.appendChild(chip);
+    }
+  }
+
+  function refreshUI(){
+    updateCount();
+    rebuildChips();
+  }
+
+  // View toggle
+  viewBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      viewBtns.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      if (btn.dataset.view === 'compact'){
+        grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(220px, 1fr))';
+      } else {
+        grid.style.gridTemplateColumns = '';
+      }
+    });
+  });
+
+  // Observe typical filter elements; 실제 필터링/정렬은 기존 JS 또는 서버가 담당
+  document.body.addEventListener('change', function(e){
+    if (e.target.matches('.filter-checkbox')) setTimeout(refreshUI, 30);
+  });
+  var brand = document.getElementById('brand-search');
+  if (brand) brand.addEventListener('input', function(){ setTimeout(refreshUI, 30); });
+
+  // "더 보기" 버튼은 기존 로직이 있으면 그대로 사용
+  if (loadMoreBtn){
+    loadMoreBtn.addEventListener('click', function(){
+      // 프론트 전용일 경우에만: 단순히 다음 카드들 display 처리
+      // 서버/JS 로드 로직이 있으면 해당 함수 호출로 대체
+      refreshUI();
+    });
+  }
+
+  refreshUI();
+});
+</script>
 {% endblock %}

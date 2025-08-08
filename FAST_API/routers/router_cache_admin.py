@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from cache_manager import cache_manager
 from s3_data_loader import s3_loader
 import os
+from dependencies import admin_required
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/cache/info", response_class=JSONResponse)
+@router.get("/cache/info", response_class=JSONResponse, dependencies=[Depends(admin_required)])
 async def get_cache_info():
     """캐시 정보 조회"""
     try:
@@ -35,7 +36,7 @@ async def get_cache_info():
             "message": "캐시 정보 조회 중 오류가 발생했습니다."
         }
 
-@router.post("/cache/clear", response_class=JSONResponse)
+@router.post("/cache/clear", response_class=JSONResponse, dependencies=[Depends(admin_required)])
 async def clear_cache(cache_key: str = None):
     """캐시 삭제"""
     try:
@@ -57,7 +58,7 @@ async def clear_cache(cache_key: str = None):
             "message": "캐시 삭제 중 오류가 발생했습니다."
         }
 
-@router.post("/cache/cleanup", response_class=JSONResponse)
+@router.post("/cache/cleanup", response_class=JSONResponse, dependencies=[Depends(admin_required)])
 async def cleanup_expired_cache():
     """만료된 캐시 정리"""
     try:
@@ -76,7 +77,7 @@ async def cleanup_expired_cache():
             "message": "캐시 정리 중 오류가 발생했습니다."
         }
 
-@router.post("/cache/refresh-data", response_class=JSONResponse)
+@router.post("/cache/refresh-data", response_class=JSONResponse, dependencies=[Depends(admin_required)])
 async def refresh_s3_data():
     """S3 데이터 강제 새로고침"""
     try:
@@ -109,7 +110,7 @@ async def refresh_s3_data():
             "message": "S3 데이터 새로고침 중 오류가 발생했습니다."
         }
 
-@router.get("/cache/test-s3", response_class=JSONResponse)
+@router.get("/cache/test-s3", response_class=JSONResponse, dependencies=[Depends(admin_required)])
 async def test_s3_connection():
     """S3 연결 테스트"""
     try:
@@ -138,7 +139,7 @@ async def test_s3_connection():
             "message": "S3 연결 테스트에 실패했습니다."
         }
 
-@router.get("/cache/health", response_class=JSONResponse)
+@router.get("/cache/health", response_class=JSONResponse, dependencies=[Depends(admin_required)])
 async def cache_health_check():
     """캐시 시스템 상태 확인"""
     try:

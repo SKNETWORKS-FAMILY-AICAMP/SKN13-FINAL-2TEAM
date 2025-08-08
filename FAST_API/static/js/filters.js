@@ -153,10 +153,10 @@ class ProductFilter {
         this.productCards.forEach(card => {
             let shouldShow = true;
 
-            // 성별 필터
+            // 성별 필터 (키 매칭 강화: gender_key 존재 시 우선)
             if (selectedGenders.length > 0) {
-                const cardGender = card.dataset.gender.toLowerCase();
-                if (!selectedGenders.some(gender => cardGender.includes(gender))) {
+                const cardGenderKey = (card.dataset.genderKey || card.dataset.gender || '').toLowerCase();
+                if (!selectedGenders.some(gender => cardGenderKey === gender.toLowerCase())) {
                     shouldShow = false;
                 }
             }
@@ -170,15 +170,15 @@ class ProductFilter {
             
             if (allSelectedSubcategories.length > 0) {
                 // 소분류가 선택된 경우, 소분류로만 필터링
-                const cardSubcategory = card.dataset.subcategory.toLowerCase();
-                if (!allSelectedSubcategories.some(sub => cardSubcategory === sub.toLowerCase())) {
+                const cardSubcategoryKey = (card.dataset.subcatKey || card.dataset.subcategory || '').toLowerCase();
+                if (!allSelectedSubcategories.some(sub => cardSubcategoryKey === sub.toLowerCase())) {
                     shouldShow = false;
                 }
             } else {
                 // 소분류가 선택되지 않은 경우에만 의류 타입 필터 적용
                 if (selectedTypes.length > 0) {
-                    const cardType = card.dataset.type.toLowerCase();
-                    if (!selectedTypes.some(type => cardType.includes(type))) {
+                    const cardTypeKey = (card.dataset.typeKey || card.dataset.type || '').toLowerCase();
+                    if (!selectedTypes.some(type => cardTypeKey === type.toLowerCase())) {
                         shouldShow = false;
                     }
                 }

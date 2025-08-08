@@ -2,8 +2,9 @@ from fastapi import APIRouter, Request, Query, Depends
 from dependencies import login_required
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from database import get_random_products, get_all_products
 import re
+import random
+from data_store import clothing_data
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -14,25 +15,32 @@ def process_product_data(products):
     
     for product in products:
         processed_product = product.copy()
+        # S3 데이터 호환: 대표이미지URL 필드 보장
+        if '대표이미지URL' not in processed_product:
+            processed_product['대표이미지URL'] = processed_product.get('사진', '')
         
         # 가격 정보 처리
-        price_text = product.get('가격', '')
-        if price_text:
-            # 할인가격 추출 (쿠폰적용가, 할인적용가 등)
-            discount_match = re.search(r'할인적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
-            coupon_match = re.search(r'쿠폰적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
-            normal_match = re.search(r'정상가\s*(\d{1,3}(?:,\d{3})*)', price_text)
-            
-            if discount_match:
-                processed_product['processed_price'] = int(discount_match.group(1).replace(',', ''))
-            elif coupon_match:
-                processed_product['processed_price'] = int(coupon_match.group(1).replace(',', ''))
-            elif normal_match:
-                processed_product['processed_price'] = int(normal_match.group(1).replace(',', ''))
+        price_value = product.get('가격', 0)
+        if isinstance(price_value, (int, float)):
+            processed_product['processed_price'] = int(price_value)
+        else:
+            price_text = str(price_value or '')
+            if price_text:
+                discount_match = re.search(r'할인적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+                coupon_match = re.search(r'쿠폰적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+                normal_match = re.search(r'정상가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+                if discount_match:
+                    processed_product['processed_price'] = int(discount_match.group(1).replace(',', ''))
+                elif coupon_match:
+                    processed_product['processed_price'] = int(coupon_match.group(1).replace(',', ''))
+                elif normal_match:
+                    processed_product['processed_price'] = int(normal_match.group(1).replace(',', ''))
+                else:
+                    # 숫자만 들어있는 경우 처리
+                    digits = re.sub(r'[^0-9]', '', price_text)
+                    processed_product['processed_price'] = int(digits) if digits else 0
             else:
                 processed_product['processed_price'] = 0
-        else:
-            processed_product['processed_price'] = 0
         
         # 성별 판단 (상품명과 브랜드 기반)
         product_name = product.get('상품명', '').lower()
@@ -104,6 +112,35 @@ def process_product_data(products):
         # 해시값을 기반으로 평점 결정 (1.0 ~ 5.0)
         rating = 1.0 + (hash_int % 400) / 100.0  # 1.0 ~ 5.0 범위
         processed_product['평점'] = round(rating, 1)
+
+        # 필터 호환을 위한 영어 키 추가 (gender/type/subcategory)
+        gender_map = {"여성": "female", "남성": "male", "유니섹스": "unisex"}
+        type_map = {"상의": "top", "하의": "bottom", "스커트": "skirt"}
+        sub_map = {
+            # 상의
+            "티셔츠": "tshirt",
+            "맨투맨/후드": "sweatshirt",
+            "셔츠/블라우스": "shirt",
+            "니트": "knit",
+            "민소매": "sleeveless",
+            # 하의
+            "청바지": "jeans",
+            "팬츠": "pants",
+            "반바지": "shorts",
+            "레깅스": "leggings",
+            "조거팬츠": "joggers",
+            # 스커트 계열
+            "스커트": "skirt",
+            "미니스커트": "mini",
+            "미디스커트": "midi",
+            "맥시스커트": "maxi",
+            "플리츠스커트": "pleated",
+            "A라인스커트": "a_line",
+        }
+
+        processed_product['gender_key'] = gender_map.get(processed_product.get('성별', ''), '')
+        processed_product['type_key'] = type_map.get(processed_product.get('의류타입', ''), '')
+        processed_product['subcat_key'] = sub_map.get(processed_product.get('소분류', ''), '')
         
         processed_products.append(processed_product)
     
@@ -111,8 +148,8 @@ def process_product_data(products):
 
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def products(request: Request):
-    # 모든 상품을 가져와서 처리
-    all_products = get_all_products()
+    # S3에서 로드된 전역 데이터 사용
+    all_products = clothing_data
     processed_products = process_product_data(all_products)
     
     # 기본적으로 20개 상품만 표시 (필터링으로 더 보기 가능)
@@ -136,7 +173,7 @@ async def get_products_api(
     brand: str = Query(None)
 ):
     """API endpoint for getting filtered products"""
-    all_products = get_all_products()
+    all_products = clothing_data
     processed_products = process_product_data(all_products)
     
     # 필터링 적용

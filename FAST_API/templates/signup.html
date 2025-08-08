@@ -13,6 +13,26 @@
             <div class="input-group">
                 <input type="password" name="password" placeholder="비밀번호" required>
             </div>
+            <div class="input-group">
+                <input type="email" name="email" placeholder="이메일" required>
+            </div>
+            <div class="input-group">
+                <select name="gender">
+                    <option value="">성별(선택)</option>
+                    <option value="male">남성</option>
+                    <option value="female">여성</option>
+                    <option value="unisex">기타/선택안함</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input type="number" name="height" placeholder="키(cm)" min="0">
+            </div>
+            <div class="input-group">
+                <input type="number" name="weight" placeholder="체중(kg)" min="0">
+            </div>
+            <div class="input-group">
+                <input type="text" name="preferred_color" placeholder="선호 색상(예: black, blue)">
+            </div>
             <button type="submit" class="signup-button">회원가입</button>
             <div class="login-link">
                 <p>이미 회원이신가요? <a href="/auth/login">로그인</a></p>

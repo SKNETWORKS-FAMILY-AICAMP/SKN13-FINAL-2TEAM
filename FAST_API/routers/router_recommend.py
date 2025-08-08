@@ -1,10 +1,7 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-import pandas as pd
 import random
-import re
-import numpy as np
 from openai import OpenAI
 import os
 from typing import List, Dict
@@ -17,84 +14,8 @@ templates = Jinja2Templates(directory="templates")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "your-openai-api-key-here")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# 전역 변수로 데이터 저장
-clothing_data = []
-
-def initialize_data():
-    """애플리케이션 시작 시 데이터 초기화"""
-    load_data()
-
-def clean_nan_values(obj):
-    """NaN 값을 None으로 변환하는 함수"""
-    if isinstance(obj, dict):
-        return {key: clean_nan_values(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [clean_nan_values(item) for item in obj]
-    elif pd.isna(obj) or (isinstance(obj, float) and np.isnan(obj)):
-        return None
-    else:
-        return obj
-
-def load_data():
-    """CSV 파일에서 데이터를 로드하는 함수"""
-    global clothing_data
-    try:
-        # CSV 파일 읽기
-        df = pd.read_csv("products.csv")
-        
-        # NaN 값을 None으로 변환
-        df = df.replace({np.nan: None})
-        
-        # 이미지 URL 정리 함수
-        def fix_image_url(url):
-            if pd.isna(url) or url is None:
-                return ""
-            url = str(url).strip()
-            
-            # 이미 올바른 경우
-            if url.startswith("https://"):
-                return url
-            
-            # 불완전한 시작 형태면 강제로 접두사 붙임
-            if url.startswith("//"):
-                return f"https:{url}"
-            
-            return url
-
-        # 이미지 URL 정리 적용
-        if "대표이미지URL" in df.columns:
-            df["대표이미지URL"] = df["대표이미지URL"].apply(fix_image_url)
-        
-        # 데이터프레임을 딕셔너리 리스트로 변환
-        raw_data = df.to_dict("records")
-        
-        # 필드명 매핑하여 새로운 형태로 변환
-        clothing_data = []
-        for item in raw_data:
-            # NaN 값 정리
-            item = clean_nan_values(item)
-            
-            mapped_item = {
-                "상품명": item.get("상품명", "") or "",
-                "브랜드": item.get("브랜드", "") or "",
-                "소재": item.get("소재", "") or "",
-                "치수정보": item.get("치수정보", "") or "",
-                "색상옵션": item.get("색상옵션", "") or "",
-                "사이즈옵션": item.get("사이즈옵션", "") or "",
-                "가격": item.get("가격", "") or "",
-                "세탁법": item.get("세탁법", "") or "",
-                "사진": item.get("대표이미지URL", "") or "",
-                "카테고리": "의류",  # 기본값
-                "평점": 0.0,
-                "리뷰수": 0
-            }
-            clothing_data.append(mapped_item)
-        
-        print(f"데이터 로드 완료: {len(clothing_data)}개 상품")
-        
-    except Exception as e:
-        print(f"데이터 로드 오류: {e}")
-        clothing_data = []
+# S3에서 애플리케이션 시작 시 로드된 전역 데이터 사용
+from data_store import clothing_data as global_clothing_data
 
 async def analyze_user_input_with_openai(user_input: str) -> Dict:
     """OpenAI API를 사용하여 사용자 입력을 분석하고 검색 키워드를 추출"""
@@ -267,13 +188,7 @@ def filter_products_by_analysis(analysis: Dict, products: List[Dict]) -> List[Di
 
 async def get_smart_recommendations(user_input: str) -> List[Dict]:
     """OpenAI API를 사용한 스마트 추천"""
-    global clothing_data
-    
-    # 데이터가 없으면 로드 시도
-    if not clothing_data:
-        load_data()
-    
-    if not clothing_data:
+    if not global_clothing_data:
         return []
     
     # OpenAI API로 사용자 입력 분석
@@ -281,32 +196,25 @@ async def get_smart_recommendations(user_input: str) -> List[Dict]:
     print(f"분석 결과: {analysis}")
     
     # 분석 결과로 상품 필터링
-    filtered_products = filter_products_by_analysis(analysis, clothing_data)
+    filtered_products = filter_products_by_analysis(analysis, global_clothing_data)
     
     if filtered_products:
         # 상위 2개 상품 반환
         return filtered_products[:2]
     else:
         # 매칭되는 상품이 없으면 랜덤 추천
-        return random.sample(clothing_data, 2)
+        return random.sample(global_clothing_data, 2)
 
 @router.get("/", response_class=HTMLResponse)
 async def recommend(request: Request):
-    # 페이지 로드 시 데이터 로드
-    if not clothing_data:
-        load_data()
     return templates.TemplateResponse("recommend/recommend.html", {"request": request})
 
 @router.post("/chat", response_class=JSONResponse)
 async def chat_recommend(user_input: str = Form(...)):
     """챗봇 추천 API"""
     try:
-        # 데이터가 없으면 로드
-        if not clothing_data:
-            load_data()
-        
-        # 데이터가 여전히 없으면 오류
-        if not clothing_data:
+        # 데이터가 없으면 오류
+        if not global_clothing_data:
             return {
                 "success": False,
                 "response": "데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
@@ -349,10 +257,8 @@ async def chat_recommend(user_input: str = Form(...)):
         print(f"Error in chat_recommend: {e}")
         # 오류 발생 시 랜덤 추천
         try:
-            if not clothing_data:
-                load_data()
-            fallback_recommendations = random.sample(clothing_data, 2) if clothing_data else []
-        except:
+            fallback_recommendations = random.sample(global_clothing_data, 2) if global_clothing_data else []
+        except Exception:
             fallback_recommendations = []
         
         return {

@@ -216,16 +216,16 @@
                 <!-- 활성화된 필터들이 여기에 표시됩니다 -->
             </div>
 
-            <div class="product-grid" id="product-grid">
+                <div class="product-grid" id="product-grid">
                 {% for product in products %}
                 <div class="product-card" 
-                     data-gender="{{ product.get('성별', '') }}"
-                     data-type="{{ product.get('의류타입', '') }}"
-                     data-subcategory="{{ product.get('소분류', '') }}"
+                     data-gender="{{ product.get('성별', '') }}" data-gender-key="{{ product.get('gender_key','') }}"
+                     data-type="{{ product.get('의류타입', '') }}" data-type-key="{{ product.get('type_key','') }}"
+                     data-subcategory="{{ product.get('소분류', '') }}" data-subcat-key="{{ product.get('subcat_key','') }}"
                      data-price="{{ product.get('processed_price', '0') }}"
                      data-rating="{{ product.get('평점', '') }}"
                      data-brand="{{ product.get('브랜드', '') }}">
-                    <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
+                    <img src="{{ product.get('대표이미지URL') or product.get('사진') }}" alt="{{ product['상품명'] }}">
                     <div class="product-card-content">
                         <h3>{{ product['상품명'] }}</h3>
                         <p class="brand">{{ product.get('브랜드', '') }}</p>

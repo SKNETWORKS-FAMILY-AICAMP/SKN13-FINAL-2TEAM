@@ -21,19 +21,14 @@
     <!-- 오른쪽: 찜 목록 사이드바 -->
     <aside class="wishlist-sidebar">
         <h2>찜 목록</h2>
-        <div class="product-grid">
+        <!-- 삭제 기능 제거 -->
+        <div class="product-grid" id="jjimGrid">
             {% for product in jjim_products %}
             <div class="product-card" data-product-id="{{ product['상품ID'] }}">
-                <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
+                
+                <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product['상품명'] }}">
                 <div class="product-card-info">
                     <h3>{{ product['상품명'] }}</h3>
-                </div>
-                <!-- 상세 정보 (모달에서만 보임) -->
-                <div class="product-details">
-                    <p><strong>브랜드:</strong> {{ product['브랜드'] }}</p>
-                    <p><strong>소재:</strong> {{ product['소재'] }}</p>
-                    <p><strong>가격:</strong> {{ product['가격'] }}</p>
-                    <p><strong>세탁법:</strong> {{ product['세탁법'] }}</p>
                 </div>
             </div>
             {% endfor %}

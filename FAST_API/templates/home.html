@@ -2,23 +2,31 @@
 
 {% block content %}
     <div class="netflix-home">
-        <!-- Hero Section -->
-        <section class="hero-section">
-            <div class="logo-container">
-                <img class="logo" src="/static/img/logo.png" alt="Ivle Malle 로고">
-            </div>
-            <div class="hero-content">
-                <h1>Ivle Malle</h1>
-                <p>입을래 말래 입을래 말래 입을래 말래 입을래 말래 입을래 말래 입을래 말래 입을래 말래 애매하긴해</p>
-                <div class="hero-buttons">
-                    <button class="play-button">▶ 재생</button>
-                    <button class="info-button">ℹ️ 상세 정보</button>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- Content Rows -->
+<!-- Hero Section -->
+<section class="hero-section">
+<div aria-hidden="true" class="hero-blob"></div>
+<div class="hero-split-left reveal">
+<div class="hero-eyebrow">Personalized Outfit Engine</div>
+<h1 class="hero-title">Ivle Malle</h1>
+<p class="hero-sub">당신의 취향, 체형, 계절 컬러를 이해하는 AI가
+        오늘 입을 이유를 디자인합니다. 한 번의 클릭으로 완성형 코디 제안.</p>
+<div class="hero-cta">
+<button class="btn-glass btn-primary">지금 추천 받기</button>
+<button class="btn-glass">스타일 설문</button>
+<button class="btn-glass">룩북 보기</button>
+</div>
+<div aria-hidden="true" class="brand-ticker">
+<div class="brand-track">
+<span>Maison</span><span>Archive</span><span>Ivle Malle</span><span>Tailored</span><span>Minimal</span><span>Street</span>
+<span>Maison</span><span>Archive</span><span>Ivle Malle</span><span>Tailored</span><span>Minimal</span><span>Street</span>
+</div>
+</div>
+</div>
+<div class="hero-split-right reveal">
+<div class="hero-portrait">Lookbook Placeholder</div>
+</div>
+</section>
+<!-- Content Rows -->
         {% for section_title, section_items in [
             ("지민님이 좋아할 만한 한 콘텐츠", section1_items),
             ("지금 뜨는 콘텐츠", section2_items),
@@ -26,22 +34,21 @@
             ("추가 추천 콘텐츠", section4_items)
         ] %}
         <section class="content-row">
-            <h2>{{ section_title }}</h2>
-            <div class="scroll-container">
-                <div class="scroll-arrow left">&#10094;</div>
-                <div class="row-posters">
+<h2>{{ section_title }}</h2>
+<div class="scroll-container">
+<div class="scroll-arrow left">❮</div>
+<div class="row-posters">
                     {% for item in section_items %}
-                    <img src="{{ item['사진'] }}" alt="{{ item['상품명'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}">
+                    <img alt="{{ item['상품명'] }}" src="{{ item['사진'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}"/>
                     {% endfor %}
                 </div>
-                <div class="scroll-arrow right">&#10095;</div>
-            </div>
-        </section>
+<div class="scroll-arrow right">❯</div>
+</div>
+</section>
         {% endfor %}
     </div>
-
-    <!-- GSAP Animation Script -->
-    <script>
+<!-- GSAP Animation Script -->
+<script>
     document.addEventListener("DOMContentLoaded", function() {
         // 로고 등장 효과 (from을 사용하여 시작 상태를 정의)
         gsap.from(".logo-container .logo", {
@@ -104,4 +111,15 @@
     });
 
     </script>
+
+    <script>
+      // Reveal on scroll
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if(e.isIntersecting){ e.target.classList.add('show'); io.unobserve(e.target); }
+        });
+      }, {threshold: .12, rootMargin: '0px 0px -40px 0px'});
+      document.querySelectorAll('.reveal, .row').forEach(el=> io.observe(el));
+    </script>
+
 {% endblock %}

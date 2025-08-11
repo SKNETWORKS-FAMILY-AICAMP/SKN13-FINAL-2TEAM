@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, UniqueConstraint, text
+from sqlalchemy import Column, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 from db import Base
 
@@ -16,7 +16,6 @@ class User(Base):
     email = Column(String(255), nullable=False, unique=True, index=True)
     gender = Column(String(20), nullable=True)
     role = Column(String(20), nullable=False, server_default=text("'user'"))
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan")
 

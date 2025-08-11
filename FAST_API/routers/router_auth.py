@@ -35,7 +35,7 @@ async def login(request: Request):
 @router.post("/login", response_class=HTMLResponse)
 async def login_post(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, username)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.password):
         return templates.TemplateResponse("login.html", {"request": request, "error": "아이디 또는 비밀번호가 올바르지 않습니다."})
     
     request.session["user_name"] = user.username
@@ -74,7 +74,7 @@ async def signup_post(
         return templates.TemplateResponse("signup.html", {"request": request, "error": "이미 존재하는 이메일입니다."})
 
     # 사용자 생성
-    user = User(username=username, hashed_password=hash_password(password), email=email, gender=gender, role="user")
+    user = User(username=username, password=hash_password(password), email=email, gender=gender, role="user")
     db.add(user)
     db.commit()
     db.refresh(user)

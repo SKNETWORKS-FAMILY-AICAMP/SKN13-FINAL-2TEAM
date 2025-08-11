@@ -13,8 +13,8 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
     return db.execute(stmt).scalar_one_or_none()
 
 
-def create_user(db: Session, username: str, hashed_password: str) -> User:
-    user = User(username=username, hashed_password=hashed_password, email="", gender=None)
+def create_user(db: Session, username: str, password: str) -> User:
+    user = User(username=username, password=password, email="", gender=None)
     db.add(user)
     db.commit()
     db.refresh(user)

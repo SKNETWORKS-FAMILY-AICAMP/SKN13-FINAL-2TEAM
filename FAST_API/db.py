@@ -71,7 +71,7 @@ def bootstrap_admin() -> None:
         user = User(
             username=admin_username,
             email=admin_email,
-            hashed_password=hash_password(admin_password),
+            password=hash_password(admin_password),
             gender=None,
             role="admin",
         )
@@ -94,6 +94,10 @@ def _migrate_users_table() -> None:
             """)
         ).scalars().all()
         cols_set = set(cols)
+
+        # hashed_password를 password로 변경
+        if 'hashed_password' in cols_set and 'password' not in cols_set:
+            conn.execute(text("ALTER TABLE public.users RENAME COLUMN hashed_password TO password"))
 
         # email 추가
         if 'email' not in cols_set:

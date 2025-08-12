@@ -139,9 +139,9 @@ FAST_API/
 
 ---
 
-## 🖥️ 시스템 아키텍쳐 (추후 업데이티 예정)
+## 🖥️ System Architecture
 
-여기에 아키텍쳐쳐 사진 넣을거에요
+<img width="2573" height="1178" alt="System_Architecture" src="https://github.com/user-attachments/assets/ef430ee3-966f-4ba9-9f0f-56bf992c95c2" />
 
 ## Data Flow Diagram
 

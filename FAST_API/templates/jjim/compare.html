@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/jjim.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="compare-container">
+        <h1>상품 비교</h1>
+        <div class="product-compare-grid">
+            {% for product in products %}
+            <div class="product-compare-card">
+                <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
+                <h2>{{ product['상품명'] }}</h2>
+                <p><strong>브랜드:</strong> {{ product['브랜드'] }}</p>
+                <p><strong>소재:</strong> {{ product['소재'] }}</p>
+                <p><strong>가격:</strong> {{ product['가격'] }}</p>
+                <p><strong>세탁법:</strong> {{ product['세탁법'] }}</p>
+                <!-- Add more details as needed -->
+            </div>
+            {% endfor %}
+        </div>
+        <div class="back-button-container">
+            <a href="/jjim/" class="back-button">찜 목록으로 돌아가기</a>
+        </div>
+    </div>
+{% endblock %}

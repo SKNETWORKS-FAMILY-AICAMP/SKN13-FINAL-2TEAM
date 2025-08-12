@@ -89,3 +89,18 @@ FAST_API/
     uvicorn main:app --reload
     ```
     애플리케이션은 `http://127.0.0.1:8000`에서 사용할 수 있습니다.
+
+## Data Flow Diagram
+
+### Lvl 0
+
+<img width="2032" height="596" alt="image" src="https://github.com/user-attachments/assets/57bfda62-e2e0-4a1b-b9a8-b157c923f664" />
+
+### Lvl 1
+
+<img width="576" height="714" alt="image" src="https://github.com/user-attachments/assets/cf4dfade-f53e-4a4a-a099-4575341d82e6" />
+<img width="1002" height="390" alt="image" src="https://github.com/user-attachments/assets/0b8430a0-4130-4b68-a0e4-17d68a06c42e" />
+
+## User Flow Chart
+
+<img width="1642" height="1084" alt="image" src="https://github.com/user-attachments/assets/dfe5e6a7-130c-4cd0-aa14-c62ab1ba9f97" />

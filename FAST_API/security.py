@@ -6,4 +6,3 @@ def hash_password(plain_password: str) -> str:
 def verify_password(plain_password: str, stored_password: str) -> bool:
     return plain_password == stored_password
 
-

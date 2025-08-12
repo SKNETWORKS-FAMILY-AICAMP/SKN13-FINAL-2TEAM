@@ -1,154 +1,154 @@
-# 🏗️ Filter System Architecture
+# 🏗️ 필터 시스템 아키텍처
 
-## 📁 **File Structure**
+## 📁 **파일 구조**
 
-### **Separated Files (Recommended)**
+### **분리된 파일 (권장)**
 
 ```
 FAST_API/
 ├── templates/products/
-│   └── category_browse.html          # Main HTML template
+│   └── category_browse.html          # 메인 HTML 템플릿
 ├── static/
 │   ├── css/
-│   │   ├── category_browse.css       # Layout & product grid styles
-│   │   └── filters.css              # Filter-specific styles
+│   │   ├── category_browse.css       # 레이아웃 및 상품 그리드 스타일
+│   │   └── filters.css              # 필터 관련 스타일
 │   └── js/
-│       └── filters.js               # Filter functionality (ES6 Class)
+│       └── filters.js               # 필터 기능 (ES6 클래스)
 └── routers/
-    └── router_products.py           # API endpoints & data processing
+    └── router_products.py           # API 엔드포인트 및 데이터 처리
 ```
 
-## 🎯 **Benefits of Separation**
+## 🎯 **분리의 이점**
 
-### **1. Maintainability**
-- **Easy to find**: Specific functionality in dedicated files
-- **Focused editing**: Work on filters without touching layout
-- **Clear responsibilities**: Each file has a single purpose
+### **1. 유지보수성**
+- **쉬운 탐색**: 특정 기능이 전용 파일에 있어 찾기 쉬움
+- **집중된 수정**: 레이아웃에 영향을 주지 않고 필터 작업 가능
+- **명확한 책임**: 각 파일은 단일 목적을 가짐
 
-### **2. Reusability**
-- **Filter components**: Can be reused across different pages
-- **CSS modules**: Filter styles can be imported anywhere
-- **JavaScript modules**: Filter logic can be shared
+### **2. 재사용성**
+- **필터 컴포넌트**: 여러 페이지에서 재사용 가능
+- **CSS 모듈**: 필터 스타일을 어디서든 가져올 수 있음
+- **JavaScript 모듈**: 필터 로직 공유 가능
 
-### **3. Team Collaboration**
-- **Parallel development**: Multiple developers can work simultaneously
-- **Conflict reduction**: Less merge conflicts
-- **Clear ownership**: Each file has a clear owner
+### **3. 팀 협업**
+- **병렬 개발**: 여러 개발자가 동시에 작업 가능
+- **충돌 감소**: 병합 충돌 감소
+- **명확한 소유권**: 각 파일의 소유자가 명확함
 
-### **4. Performance**
-- **Smaller files**: Faster loading times
-- **Caching**: Browser can cache individual files
-- **Lazy loading**: Load only what's needed
+### **4. 성능**
+- **작은 파일**: 더 빠른 로딩 시간
+- **캐싱**: 브라우저가 개별 파일을 캐시할 수 있음
+- **지연 로딩**: 필요한 것만 로드
 
-### **5. Testing**
-- **Unit testing**: Test filter logic independently
-- **Component testing**: Test filter UI separately
-- **Integration testing**: Test complete flow
+### **5. 테스팅**
+- **단위 테스트**: 필터 로직을 독립적으로 테스트
+- **컴포넌트 테스트**: 필터 UI를 별도로 테스트
+- **통합 테스트**: 전체 흐름을 테스트
 
-## 🔧 **File Responsibilities**
+## 🔧 **파일별 책임**
 
 ### **`category_browse.html`**
-- **Purpose**: Main page structure and content
-- **Contains**: HTML markup, template logic
-- **Dependencies**: CSS and JS files
+- **목적**: 메인 페이지 구조 및 콘텐츠
+- **포함 내용**: HTML 마크업, 템플릿 로직
+- **의존성**: CSS 및 JS 파일
 
 ### **`category_browse.css`**
-- **Purpose**: Layout and product grid styling
-- **Contains**: Container, sidebar, product cards
-- **Focus**: Page structure and visual hierarchy
+- **목적**: 레이아웃 및 상품 그리드 스타일링
+- **포함 내용**: 컨테이너, 사이드바, 상품 카드
+- **초점**: 페이지 구조 및 시각적 계층
 
 ### **`filters.css`**
-- **Purpose**: Filter-specific styling
-- **Contains**: Checkboxes, price inputs, buttons
-- **Focus**: Interactive filter components
+- **목적**: 필터 관련 스타일링
+- **포함 내용**: 체크박스, 가격 입력, 버튼
+- **초점**: 상호작용 가능한 필터 컴포넌트
 
 ### **`filters.js`**
-- **Purpose**: Filter functionality and logic
-- **Contains**: ES6 class with all filter methods
-- **Focus**: User interactions and data processing
+- **목적**: 필터 기능 및 로직
+- **포함 내용**: 모든 필터 메서드를 포함한 ES6 클래스
+- **초점**: 사용자 상호작용 및 데이터 처리
 
 ### **`router_products.py`**
-- **Purpose**: Backend API and data processing
-- **Contains**: Product processing, API endpoints
-- **Focus**: Data management and server logic
+- **목적**: 백엔드 API 및 데이터 처리
+- **포함 내용**: 상품 처리, API 엔드포인트
+- **초점**: 데이터 관리 및 서버 로직
 
-## 🚀 **Usage Examples**
+## 🚀 **사용 예시**
 
-### **Adding New Filter**
-1. **HTML**: Add filter markup in `category_browse.html`
-2. **CSS**: Add styles in `filters.css`
-3. **JS**: Add logic in `filters.js` class
-4. **API**: Add endpoint in `router_products.py`
+### **새 필터 추가**
+1. **HTML**: `category_browse.html`에 필터 마크업 추가
+2. **CSS**: `filters.css`에 스타일 추가
+3. **JS**: `filters.js` 클래스에 로직 추가
+4. **API**: `router_products.py`에 엔드포인트 추가
 
-### **Reusing Filters**
+### **필터 재사용**
 ```html
-<!-- In any other template -->
+<!-- 다른 템플릿에서 -->
 <link rel="stylesheet" href="{{ url_for('static', path='css/filters.css') }}">
 <script src="{{ url_for('static', path='js/filters.js') }}"></script>
 ```
 
-### **Modifying Filter Logic**
+### **필터 로직 수정**
 ```javascript
-// In filters.js
+// filters.js에서
 class ProductFilter {
-    // Add new method
+    // 새 메서드 추가
     addNewFilter() {
-        // New filter logic
+        // 새로운 필터 로직
     }
 }
 ```
 
-## 📊 **Comparison: Single vs Separated Files**
+## 📊 **비교: 단일 파일 vs 분리된 파일**
 
-| Aspect | Single File | Separated Files |
+| 항목 | 단일 파일 | 분리된 파일 |
 |--------|-------------|-----------------|
-| **File Size** | Large (500+ lines) | Small (100-200 lines each) |
-| **Maintainability** | Hard to navigate | Easy to find and edit |
-| **Reusability** | Difficult to reuse | Easy to import |
-| **Team Work** | Merge conflicts | Parallel development |
-| **Performance** | Slower loading | Faster, cacheable |
-| **Testing** | Hard to test | Easy to unit test |
-| **Debugging** | Hard to isolate | Easy to debug |
+| **파일 크기** | 큼 (500+ 줄) | 작음 (각 100-200 줄) |
+| **유지보수성** | 탐색하기 어려움 | 찾고 편집하기 쉬움 |
+| **재사용성** | 재사용하기 어려움 | 가져오기 쉬움 |
+| **팀 작업** | 병합 충돌 | 병렬 개발 |
+| **성능** | 느린 로딩 | 더 빠르고 캐시 가능 |
+| **테스팅** | 테스트하기 어려움 | 단위 테스트하기 쉬움 |
+| **디버깅** | 분리하기 어려움 | 디버깅하기 쉬움 |
 
-## 🎨 **Best Practices**
+## 🎨 **모범 사례**
 
-### **1. File Naming**
-- Use descriptive names: `filters.css`, `product-grid.js`
-- Follow conventions: lowercase, hyphens for CSS/HTML
+### **1. 파일 이름 지정**
+- 설명적인 이름 사용: `filters.css`, `product-grid.js`
+- 규칙 따르기: 소문자, CSS/HTML에는 하이픈 사용
 
-### **2. Organization**
-- Group related functionality together
-- Keep files focused on single responsibility
-- Use clear folder structure
+### **2. 구성**
+- 관련된 기능을 함께 그룹화
+- 파일을 단일 책임에 집중
+- 명확한 폴더 구조 사용
 
-### **3. Dependencies**
-- Minimize dependencies between files
-- Use clear import/export patterns
-- Document dependencies clearly
+### **3. 의존성**
+- 파일 간의 의존성 최소화
+- 명확한 가져오기/내보내기 패턴 사용
+- 의존성을 명확하게 문서화
 
-### **4. Performance**
-- Load CSS in `<head>`
-- Load JS at end of `<body>`
-- Use async/defer for non-critical JS
+### **4. 성능**
+- `<head>`에서 CSS 로드
+- `<body>` 끝에서 JS 로드
+- 중요하지 않은 JS에는 async/defer 사용
 
-## 🔄 **Migration Path**
+## 🔄 **마이그레이션 경로**
 
-If you have a single large file and want to separate it:
+하나의 큰 파일을 분리하고 싶다면:
 
-1. **Extract CSS**: Move filter styles to `filters.css`
-2. **Extract JS**: Move filter logic to `filters.js`
-3. **Update HTML**: Add proper file references
-4. **Test**: Ensure everything still works
-5. **Optimize**: Remove duplicate code
+1. **CSS 추출**: 필터 스타일을 `filters.css`로 이동
+2. **JS 추출**: 필터 로직을 `filters.js`로 이동
+3. **HTML 업데이트**: 올바른 파일 참조 추가
+4. **테스트**: 모든 것이 여전히 작동하는지 확인
+5. **최적화**: 중복 코드 제거
 
-## ✅ **Conclusion**
+## ✅ **결론**
 
-**Separated files are definitely better** for:
-- ✅ **Maintainability**: Easier to find and fix issues
-- ✅ **Scalability**: Easy to add new features
-- ✅ **Team work**: Multiple developers can work simultaneously
-- ✅ **Performance**: Smaller, cacheable files
-- ✅ **Testing**: Easier to unit test components
-- ✅ **Reusability**: Components can be shared across pages
+**분리된 파일이 확실히 더 좋습니다** 다음을 위해:
+- ✅ **유지보수성**: 문제를 찾고 수정하기 쉬움
+- ✅ **확장성**: 새로운 기능을 쉽게 추가
+- ✅ **팀 작업**: 여러 개발자가 동시에 작업 가능
+- ✅ **성능**: 더 작고 캐시 가능한 파일
+- ✅ **테스팅**: 컴포넌트를 단위 테스트하기 쉬움
+- ✅ **재사용성**: 컴포넌트를 여러 페이지에서 공유 가능
 
-The initial setup might take a bit more time, but the long-term benefits far outweigh the initial investment! 🚀 
+초기 설정에는 시간이 조금 더 걸릴 수 있지만, 장기적인 이점은 초기 투자를 훨씬 능가합니다! 🚀

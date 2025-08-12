@@ -4,7 +4,6 @@ from db import get_db
 from models.models_auth import User
 from crud.user_crud import get_user_by_username
 
-
 def login_required(request: Request):
     """세션에서 로그인 상태를 확인합니다.
     - 기본: `session['user_name']`

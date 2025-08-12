@@ -52,6 +52,7 @@ app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
 app.include_router(chatbot_debug_router, prefix="/chat-debug", tags=["Chatbot Debug"])
 app.include_router(cache_admin_router, prefix="/admin", tags=["Cache Admin"])
 
+
 # 404 에러 핸들러
 @app.exception_handler(StarletteHTTPException)
 async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):

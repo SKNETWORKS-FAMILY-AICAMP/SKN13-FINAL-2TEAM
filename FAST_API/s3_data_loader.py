@@ -161,3 +161,4 @@ s3_loader = S3DataLoader()
 
 def get_product_data_from_s3(file_key: str) -> List[Dict]:
     return s3_loader.load_product_data(file_key)
+

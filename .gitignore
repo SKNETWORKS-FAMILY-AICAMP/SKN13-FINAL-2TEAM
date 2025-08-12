@@ -177,3 +177,4 @@ pyrightconfig.json
 __pycache__
 *.pyc
 FAST_API/cache/
+

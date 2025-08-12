@@ -1,10 +1,91 @@
-# FAST_API 프로젝트 문서
+###### SKN13-FINAL-2TEAM
 
-## 🚀 개요
+
+## 1️⃣ 팀 소개
+### 팀 명 : Ivle Malle
+#### 🗓️ 개발 기간
+> 2025.07.23 ~ 
+### 👥 팀원
+
+<table width="100%">
+  <tr>
+    <td align=center><b>구자현</b></td>
+    <td align=center><b>김지민</b></td>
+    <td align=center><b>민경재</b></td>
+    <td align=center><b>박수빈</b></td>
+    <td align=center><b>이유나</b></td>
+    <td align=center><b>홍성의</b></td>
+  </tr>
+  <tr>
+    <td align="center" width="16%">
+      <b><img src="https://github.com/user-attachments/assets/a2e78d57-db3e-4204-9d02-fff1ab699124"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="https://github.com/user-attachments/assets/2624f7cc-db21-436d-bccd-52cede65a3b0"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="https://github.com/user-attachments/assets/2e42b141-fff2-4d56-8c44-7b00756fd814"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="https://github.com/user-attachments/assets/cc1f39e6-3496-433e-a24b-5322a69ad41d"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="https://github.com/user-attachments/assets/c69f9919-6ed2-4036-b24f-bdcca4121e7d"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="https://github.com/user-attachments/assets/fd9a233e-ae7e-4d89-90b6-49ba7d690bd5"/></b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="16%">
+      <a href="https://github.com/Koojh99">
+        <img src="https://img.shields.io/badge/GitHub-Koojh99-C7CDE5?logo=github" alt="구자현 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/Gogimin">
+        <img src="https://img.shields.io/badge/GitHub-Gogimin-FAC8D1?logo=github" alt="김지민 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/rudwo524">
+        <img src="https://img.shields.io/badge/GitHub-rudwo524-FECC99?logo=github" alt="민경재 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/subin0821">
+        <img src="https://img.shields.io/badge/GitHub-subin0821-FFF2A3?logo=github" alt="박수빈 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/yunawawa">
+        <img src="https://img.shields.io/badge/GitHub-yunawawa-EFE1F8?logo=github" alt="이유나 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/seonguihong">
+        <img src="https://img.shields.io/badge/GitHub-seonguihong-BAD7E7?logo=github" alt="홍성의 GitHub"/>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+
+  </tr>
+</table>
+
+
+
+## 🚀 현재 상황 개요 (추후 업데이트 예정)
 
 이 프로젝트는 의류 전문 이커머스 플랫폼의 백엔드 역할을 하도록 설계된 FastAPI 애플리케이션입니다. 사용자 인증, 상품 조회, 데이터 캐싱을 처리하고 챗봇 인터페이스를 제공합니다. 상품 데이터는 AWS S3 버킷에서 동적으로 로드되며, 사용자 데이터는 PostgreSQL 데이터베이스에 저장됩니다.
 
-## 📁 프로젝트 구조
+## 📁 프로젝트 구조 (추후 업데이트 예정)
 
 ```
 FAST_API/
@@ -28,6 +109,56 @@ FAST_API/
 ```
 
 ---
+
+## 🚀 현재 상황 개요 (추후 업데이트 예정)
+
+이 프로젝트는 의류 전문 이커머스 플랫폼의 백엔드 역할을 하도록 설계된 FastAPI 애플리케이션입니다. 사용자 인증, 상품 조회, 데이터 캐싱을 처리하고 챗봇 인터페이스를 제공합니다. 상품 데이터는 AWS S3 버킷에서 동적으로 로드되며, 사용자 데이터는 PostgreSQL 데이터베이스에 저장됩니다.
+
+## 📁 프로젝트 구조 (추후 업데이트 예정)
+
+```
+FAST_API/
+├── crud/                 # 데이터베이스 CRUD(생성, 읽기, 업데이트, 삭제) 작업을 포함합니다.
+├── models/               # SQLAlchemy 데이터베이스 모델을 포함합니다.
+├── routers/              # API 엔드포인트 정의(라우트)를 포함합니다.
+├── schemas/              # Pydantic 데이터 유효성 검사 스키마를 포함합니다.
+├── static/               # 정적 파일(CSS, JavaScript, 이미지)을 포함합니다.
+├── templates/            # Jinja2 HTML 템플릿을 포함합니다.
+├── cache/                # 파일 기반 캐시를 저장하기 위한 디렉토리입니다.
+├── .env                  # (존재하지 않음) 환경 변수 파일 (생성 필요).
+├── main.py               # 메인 애플리케이션 진입점입니다.
+├── db.py                 # PostgreSQL 데이터베이스 설정 및 세션 관리.
+├── s3_data_loader.py     # AWS S3에서 데이터를 로드하고 처리하는 로직.
+├── cache_manager.py      # 성능 최적화를 위한 캐싱 로직.
+├── data_store.py         # 상품 정보를 위한 인메모리 데이터 저장소.
+├── security.py           # 비밀번호 처리 및 검증 로직.
+├── dependencies.py       # 인증 및 권한 부여를 위한 FastAPI 종속성.
+├── requirements.txt      # Python 패키지 종속성.
+└── ...
+```
+
+---
+
+## 🖥️ 시스템 아키텍쳐 (추후 업데이티 예정)
+
+여기에 아키텍쳐쳐 사진 넣을거에요
+
+## Data Flow Diagram
+
+### Lvl 0
+
+<img width="2032" height="596" alt="image" src="https://github.com/user-attachments/assets/57bfda62-e2e0-4a1b-b9a8-b157c923f664" />
+
+### Lvl 1
+
+<img width="576" height="714" alt="image" src="https://github.com/user-attachments/assets/cf4dfade-f53e-4a4a-a099-4575341d82e6" />
+<img width="1002" height="390" alt="image" src="https://github.com/user-attachments/assets/0b8430a0-4130-4b68-a0e4-17d68a06c42e" />
+
+## User Flow Chart
+
+<img width="1642" height="1084" alt="image" src="https://github.com/user-attachments/assets/dfe5e6a7-130c-4cd0-aa14-c62ab1ba9f97" />
+
+
 
 ## 📄 파일 설명
 
@@ -90,17 +221,6 @@ FAST_API/
     ```
     애플리케이션은 `http://127.0.0.1:8000`에서 사용할 수 있습니다.
 
-## Data Flow Diagram
 
-### Lvl 0
+## 이미지 부분 (자현이형이 적고있는것)
 
-<img width="2032" height="596" alt="image" src="https://github.com/user-attachments/assets/57bfda62-e2e0-4a1b-b9a8-b157c923f664" />
-
-### Lvl 1
-
-<img width="576" height="714" alt="image" src="https://github.com/user-attachments/assets/cf4dfade-f53e-4a4a-a099-4575341d82e6" />
-<img width="1002" height="390" alt="image" src="https://github.com/user-attachments/assets/0b8430a0-4130-4b68-a0e4-17d68a06c42e" />
-
-## User Flow Chart
-
-<img width="1642" height="1084" alt="image" src="https://github.com/user-attachments/assets/dfe5e6a7-130c-4cd0-aa14-c62ab1ba9f97" />

@@ -5,23 +5,116 @@
 {% endblock %}
 
 {% block content %}
-    <div class="compare-container">
-        <h1>상품 비교</h1>
-        <div class="product-compare-grid">
-            {% for product in products %}
-            <div class="product-compare-card">
-                <img src="{{ product['대표이미지URL'] }}" alt="{{ product['상품명'] }}">
-                <h2>{{ product['상품명'] }}</h2>
-                <p><strong>브랜드:</strong> {{ product['브랜드'] }}</p>
-                <p><strong>소재:</strong> {{ product['소재'] }}</p>
-                <p><strong>가격:</strong> {{ product['가격'] }}</p>
-                <p><strong>세탁법:</strong> {{ product['세탁법'] }}</p>
-                <!-- Add more details as needed -->
-            </div>
-            {% endfor %}
-        </div>
-        <div class="back-button-container">
-            <a href="/jjim/" class="back-button">찜 목록으로 돌아가기</a>
-        </div>
+<div class="compare-page-container">
+    <header class="compare-header">
+        <h1 class="page-title">상품 비교</h1>
+        <a href="/jjim/" class="back-to-list-btn">찜 목록으로 돌아가기</a>
+    </header>
+
+    {% if products %}
+    <div class="comparison-table-wrapper">
+        <table class="comparison-table">
+            <!-- <thead> for images -->
+            <thead>
+                <tr>
+                    <th class="attribute-header">상품 이미지</th>
+                    {% for product in products %}
+                    <td class="product-image-cell">
+                        <img src="{{ product.get('대표이미지URL') }}" alt="{{ product.get('상품명') }}">
+                    </td>
+                    {% endfor %}
+                </tr>
+            </thead>
+
+            <!-- <tbody> for details -->
+            <tbody>
+                <!-- Product Name -->
+                <tr>
+                    <th class="attribute-header">상품명</th>
+                    {% for product in products %}
+                    <td><h3>{{ product.get('제품이름') }}</h3></td>
+                    {% endfor %}
+                </tr>
+
+                <!-- Brand -->
+                <tr>
+                    <th class="attribute-header">브랜드</th>
+                    {% for product in products %}
+                    <td>{{ product.get('브랜드') }}</td>
+                    {% endfor %}
+                </tr>
+
+                <!-- Price -->
+                <tr>
+                    <th class="attribute-header">가격</th>
+                    {% for product in products %}
+                    <td class="price">{{ product.get('가격') }}</td>
+                    {% endfor %}
+                </tr>
+
+                <!-- Rating -->
+                <tr>
+                    <th class="attribute-header">평점</th>
+                    {% for product in products %}
+                    <td>
+                        <div class="rating">
+                            <span class="stars" data-rating="{{ product.get('평점', '0') }}">★★★★★</span>
+                            <span class="rating-text">{{ "%.1f"|format(product.get('평점', 0)) }}/5.0</span>
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+
+                <!-- Material -->
+                <tr>
+                    <th class="attribute-header">소재</th>
+                    {% for product in products %}
+                    <td>{{ product.get('제품소재', '정보 없음') }}</td>
+                    {% endfor %}
+                </tr>
+
+                <!-- Laundry Info -->
+                <tr>
+                    <th class="attribute-header">세탁법</th>
+                    {% for product in products %}
+                    <td>{{ product.get('세탁법', '정보 없음') }}</td>
+                    {% endfor %}
+                </tr>
+
+            </tbody>
+        </table>
     </div>
+    {% else %}
+    <div class="no-products-message">
+        <p>비교할 상품이 선택되지 않았습니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Render stars based on rating
+    document.querySelectorAll('.stars').forEach(starContainer => {
+        const rating = parseFloat(starContainer.dataset.rating) || 0;
+        const percentage = (rating / 5) * 100;
+        starContainer.style.position = 'relative';
+        starContainer.style.color = 'rgba(255, 255, 255, 0.2)'; // Empty stars color
+        
+        const filledStars = document.createElement('span');
+        filledStars.textContent = '★★★★★';
+        filledStars.style.position = 'absolute';
+        filledStars.style.top = 0;
+        filledStars.style.left = 0;
+        filledStars.style.color = '#ffc700'; // Filled stars color
+        filledStars.style.width = `${percentage}%`;
+        filledStars.style.overflow = 'hidden';
+        filledStars.style.whiteSpace = 'nowrap';
+
+        starContainer.appendChild(filledStars);
+    });
+});
+</script>
 {% endblock %}

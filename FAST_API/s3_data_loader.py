@@ -118,12 +118,12 @@ class S3DataLoader:
                     item.get('상품코드') or item.get('상품ID') or item.get('제품ID') or item.get('id') or item.get('ID')
                 )
                 if not product_id:
-                    key_src = f"{item.get('상품명', '')}|{item.get('브랜드명', item.get('브랜드', ''))}|{price}"
+                    key_src = f"{item.get('제품이름', '')}|{item.get('브랜드명', item.get('브랜드', ''))}|{price}|{item.get('색상', '')}|{item.get('사이즈', '')}"
                     product_id = hashlib.md5(key_src.encode('utf-8')).hexdigest()[:16]
 
                 mapped_item = {
                     "상품코드": str(product_id),
-                    "상품명": item.get("상품명", ""),
+                    "제품이름": item.get("제품이름", ""),
                     "브랜드명": item.get("브랜드명", item.get("브랜드", "")),
                     "대분류": item.get("대분류", ""),
                     "소분류": item.get("소분류", ""),
@@ -131,7 +131,7 @@ class S3DataLoader:
                     "할인가": int(discount_price) if isinstance(discount_price, (int, float)) else 0,
                     "성별": item.get("성별", ""),
                     "이미지 url": fixed_img,
-                    "소재": item.get("소재", ""),
+                    "소재": item.get("제품소재", ""),
                     "색상": item.get("색상", ""),
                     "좋아요 수": item.get("좋아요 수", 0),
                     "상품링크": item.get("상품링크", ""),
@@ -144,6 +144,7 @@ class S3DataLoader:
                     "processed_price": int(price),
                 }
                 clothing_data.append(mapped_item)
+                print(f"DEBUG: Processed item - Product ID: {mapped_item['상품ID']}, Name: {mapped_item['제품이름']}, Color: {mapped_item.get('색상', 'N/A')}, Size: {mapped_item.get('사이즈', 'N/A')}")
             
             print(f"✅ 제품 데이터 가공 완료: {len(clothing_data)}개 상품")
             

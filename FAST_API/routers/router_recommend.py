@@ -150,7 +150,7 @@ def filter_products_by_analysis(analysis: Dict, products: List[Dict]) -> List[Di
     
     for product in products:
         score = 0
-        product_text = f"{product.get('상품명', '')} {product.get('브랜드', '')} {product.get('소재', '')} {product.get('색상옵션', '')}".lower()
+        product_text = f"{product.get('제품이름', '')} {product.get('브랜드', '')} {product.get('제품소재', '')} {product.get('색상옵션', '')}".lower()
         
         # 색상 매칭
         if analysis.get("color") != "상관없음":

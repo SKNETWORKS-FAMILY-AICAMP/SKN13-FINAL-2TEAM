@@ -37,8 +37,8 @@
       <div class="product-grid">
         {% for product in viewed_products %}
         <div class="product-card">
-          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('상품명') }}">
-          <p class="product-name">{{ product.get('상품명') }}</p>
+          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
+          <p class="product-name">{{ product.get('제품이름') }}</p>
         </div>
         {% endfor %}
       </div>
@@ -54,8 +54,8 @@
       <div class="product-grid">
         {% for product in recommended_products %}
         <div class="product-card">
-          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('상품명') }}">
-          <p class="product-name">{{ product.get('상품명') }}</p>
+          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
+          <p class="product-name">{{ product.get('제품이름') }}</p>
         </div>
         {% endfor %}
       </div>
@@ -78,8 +78,8 @@
           <label style="position:absolute; top:6px; left:6px; background:#fff; padding:2px 4px; border-radius:4px;">
             <input type="checkbox" class="mypage-select-item">
           </label>
-          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('상품명') }}">
-          <p class="product-name">{{ product.get('상품명') }}</p>
+          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
+          <p class="product-name">{{ product.get('제품이름') }}</p>
         </div>
         {% endfor %}
       </div>

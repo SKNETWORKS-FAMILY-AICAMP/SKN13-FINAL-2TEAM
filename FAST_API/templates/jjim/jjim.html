@@ -21,14 +21,28 @@
     <!-- 오른쪽: 찜 목록 사이드바 -->
     <aside class="wishlist-sidebar">
         <h2>찜 목록</h2>
-        <!-- 삭제 기능 제거 -->
+        <div class="jjim-actions">
+            <label class="select-all-label">
+                <input type="checkbox" id="selectAllCheckbox"> 전체 선택
+            </label>
+            <button class="delete-selected-btn" id="deleteSelectedBtn">선택 삭제</button>
+        </div>
         <div class="product-grid" id="jjimGrid">
             {% for product in jjim_products %}
             <div class="product-card" data-product-id="{{ product['상품ID'] }}">
+                <input type="checkbox" class="product-checkbox" data-product-id="{{ product['상품ID'] }}">
                 
                 <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product['상품명'] }}">
                 <div class="product-card-info">
-                    <h3>{{ product['상품명'] }}</h3>
+                    <h3>{{ product['제품이름'] }}</h3>
+                </div>
+                <!-- Hidden details for JS -->
+                <div class="product-details"
+                     data-name="{{ product.get('제품이름', '이름 없음') }}"
+                     data-brand="{{ product.get('브랜드', '정보 없음') }}"
+                     data-price="{{ product.get('가격', '정보 없음') }}"
+                     data-rating="{{ product.get('평점', 0) | round(1) }}"
+                     data-material="{{ product.get('제품소재', '정보 없음') }}">
                 </div>
             </div>
             {% endfor %}
@@ -100,16 +114,46 @@ document.addEventListener("DOMContentLoaded", () => {
         const productsInSlots = slots.map(slot => slot.querySelector('.product-card'));
         if (productsInSlots.some(p => !p)) return;
 
-        modalContainer.innerHTML = '';
-        modalContainer.appendChild(modalCloseBtn);
-
-        productsInSlots.forEach(product => {
-            const clone = product.cloneNode(true);
-            clone.className = 'modal-product-card';
-            modalContainer.appendChild(clone);
+        // 데이터 추출 (숨겨진 div의 data-* 속성에서)
+        const productsData = productsInSlots.map(card => {
+            const details = card.querySelector('.product-details');
+            return {
+                id: card.dataset.productId,
+                img: card.querySelector('img').src,
+                name: details.dataset.name,
+                brand: details.dataset.brand,
+                price: details.dataset.price,
+                rating: details.dataset.rating,
+                material: details.dataset.material
+            };
         });
 
+        // 비교 테이블 HTML 생성
+        const tableHtml = `
+            <button class="modal-close-btn">&times;</button>
+            <h2 class="modal-title">상품 비교</h2>
+            <table class="comparison-table-modal">
+                <thead>
+                    <tr>
+                        <th>-</th>
+                        ${productsData.map(p => `<th><img src="${p.img}" alt="${p.name}"></th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>상품명</td>${productsData.map(p => `<td>${p.name}</td>`).join('')}</tr>
+                    <tr><td>브랜드</td>${productsData.map(p => `<td>${p.brand}</td>`).join('')}</tr>
+                    <tr><td>가격</td>${productsData.map(p => `<td>${p.price}</td>`).join('')}</tr>
+                    <tr><td>평점</td>${productsData.map(p => `<td>${p.rating} / 5.0</td>`).join('')}</tr>
+                    <tr><td>소재</td>${productsData.map(p => `<td>${p.material}</td>`).join('')}</tr>
+                </tbody>
+            </table>
+        `;
+
+        modalContainer.innerHTML = tableHtml;
         modalOverlay.classList.add('visible');
+        
+        // 새로 생긴 닫기 버튼에 이벤트 리스너 다시 할당
+        modalContainer.querySelector('.modal-close-btn').addEventListener('click', hideModal);
     }
 
     function hideModal() {
@@ -124,6 +168,72 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // --- 삭제 기능 ---
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const jjimGrid = document.getElementById('jjimGrid');
+
+    function updateSelectAllCheckbox() {
+        const allChecked = Array.from(productCheckboxes).every(checkbox => checkbox.checked);
+        selectAllCheckbox.checked = allChecked;
+    }
+
+    selectAllCheckbox.addEventListener('change', () => {
+        productCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+    });
+
+    productCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectAllCheckbox);
+    });
+
+    deleteSelectedBtn.addEventListener('click', async () => {
+        const selectedProductIds = Array.from(productCheckboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.dataset.productId);
+
+        if (selectedProductIds.length === 0) {
+            alert('삭제할 상품을 선택해주세요.');
+            return;
+        }
+
+        if (!confirm(`선택된 상품 ${selectedProductIds.length}개를 정말 삭제하시겠습니까?`)) {
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('product_ids', selectedProductIds.join(','));
+
+            const response = await fetch('/jjim/delete', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`${result.deleted_count}개의 상품이 삭제되었습니다.`);
+                // 삭제된 상품들을 DOM에서 제거
+                selectedProductIds.forEach(id => {
+                    const cardToRemove = document.querySelector(`.product-card[data-product-id="${id}"]`);
+                    if (cardToRemove) {
+                        cardToRemove.remove();
+                    }
+                });
+                // 체크박스 상태 초기화
+                selectAllCheckbox.checked = false;
+                updateSelectAllCheckbox(); // 혹시 모를 경우를 대비해 다시 호출
+            } else {
+                alert(`상품 삭제 실패: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Error deleting products:', error);
+            alert('상품 삭제 중 오류가 발생했습니다.');
+        }
+    });
 });
 </script>
 {% endblock %}

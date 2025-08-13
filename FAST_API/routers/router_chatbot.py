@@ -272,7 +272,7 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     
     for i, p in enumerate(result):
         category = "상의" if p.get("is_top") else ("하의" if p.get("is_bottom") else "기타")
-        print(f"최종 선택 {i+1}: [{category}] {p.get('상품명', 'N/A')[:30]}... (대분류: {p.get('제품대분류', 'N/A')})")
+        print(f"최종 선택 {i+1}: [{category}] {p.get('제품이름', 'N/A')[:30]}... (대분류: {p.get('제품대분류', 'N/A')})")
     
     return result
 
@@ -334,7 +334,7 @@ def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
     result = random.sample(matched_products, count)
     
     for i, p in enumerate(result):
-        print(f"상황별 선택 {i+1}: {p.get('상품명', 'N/A')[:25]}...")
+        print(f"상황별 선택 {i+1}: {p.get('제품이름', 'N/A')[:25]}...")
     
     return result
 

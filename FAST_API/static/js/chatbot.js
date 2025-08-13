@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         `<div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">👕</div>`
                     }
                     <div style="flex: 1; min-width: 0;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${product.상품명}</h4>
+                        <h4 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${product.제품이름}</h4>
                         <p style="margin: 0 0 3px 0; font-size: 0.8rem; color: #E50914; font-weight: 600;">${product.브랜드}</p>
                         <p style="margin: 0; font-size: 0.8rem; color: #e74c3c; font-weight: 700;">${product.가격 ? product.가격.toLocaleString() + '원' : '가격 정보 없음'}</p>
                     </div>

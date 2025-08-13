@@ -4,7 +4,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import re
 import random
-from data_store import clothing_data
+import math
+from data_store import clothing_data, processed_clothing_data
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -43,7 +44,7 @@ def process_product_data(products):
                 processed_product['processed_price'] = 0
         
         # 성별 판단 (상품명과 브랜드 기반)
-        product_name = product.get('상품명', '').lower()
+        product_name = product.get('제품이름', '').lower()
         brand = product.get('브랜드', '').lower()
         
         if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
@@ -148,12 +149,8 @@ def process_product_data(products):
 
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def products(request: Request):
-    # S3에서 로드된 전역 데이터 사용
-    all_products = clothing_data
-    processed_products = process_product_data(all_products)
-    
-    # 기본적으로 20개 상품만 표시 (필터링으로 더 보기 가능)
-    display_products = processed_products[:20]
+    # 미리 가공된 전역 데이터 사용
+    display_products = processed_clothing_data[:20]
     
     return templates.TemplateResponse("products/category_browse.html", {
         "request": request, 
@@ -173,25 +170,22 @@ async def get_products_api(
     brand: str = Query(None)
 ):
     """API endpoint for getting filtered products"""
-    all_products = clothing_data
-    processed_products = process_product_data(all_products)
-    
     # 필터링 적용
     filtered_products = []
-    for product in processed_products:
+    for product in processed_clothing_data:
         include_product = True
         
-        if gender and product.get('성별', '') != gender:
+        if gender and product.get('gender_key', '') != gender:
             include_product = False
-        if clothing_type and product.get('의류타입', '') != clothing_type:
+        if clothing_type and product.get('type_key', '') != clothing_type:
             include_product = False
-        if subcategory and product.get('소분류', '') != subcategory:
+        if subcategory and product.get('subcat_key', '') != subcategory:
             include_product = False
-        if min_price and product.get('processed_price', 0) < min_price:
+        if min_price is not None and product.get('processed_price', 0) < min_price:
             include_product = False
-        if max_price and product.get('processed_price', 0) > max_price:
+        if max_price is not None and product.get('processed_price', 0) > max_price:
             include_product = False
-        if min_rating and product.get('평점', 0) < min_rating:
+        if min_rating is not None and product.get('평점', 0) < min_rating:
             include_product = False
         if brand and brand.lower() not in product.get('브랜드', '').lower():
             include_product = False
@@ -200,14 +194,17 @@ async def get_products_api(
             filtered_products.append(product)
     
     # 페이지네이션
+    total = len(filtered_products)
+    total_pages = math.ceil(total / limit) if total > 0 else 1
     start_idx = (page - 1) * limit
     end_idx = start_idx + limit
     paginated_products = filtered_products[start_idx:end_idx]
     
     return {
         "products": paginated_products,
-        "total": len(filtered_products),
+        "total": total,
         "page": page,
         "limit": limit,
-        "has_more": end_idx < len(filtered_products)
+        "total_pages": total_pages,
+        "has_more": end_idx < total
     }

@@ -114,7 +114,7 @@ def simple_filter_debug(user_input: str, products: List[Dict]) -> List[Dict]:
     
     print(f"최종 선택된 상품 수: {len(filtered)}")
     for i, product in enumerate(filtered):
-        print(f"상품 {i+1}: {product.get('상품명', 'N/A')[:30]}...")
+        print(f"상품 {i+1}: {product.get('제품이름', 'N/A')[:30]}...")
     
     print(f"=== 디버깅: 필터링 완료 ===")
     return filtered

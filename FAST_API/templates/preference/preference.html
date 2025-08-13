@@ -9,9 +9,9 @@
     <div class="card-stack-container" id="card-stack">
         {% for item in recommended_items %}
         <div class="preference-card" data-product-id="{{ item.get('상품ID') }}">
-            <img class="card-image" src="{{ item.get('사진') or item.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ item['상품명'] }}">
+            <img class="card-image" src="{{ item.get('사진') or item.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ item['제품이름'] }}">
             <div class="card-info">
-                <h3 class="card-title">{{ item['상품명'] }}</h3>
+                <h3 class="card-title">{{ item['제품이름'] }}</h3>
                 <p class="card-brand">{{ item['브랜드'] }}</p>
             </div>
             <!-- Feedback Overlays -->

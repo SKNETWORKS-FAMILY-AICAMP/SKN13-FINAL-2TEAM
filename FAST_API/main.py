@@ -39,7 +39,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # 라우터 등록
-# Note: The home router does not have a prefix, so it handles the root path "/".
 app.include_router(home_router, tags=["Home"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(preference_router, prefix="/preference", tags=["Preference"])
@@ -66,18 +65,24 @@ async def startup_event():
     init_db()
     bootstrap_admin()
 
-    # S3에서 제품 데이터 로드 및 캐싱
+    # S3에서 제품 데이터 로드
     from s3_data_loader import get_product_data_from_s3
-    from data_store import clothing_data
-    
-    # .env 파일에서 S3 파일 키를 가져옵니다.
-    s3_file_key = os.getenv("S3_FILE_KEY", "path/to/your/default/file.csv")
+    from data_store import clothing_data, processed_clothing_data
+    from routers.router_products import process_product_data
+
+    s3_file_key = os.getenv("S3_FILE_KEY", "product_info.csv")
     
     print("🚀 애플리케이션 시작: S3 데이터 로드를 시작합니다...")
     loaded_data = get_product_data_from_s3(s3_file_key)
     if loaded_data:
         clothing_data.extend(loaded_data)
-        print(f"✅ S3 데이터 로드 및 전역 데이터 저장소 초기화 완료: {len(clothing_data)}개 상품")
+        print(f"✅ S3 데이터 로드 완료: {len(clothing_data)}개 상품")
+        
+        # 데이터 사전 처리 및 캐싱
+        print("🔄 상품 데이터 사전 처리를 시작합니다...")
+        processed_data = process_product_data(clothing_data)
+        processed_clothing_data.extend(processed_data)
+        print(f"✅ 상품 데이터 사전 처리 및 캐싱 완료: {len(processed_clothing_data)}개 상품")
     else:
         print("⚠️ S3에서 데이터를 불러오지 못했거나 데이터가 비어있습니다.")
 

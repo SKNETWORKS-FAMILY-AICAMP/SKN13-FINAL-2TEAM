@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/preference.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="preference-container">
+    <div class="card-stack-container" id="card-stack">
+        {% for item in recommended_items %}
+        <div class="preference-card" data-product-id="{{ item.get('상품ID') }}">
+            <img class="card-image" src="{{ item.get('사진') or item.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ item['상품명'] }}">
+            <div class="card-info">
+                <h3 class="card-title">{{ item['상품명'] }}</h3>
+                <p class="card-brand">{{ item['브랜드'] }}</p>
+            </div>
+            <!-- Feedback Overlays -->
+            <div class="card-feedback like">LIKE</div>
+            <div class="card-feedback dislike">NOPE</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="action-buttons">
+        <button class="action-btn dislike-btn" id="dislike-btn">❌</button>
+        <button class="action-btn like-btn" id="like-btn">💚</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const stack = document.getElementById('card-stack');
+    const cards = Array.from(stack.querySelectorAll('.preference-card')).reverse();
+    const likeBtn = document.getElementById('like-btn');
+    const dislikeBtn = document.getElementById('dislike-btn');
+
+    let activeCard = null;
+
+    function setupCards() {
+        cards.forEach((card, index) => {
+            const zIndex = index + 1;
+            const depthEffect = (cards.length - 1) - index;
+
+            gsap.set(card, {
+                y: 0, // Y축 오프셋 제거, 중앙 정렬
+                scale: 1 - depthEffect * 0.04, // 뒤로 갈수록 약간 작게
+                opacity: 1 - depthEffect * 0.1, // 뒤로 갈수록 투명하게
+                filter: `blur(${depthEffect * 2}px)`, // 뒤로 갈수록 흐릿하게
+                zIndex: zIndex,
+            });
+
+            Draggable.create(card, {
+                type: 'x,y',
+                edgeResistance: 0.65,
+                bounds: 'body',
+                onDragStart: function() {
+                    gsap.to(this.target, { filter: 'blur(0px)', duration: 0.2 });
+                },
+                onDragEnd: function() {
+                    if (Math.abs(this.x) > 100) {
+                        swipeCard(this.target, this.x > 0 ? 1 : -1);
+                    } else {
+                        gsap.to(this.target, { x: 0, y: 0, rotation: 0, filter: 'blur(0px)', duration: 0.4, ease: 'power2.out' });
+                        gsap.set(this.target, { zIndex: cards.length }); // 맨 위로 오도록 설정
+                    }
+                },
+                onDrag: function() {
+                    const rotation = this.x * 0.1;
+                    const likeFeedback = this.target.querySelector('.like');
+                    const dislikeFeedback = this.target.querySelector('.dislike');
+
+                    // Fade in feedback based on drag distance
+                    gsap.to(likeFeedback, { opacity: this.x / 100, duration: 0.1 });
+                    gsap.to(dislikeFeedback, { opacity: -this.x / 100, duration: 0.1 });
+                    gsap.to(this.target, { rotation: rotation, duration: 0.1 });
+                }
+            });
+        });
+        activeCard = cards[cards.length - 1];
+    }
+
+    function swipeCard(card, direction) {
+        const rotation = direction * 45;
+        const feedbackEl = direction > 0 ? card.querySelector('.like') : card.querySelector('.dislike');
+
+        // Animate feedback visibility
+        gsap.to(feedbackEl, { opacity: 1, duration: 0.4 });
+
+        gsap.to(card, {
+            x: direction * 400,
+            rotation: rotation,
+            opacity: 0,
+            duration: 0.5,
+            ease: 'power1.in',
+            onComplete: () => {
+                stack.removeChild(card);
+                cards.pop();
+                activeCard = cards.length > 0 ? cards[cards.length - 1] : null;
+                reorganizeStack();
+            }
+        });
+    }
+
+    function reorganizeStack() {
+        cards.forEach((card, index) => {
+            const zIndex = index + 1;
+            const depthEffect = (cards.length - 1) - index;
+
+            gsap.to(card, {
+                y: 0,
+                scale: 1 - depthEffect * 0.04,
+                opacity: 1 - depthEffect * 0.1,
+                filter: `blur(${depthEffect * 2}px)`,
+                duration: 0.4,
+                ease: 'power2.out',
+                onStart: () => gsap.set(card, { zIndex: zIndex })
+            });
+        });
+    }
+
+    async function sendJjim(productId) {
+        try {
+            const fd = new FormData();
+            fd.append('product_id', productId);
+            await fetch('/preference/jjim', { method: 'POST', body: fd });
+        } catch (e) { console.error(e); }
+    }
+
+    likeBtn.addEventListener('click', async () => {
+        if (activeCard) {
+            const pid = activeCard.getAttribute('data-product-id');
+            if (pid) await sendJjim(pid);
+            swipeCard(activeCard, 1);
+        }
+    });
+
+    dislikeBtn.addEventListener('click', () => {
+        if (activeCard) swipeCard(activeCard, -1);
+    });
+
+    // GSAP Draggable 플러그인 로드 확인
+    if (typeof Draggable === 'undefined') {
+        const draggableScript = document.createElement('script');
+        draggableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js';
+        document.head.appendChild(draggableScript);
+        draggableScript.onload = setupCards;
+    } else {
+        setupCards();
+    }
+});
+</script>
+{% endblock %}

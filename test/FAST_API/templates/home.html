@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="netflix-home">
+<!-- Hero Section -->
+<section class="hero-section">
+<div aria-hidden="true" class="hero-blob"></div>
+<div class="hero-split-left reveal">
+<div class="hero-eyebrow">Personalized Outfit Engine</div>
+<h1 class="hero-title">Ivle Malle</h1>
+<p class="hero-sub">당신의 취향, 체형, 계절 컬러를 이해하는 AI가
+        오늘 입을 이유를 디자인합니다. 한 번의 클릭으로 완성형 코디 제안.</p>
+<div class="hero-cta">
+<button class="btn-glass btn-primary">지금 추천 받기</button>
+<button class="btn-glass">스타일 설문</button>
+<button class="btn-glass">룩북 보기</button>
+</div>
+<div aria-hidden="true" class="brand-ticker">
+<div class="brand-track">
+<span>Maison</span><span>Archive</span><span>Ivle Malle</span><span>Tailored</span><span>Minimal</span><span>Street</span>
+<span>Maison</span><span>Archive</span><span>Ivle Malle</span><span>Tailored</span><span>Minimal</span><span>Street</span>
+</div>
+</div>
+</div>
+<div class="hero-split-right reveal">
+    <div class="hero-portrait-carousel">
+        <img src="{{ url_for('static', path='img/룩북1.webp') }}" alt="Lookbook 1" class="lookbook-image">
+        <img src="{{ url_for('static', path='img/룩북2.webp') }}" alt="Lookbook 2" class="lookbook-image">
+        <img src="{{ url_for('static', path='img/룩북3.webp') }}" alt="Lookbook 3" class="lookbook-image">
+        <img src="{{ url_for('static', path='img/룩북4.webp') }}" alt="Lookbook 4" class="lookbook-image">
+        <img src="{{ url_for('static', path='img/룩북5.webp') }}" alt="Lookbook 5" class="lookbook-image">
+    </div>
+</div>
+</section>
+<!-- Content Rows -->
+        {% for section_title, section_items in [
+            ("지민님이 좋아할 만한 한 콘텐츠", section1_items),
+            ("지금 뜨는 콘텐츠", section2_items),
+            ("새로 추가된 콘텐츠", section3_items),
+            ("추가 추천 콘텐츠", section4_items)
+        ] %}
+        <section class="content-row">
+<h2>{{ section_title }}</h2>
+<div class="scroll-container">
+<div class="scroll-arrow left">❮</div>
+<div class="row-posters">
+                    {% for item in section_items %}
+                    <img alt="{{ item['상품명'] }}" src="{{ item['사진'] }}" title="{{ item['상품명'] }}: {{ item['브랜드'] }}"/>
+                    {% endfor %}
+                </div>
+<div class="scroll-arrow right">❯</div>
+</div>
+</section>
+        {% endfor %}
+    </div>
+<!-- GSAP Animation Script -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 로고 등장 효과 (from을 사용하여 시작 상태를 정의)
+        gsap.from(".logo-container .logo", {
+            opacity: 0,
+            y: -100, // 시작 Y 위치를 -100px로 설정
+            duration: 1.2,
+            ease: "power2.out",
+            delay: 0.2
+        });
+
+        // Hero Section 등장 효과 (로고 등장 후 등장하도록 딜레이 추가)
+        gsap.to(".hero-content", { 
+            opacity: 1, 
+            y: 0, 
+            duration: 1.2,
+            ease: "power2.out",
+            delay: 0.8
+        });
+
+        // 콘텐츠 row 등장 효과
+        gsap.utils.toArray(".content-row").forEach(function(section) {
+            gsap.to(section, {
+                scrollTrigger: {
+                    trigger: section,
+                    start: "top 80%",
+                    end: "bottom 20%",
+                    toggleActions: "play none none none"
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                ease: "power1.out"
+            });
+        });
+
+        // 이미지 hover 효과
+        const posters = document.querySelectorAll('.row-posters img');
+        posters.forEach(img => {
+            img.addEventListener('mouseenter', () => {
+                gsap.to(img, { scale: 1.08, duration: 0.3 });
+            });
+            img.addEventListener('mouseleave', () => {
+                gsap.to(img, { scale: 1.0, duration: 0.3 });
+            });
+        });
+
+        // 화살표 클릭 스크롤 효과
+        document.querySelectorAll('.scroll-container').forEach(container => {
+            const leftArrow = container.querySelector('.scroll-arrow.left');
+            const rightArrow = container.querySelector('.scroll-arrow.right');
+            const posterContainer = container.querySelector('.row-posters');
+
+            leftArrow.addEventListener('click', () => {
+                gsap.to(posterContainer, {scrollTo: {x: "-=600"}, duration: 0.8, ease: "power1.out"});
+            });
+            rightArrow.addEventListener('click', () => {
+                gsap.to(posterContainer, {scrollTo: {x: "+=600"}, duration: 0.8, ease: "power1.out"});
+            });
+        });
+
+        // Hero Image Carousel Logic
+        const lookbookImages = gsap.utils.toArray('.lookbook-image');
+        if (lookbookImages.length > 0) {
+            let currentIndex = 0;
+            const intervalTime = 4000; // 4 seconds
+
+            // Initially, set all but the first image to be hidden
+            gsap.set(lookbookImages.slice(1), { autoAlpha: 0 });
+
+            function showNextImage() {
+                const lastIndex = currentIndex;
+                currentIndex = (currentIndex + 1) % lookbookImages.length;
+
+                gsap.to(lookbookImages[lastIndex], { autoAlpha: 0, duration: 1.2, ease: 'power1.inOut' });
+                gsap.to(lookbookImages[currentIndex], { autoAlpha: 1, duration: 1.2, ease: 'power1.inOut' });
+            }
+
+            setInterval(showNextImage, intervalTime);
+        }
+    });
+
+    </script>
+
+    <script>
+      // Reveal on scroll
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if(e.isIntersecting){ e.target.classList.add('show'); io.unobserve(e.target); }
+        });
+      }, {threshold: .12, rootMargin: '0px 0px -40px 0px'});
+      document.querySelectorAll('.reveal, .row').forEach(el=> io.observe(el));
+    </script>
+
+{% endblock %}

@@ -1,0 +1,213 @@
+from fastapi import APIRouter, Request, Query, Depends
+from dependencies import login_required
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+import re
+import random
+from data_store import clothing_data
+
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+
+def process_product_data(products):
+    """상품 데이터를 필터링에 필요한 형태로 가공합니다."""
+    processed_products = []
+    
+    for product in products:
+        processed_product = product.copy()
+        # S3 데이터 호환: 대표이미지URL 필드 보장
+        if '대표이미지URL' not in processed_product:
+            processed_product['대표이미지URL'] = processed_product.get('사진', '')
+        
+        # 가격 정보 처리
+        price_value = product.get('가격', 0)
+        if isinstance(price_value, (int, float)):
+            processed_product['processed_price'] = int(price_value)
+        else:
+            price_text = str(price_value or '')
+            if price_text:
+                discount_match = re.search(r'할인적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+                coupon_match = re.search(r'쿠폰적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+                normal_match = re.search(r'정상가\s*(\d{1,3}(?:,\d{3})*)', price_text)
+                if discount_match:
+                    processed_product['processed_price'] = int(discount_match.group(1).replace(',', ''))
+                elif coupon_match:
+                    processed_product['processed_price'] = int(coupon_match.group(1).replace(',', ''))
+                elif normal_match:
+                    processed_product['processed_price'] = int(normal_match.group(1).replace(',', ''))
+                else:
+                    # 숫자만 들어있는 경우 처리
+                    digits = re.sub(r'[^0-9]', '', price_text)
+                    processed_product['processed_price'] = int(digits) if digits else 0
+            else:
+                processed_product['processed_price'] = 0
+        
+        # 성별 판단 (상품명과 브랜드 기반)
+        product_name = product.get('상품명', '').lower()
+        brand = product.get('브랜드', '').lower()
+        
+        if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
+            processed_product['성별'] = '여성'
+        elif any(word in product_name for word in ['남성', 'men', 'man', '남자']):
+            processed_product['성별'] = '남성'
+        elif any(word in product_name for word in ['unisex', '유니섹스']):
+            processed_product['성별'] = '유니섹스'
+        else:
+            processed_product['성별'] = '여성'  # 기본값
+        
+        # 의류 타입 판단
+        if any(word in product_name for word in ['티셔츠', 't-shirt', 'tshirt', '티', 'shirt']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '티셔츠'
+        elif any(word in product_name for word in ['맨투맨', '후드', 'sweatshirt', 'hoodie', '맨투맨']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '맨투맨/후드'
+        elif any(word in product_name for word in ['셔츠', 'blouse', '블라우스']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '셔츠/블라우스'
+        elif any(word in product_name for word in ['니트', 'knit', '스웨터']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '니트'
+        elif any(word in product_name for word in ['민소매', '탑', 'top', '크롭']):
+            processed_product['의류타입'] = '상의'
+            processed_product['소분류'] = '민소매'
+        elif any(word in product_name for word in ['바지', '팬츠', 'pants', 'jeans', '청바지']):
+            processed_product['의류타입'] = '하의'
+            if any(word in product_name for word in ['청바지', 'jeans']):
+                processed_product['소분류'] = '청바지'
+            elif any(word in product_name for word in ['반바지', 'shorts']):
+                processed_product['소분류'] = '반바지'
+            elif any(word in product_name for word in ['레깅스', 'leggings']):
+                processed_product['소분류'] = '레깅스'
+            elif any(word in product_name for word in ['조거', 'jogger']):
+                processed_product['소분류'] = '조거팬츠'
+            else:
+                processed_product['소분류'] = '팬츠'
+        elif any(word in product_name for word in ['스커트', 'skirt']):
+            processed_product['의류타입'] = '스커트'
+            if any(word in product_name for word in ['미니', 'mini']):
+                processed_product['소분류'] = '미니스커트'
+            elif any(word in product_name for word in ['미디', 'midi']):
+                processed_product['소분류'] = '미디스커트'
+            elif any(word in product_name for word in ['맥시', 'maxi']):
+                processed_product['소분류'] = '맥시스커트'
+            elif any(word in product_name for word in ['플리츠', 'pleated']):
+                processed_product['소분류'] = '플리츠스커트'
+            elif any(word in product_name for word in ['a라인', 'a-line']):
+                processed_product['소분류'] = 'A라인스커트'
+            else:
+                processed_product['소분류'] = '스커트'
+        else:
+            processed_product['의류타입'] = '상의'  # 기본값
+            processed_product['소분류'] = '기타'
+        
+        # 평점 (상품명 기반 일관된 평점 생성)
+        import hashlib
+        
+        # 상품명을 해시하여 일관된 숫자 생성
+        hash_object = hashlib.md5(product_name.encode())
+        hash_hex = hash_object.hexdigest()
+        hash_int = int(hash_hex[:8], 16)  # 첫 8자리를 정수로 변환
+        
+        # 해시값을 기반으로 평점 결정 (1.0 ~ 5.0)
+        rating = 1.0 + (hash_int % 400) / 100.0  # 1.0 ~ 5.0 범위
+        processed_product['평점'] = round(rating, 1)
+
+        # 필터 호환을 위한 영어 키 추가 (gender/type/subcategory)
+        gender_map = {"여성": "female", "남성": "male", "유니섹스": "unisex"}
+        type_map = {"상의": "top", "하의": "bottom", "스커트": "skirt"}
+        sub_map = {
+            # 상의
+            "티셔츠": "tshirt",
+            "맨투맨/후드": "sweatshirt",
+            "셔츠/블라우스": "shirt",
+            "니트": "knit",
+            "민소매": "sleeveless",
+            # 하의
+            "청바지": "jeans",
+            "팬츠": "pants",
+            "반바지": "shorts",
+            "레깅스": "leggings",
+            "조거팬츠": "joggers",
+            # 스커트 계열
+            "스커트": "skirt",
+            "미니스커트": "mini",
+            "미디스커트": "midi",
+            "맥시스커트": "maxi",
+            "플리츠스커트": "pleated",
+            "A라인스커트": "a_line",
+        }
+
+        processed_product['gender_key'] = gender_map.get(processed_product.get('성별', ''), '')
+        processed_product['type_key'] = type_map.get(processed_product.get('의류타입', ''), '')
+        processed_product['subcat_key'] = sub_map.get(processed_product.get('소분류', ''), '')
+        
+        processed_products.append(processed_product)
+    
+    return processed_products
+
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
+async def products(request: Request):
+    # S3에서 로드된 전역 데이터 사용
+    all_products = clothing_data
+    processed_products = process_product_data(all_products)
+    
+    # 기본적으로 20개 상품만 표시 (필터링으로 더 보기 가능)
+    display_products = processed_products[:20]
+    
+    return templates.TemplateResponse("products/category_browse.html", {
+        "request": request, 
+        "products": display_products
+    })
+
+@router.get("/api/products", response_class=JSONResponse)
+async def get_products_api(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    gender: str = Query(None),
+    clothing_type: str = Query(None),
+    subcategory: str = Query(None),
+    min_price: int = Query(None),
+    max_price: int = Query(None),
+    min_rating: float = Query(None),
+    brand: str = Query(None)
+):
+    """API endpoint for getting filtered products"""
+    all_products = clothing_data
+    processed_products = process_product_data(all_products)
+    
+    # 필터링 적용
+    filtered_products = []
+    for product in processed_products:
+        include_product = True
+        
+        if gender and product.get('성별', '') != gender:
+            include_product = False
+        if clothing_type and product.get('의류타입', '') != clothing_type:
+            include_product = False
+        if subcategory and product.get('소분류', '') != subcategory:
+            include_product = False
+        if min_price and product.get('processed_price', 0) < min_price:
+            include_product = False
+        if max_price and product.get('processed_price', 0) > max_price:
+            include_product = False
+        if min_rating and product.get('평점', 0) < min_rating:
+            include_product = False
+        if brand and brand.lower() not in product.get('브랜드', '').lower():
+            include_product = False
+            
+        if include_product:
+            filtered_products.append(product)
+    
+    # 페이지네이션
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_products = filtered_products[start_idx:end_idx]
+    
+    return {
+        "products": paginated_products,
+        "total": len(filtered_products),
+        "page": page,
+        "limit": limit,
+        "has_more": end_idx < len(filtered_products)
+    }

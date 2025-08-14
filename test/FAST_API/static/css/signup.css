@@ -1,0 +1,77 @@
+/* Signup Page Styles (reusing login styles where applicable) */
+.signup-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 80px); /* Adjust for header */
+    background-color: #141414; /* Dark background */
+    padding: 20px;
+}
+
+.signup-form {
+    background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent dark background */
+    padding: 60px 68px 40px;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.signup-form h1 {
+    color: #fff;
+    font-size: 2em;
+    margin-bottom: 28px;
+    text-align: left;
+}
+
+.signup-form .input-group {
+    margin-bottom: 16px;
+}
+
+.signup-form .input-group input {
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #333; /* Dark input background */
+    color: #fff;
+    font-size: 1em;
+    box-sizing: border-box;
+    height: 50px;
+}
+
+.signup-button {
+    width: 100%;
+    padding: 16px;
+    background-color: #e50914; /* Netflix red */
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: background-color 0.3s ease;
+    box-sizing: border-box;
+    height: 50px;
+}
+
+.signup-button:hover {
+    background-color: #f40612;
+}
+
+.login-link {
+    color: #737373;
+    font-size: 1em;
+    margin-top: 60px;
+}
+
+.login-link a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}

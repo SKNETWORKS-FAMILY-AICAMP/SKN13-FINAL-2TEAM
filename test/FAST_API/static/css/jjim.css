@@ -1,0 +1,293 @@
+/*
+  Final jjim.css for 7:3 Layout + Modal Concept
+*/
+
+:root {
+    --ease-in-out-quad: cubic-bezier(0.45, 0, 0.55, 1);
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
+.jjim-page-container {
+    display: flex;
+    height: calc(100vh - 80px); /* 헤더 높이 제외 */
+    padding: 20px;
+    gap: 20px;
+}
+
+/* --- 왼쪽: 비교 영역 --- */
+.comparison-area {
+    flex: 7;
+    display: flex;
+    flex-direction: column; /* 세로 정렬 */
+    gap: 20px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.comparison-slots-container {
+    display: flex;
+    flex-grow: 1; /* 남은 공간 모두 차지 */
+    gap: 20px;
+}
+
+.comparison-slot {
+    flex: 1;
+    border: 2px dashed #d0dbe5;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #a0a9b3;
+    font-size: 1.2em;
+    font-weight: 500;
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.comparison-slot.filled {
+    border-style: solid;
+    border-color: #a8c5e0;
+    padding: 0; /* 카드가 꽉 차도록 패딩 제거 */
+}
+
+/* --- 비교 슬롯 내부 카드 스타일 --- */
+.comparison-slot .product-card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    transition: none; /* 부모의 transition과 충돌 방지 */
+}
+
+.comparison-slot .product-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.comparison-slot .product-card img {
+    height: 70%;
+    object-fit: cover;
+    border-radius: 10px 10px 0 0;
+}
+
+.comparison-slot .product-card .product-card-info {
+    height: 30%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    text-align: center;
+}
+
+.comparison-slot .product-card .product-card-info h3 {
+    font-size: 1.1em;
+    font-weight: 500;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+}
+
+/* --- 오른쪽: 찜 목록 사이드바 --- */
+.wishlist-sidebar {
+    flex: 3;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    overflow-y: auto;
+}
+
+.wishlist-sidebar h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.6em;
+    color: #34495e;
+    text-align: center;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+}
+
+/* --- 공통: 상품 카드 --- */
+.product-card {
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.product-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+.product-card-info {
+    padding: 10px;
+    text-align: center;
+}
+
+.product-card-info h3 {
+    font-size: 1em;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-details {
+    display: none; /* 평소엔 숨김 */
+}
+
+/* --- 비교하기 버튼 --- */
+.compare-button-container {
+    text-align: center;
+    padding-top: 10px;
+}
+
+.compare-button {
+    padding: 12px 30px;
+    border: none;
+    background-color: #3498db;
+    color: white;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+    transition: all 0.4s var(--ease-out-quart);
+    transform: scale(0);
+}
+
+.compare-button.visible {
+    transform: scale(1);
+}
+
+/* --- 비교 모달 --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s var(--ease-in-out-quad);
+}
+
+.modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.comparison-modal {
+    position: relative;
+    width: 80%;
+    max-width: 1200px;
+    height: 80vh;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    padding: 40px;
+    display: flex;
+    gap: 30px;
+    transform: scale(0.95) translateY(20px);
+    transition: transform 0.5s var(--ease-out-quart);
+}
+
+.modal-overlay.visible .comparison-modal {
+    transform: scale(1) translateY(0);
+}
+
+.modal-product-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    overflow: hidden; /* This is important */
+}
+
+.modal-product-card img {
+    width: 100%;
+    height: 50%; /* Adjust height to give more space to text */
+    object-fit: contain; /* Change to contain to see the whole image */
+    flex-shrink: 0; /* Prevent image from shrinking */
+    background-color: #fff; /* Add a background for letterboxing */
+}
+
+.modal-product-card .product-card-info {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Allow this section to grow */
+    overflow: hidden; /* Hide overflow from this container */
+}
+
+.modal-product-card .product-card-info h3 {
+    font-size: 1.8em;
+    margin-bottom: 15px;
+    color: #2c3e50; /* Darker color for title */
+    flex-shrink: 0; /* Prevent title from shrinking */
+}
+
+.modal-product-card .product-details {
+    display: block;
+    font-size: 1.1em;
+    flex-grow: 1; /* Allow details to take up available space */
+    overflow-y: auto; /* Add scroll for long descriptions */
+    color: #34495e; /* Darker, softer color for description */
+}
+
+.modal-product-card .product-details p {
+    margin: 8px 0;
+    /* Color is inherited from .product-details now */
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 35px;
+    height: 35px;
+    border: none;
+    background: rgba(0,0,0,0.1);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 1.4em;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.modal-close-btn:hover {
+    background: rgba(0,0,0,0.3);
+    transform: rotate(90deg);
+}

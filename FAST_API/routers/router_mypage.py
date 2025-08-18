@@ -31,20 +31,20 @@ async def mypage(request: Request, db: Session = Depends(get_db)):
     # Debugging: Print image URLs to console
     print("--- Viewed Products Image URLs ---")
     for p in viewed_products:
-        print(p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
+        print(p.get('이미지URL') or p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
     print("--- Recommended Products Image URLs ---")
     for p in recommended_products:
-        print(p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
+        print(p.get('이미지URL') or p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
     print("--- Jjim Products Image URLs ---")
     for p in jjim_products:
-        print(p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
+        print(p.get('이미지URL') or p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
 
     # 내 찜목록 불러오기 (전체 데이터에서 사용자 찜만 필터)
     user = get_user_by_username(db, request.session.get("user_name"))
     ids = list_jjim_product_ids(db, user.id) if user else []
 
     id_set = set(str(pid) for pid in ids)
-    jjim_products = [p for p in clothing_data if str(p.get('상품ID')) in id_set]
+    jjim_products = [p for p in clothing_data if str(p.get('상품코드')) in id_set]
 
     return templates.TemplateResponse("mypage/mypage.html", {
         "request": request,

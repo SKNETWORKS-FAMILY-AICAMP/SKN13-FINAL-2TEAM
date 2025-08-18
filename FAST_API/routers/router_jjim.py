@@ -22,7 +22,7 @@ async def jjim_list(request: Request, db: Session = Depends(get_db)):
     id_set = set(str(pid) for pid in product_ids)
     
     # processed_clothing_data에서 찜한 상품 찾기
-    jjim_products = [p for p in processed_clothing_data if p.get('상품ID') in id_set]
+    jjim_products = [p for p in processed_clothing_data if p.get('상품코드') in id_set]
     
     return templates.TemplateResponse("jjim/jjim.html", {"request": request, "jjim_products": jjim_products})
 
@@ -53,10 +53,10 @@ async def compare_jjim_products(request: Request, ids: List[str] = Query(...)):
 
     # processed_clothing_data에서 선택된 상품들의 정보 가져오기
     # 순서는 unique_ids 리스트를 따름
-    products_to_compare = [p for p in processed_clothing_data if p.get('상품ID') in id_set]
+    products_to_compare = [p for p in processed_clothing_data if p.get('상품코드') in id_set]
     
     # id_set 순서가 아닌 unique_ids의 순서를 따르도록 정렬
-    products_map = {p.get('상품ID'): p for p in products_to_compare}
+    products_map = {p.get('상품코드'): p for p in products_to_compare}
     sorted_products = [products_map[pid] for pid in unique_ids if pid in products_map]
 
     return templates.TemplateResponse("jjim/compare.html", {

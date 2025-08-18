@@ -43,9 +43,11 @@ def init_db() -> None:
     from models import models_auth  # noqa: F401
     from models import models_mypage  # noqa: F401
     from models import models_jjim  # noqa: F401
+    from models import models_chat  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     _migrate_users_table()
+    _migrate_chat_tables()
 
 
 def bootstrap_admin() -> None:
@@ -117,5 +119,68 @@ def _migrate_users_table() -> None:
         else:
             # 이미 존재하지만 NULL 허용 상태일 수 있으므로 기본 보정
             conn.execute(text("UPDATE public.users SET role = 'user' WHERE role IS NULL"))
+
+def _migrate_chat_tables() -> None:
+    """챗봇 테이블에 필요한 컬럼을 추가합니다."""
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        # chat_session 테이블 컬럼 조회
+        try:
+            session_cols = conn.execute(
+                text("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'chat_session' AND table_schema = 'public'
+                """)
+            ).scalars().all()
+            session_cols_set = set(session_cols)
+
+            # session_name 컬럼 추가
+            if 'session_name' not in session_cols_set:
+                conn.execute(text("ALTER TABLE public.chat_session ADD COLUMN session_name VARCHAR(255)"))
+
+            # updated_at 컬럼 추가
+            if 'updated_at' not in session_cols_set:
+                conn.execute(text("ALTER TABLE public.chat_session ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"))
+                conn.execute(text("UPDATE public.chat_session SET updated_at = created_at WHERE updated_at IS NULL"))
+
+        except Exception as e:
+            print(f"챗봇 테이블 마이그레이션 중 오류 (테이블이 없을 수 있음): {e}")
+
+        # chat_messages 테이블 제약 조건 확인 및 추가
+        try:
+            # 기존 제약 조건 확인 (올바른 뷰 조합 사용)
+            existing_constraints = conn.execute(
+                text("""
+                    SELECT c.constraint_name
+                    FROM information_schema.check_constraints c
+                    JOIN information_schema.table_constraints t
+                      ON c.constraint_name = t.constraint_name
+                     AND c.constraint_schema = t.constraint_schema
+                    WHERE t.table_schema = 'public'
+                      AND t.table_name = 'chat_messages'
+                      AND c.constraint_name = 'chk_message_type'
+                """)
+            ).scalars().all()
+            
+            # 기존 제약 조건이 있으면 삭제
+            if existing_constraints:
+                conn.execute(text("ALTER TABLE public.chat_messages DROP CONSTRAINT IF EXISTS chk_message_type"))
+                print("✅ 기존 chk_message_type 제약 조건 삭제 완료")
+            
+            # 새로운 제약 조건 추가
+            conn.execute(text("ALTER TABLE public.chat_messages ADD CONSTRAINT chk_message_type CHECK (message_type IN ('user', 'bot'))"))
+            print("✅ chat_messages 테이블에 message_type 체크 제약 조건 추가 완료")
+
+        except Exception as e:
+            print(f"chat_messages 제약 조건 마이그레이션 중 오류: {e}")
+            # 오류가 발생하면 별도의 트랜잭션으로 재시도
+            try:
+                with engine.begin() as conn2:
+                    conn2.execute(text("ALTER TABLE public.chat_messages DROP CONSTRAINT IF EXISTS chk_message_type"))
+                    conn2.execute(text("ALTER TABLE public.chat_messages ADD CONSTRAINT chk_message_type CHECK (message_type IN ('user', 'bot'))"))
+                    print("✅ 제약 조건 재설정 완료 (새 트랜잭션)")
+            except Exception as e2:
+                print(f"제약 조건 재설정 실패: {e2}")
 
 

@@ -18,34 +18,27 @@ def process_product_data(products):
         processed_product = product.copy()
         # S3 데이터 호환: 대표이미지URL 필드 보장
         if '대표이미지URL' not in processed_product:
-            processed_product['대표이미지URL'] = processed_product.get('사진', '')
+            processed_product['대표이미지URL'] = processed_product.get('이미지URL', processed_product.get('사진', ''))
         
-        # 가격 정보 처리
+        # 가격 정보 처리 - 새로운 컬럼 구조 사용
         price_value = product.get('가격', 0)
         if isinstance(price_value, (int, float)):
             processed_product['processed_price'] = int(price_value)
         else:
-            price_text = str(price_value or '')
-            if price_text:
-                discount_match = re.search(r'할인적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
-                coupon_match = re.search(r'쿠폰적용가\s*(\d{1,3}(?:,\d{3})*)', price_text)
-                normal_match = re.search(r'정상가\s*(\d{1,3}(?:,\d{3})*)', price_text)
-                if discount_match:
-                    processed_product['processed_price'] = int(discount_match.group(1).replace(',', ''))
-                elif coupon_match:
-                    processed_product['processed_price'] = int(coupon_match.group(1).replace(',', ''))
-                elif normal_match:
-                    processed_product['processed_price'] = int(normal_match.group(1).replace(',', ''))
-                else:
-                    # 숫자만 들어있는 경우 처리
-                    digits = re.sub(r'[^0-9]', '', price_text)
-                    processed_product['processed_price'] = int(digits) if digits else 0
+            # 할인가 우선, 없으면 원가 사용
+            discount_price = product.get('할인가', 0)
+            original_price = product.get('원가', 0)
+            
+            if isinstance(discount_price, (int, float)) and discount_price > 0:
+                processed_product['processed_price'] = int(discount_price)
+            elif isinstance(original_price, (int, float)):
+                processed_product['processed_price'] = int(original_price)
             else:
                 processed_product['processed_price'] = 0
         
-        # 성별 판단 (상품명과 브랜드 기반)
-        product_name = product.get('제품이름', '').lower()
-        brand = product.get('브랜드', '').lower()
+        # 성별 판단 (상품명과 브랜드 기반) - 새로운 컬럼명 사용
+        product_name = str(product.get('상품명', '')).lower()
+        brand = str(product.get('한글브랜드명', product.get('브랜드', ''))).lower()
         
         if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
             processed_product['성별'] = '여성'
@@ -187,7 +180,7 @@ async def get_products_api(
             include_product = False
         if min_rating is not None and product.get('평점', 0) < min_rating:
             include_product = False
-        if brand and brand.lower() not in product.get('브랜드', '').lower():
+        if brand and brand.lower() not in str(product.get('브랜드', '')).lower():
             include_product = False
             
         if include_product:

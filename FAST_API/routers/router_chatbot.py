@@ -1,14 +1,35 @@
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Form, Depends, Query
 from fastapi.responses import JSONResponse
 import pandas as pd
 import random
 import numpy as np
 from typing import List, Dict, Optional
 import json
+from sqlalchemy.orm import Session
+
+from db import get_db
+from dependencies import login_required
+from crud.user_crud import get_user_by_username
+from crud.chat_crud import (
+    create_chat_session,
+    get_latest_chat_session,
+    create_chat_message,
+    get_conversation_context,
+    get_user_chat_sessions,
+    get_chat_session_by_id,
+    update_session_name,
+    delete_chat_session,
+    get_session_messages,
+    get_chat_history_for_llm
+)
+from services.llm_service import LLMService, ChatMessage, IntentResult, ToolResult
 
 router = APIRouter()
 
 from data_store import clothing_data
+
+# LLM 서비스 초기화
+llm_service = LLMService()
 
 def initialize_chatbot_data():
     """챗봇 데이터 초기화 - S3 전용"""
@@ -81,7 +102,7 @@ def analyze_user_intent(user_input: str) -> dict:
     }
 
 def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
-    """정확 매칭 필터링 - DB 제품대분류 기반 + 정확한 카테고리 매칭"""
+    """정확 매칭 필터링 - DB 대분류 기반 + 정확한 카테고리 매칭"""
     user_input_lower = user_input.lower()
     
     # 정확한 의류 카테고리별 키워드 매핑
@@ -136,7 +157,7 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
         print("카테고리나 색상 키워드가 없습니다.")
         return []
     
-    # 1단계: 제품대분류로 상의/하의 필터링
+    # 1단계: 대분류로 상의/하의 필터링
     top_categories = ["맨투맨/스웨트", "후드 티셔츠", "셔츠/블라우스", "긴소매 티셔츠", "반소매 티셔츠", "피케/카라 티셔츠", "카라 티셔츠", "니트/스웨터", "민소매 티셔츠"]
     bottom_categories = ["데님 팬츠", "트레이닝/조거 팬츠", "코튼 팬츠", "슈트 팬츠/슬랙스", "숏 팬츠", "레깅스", "점프 슈트/오버올"]
     
@@ -147,11 +168,11 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     exact_matches = []
     
     for product in products:
-        product_text = f"{product.get('상품명', '')} {product.get('상품영문명', '')} {product.get('제품대분류', '')} {product.get('제품소분류', '')}".lower()
-        대분류 = product.get('제품대분류', '').strip()
-        소분류 = product.get('제품소분류', '').strip()
+        product_text = f"{product.get('상품명', '')} {product.get('영어브랜드명', '')} {product.get('대분류', '')} {product.get('소분류', '')}".lower()
+        대분류 = str(product.get('대분류', '')).strip()
+        소분류 = str(product.get('소분류', '')).strip()
         
-        # 1단계: DB 제품대분류/소분류로 상의/하의 정확 구분
+        # 1단계: DB 대분류/소분류로 상의/하의 정확 구분
         is_db_top = (대분류 in ["상의", "탑", "TOP", "상의류"] or 
                     소분류 in ["상의", "탑", "TOP", "상의류"])
         is_db_bottom = (대분류 in ["하의", "바텀", "BOTTOM", "하의류", "팬츠", "반바지", "숏팬츠", "쇼츠", "SHORTS", "바지"] or
@@ -226,15 +247,15 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     
     print(f"정확 매칭 상품: {len(exact_matches)}개")
     
-    # 디버깅: 실제 제품대분류 값들 확인
+    # 디버깅: 실제 대분류 값들 확인
     if found_categories and any("숏" in cat[0] or "반바지" in cat[0] for cat in found_categories):
         unique_categories = set()
         for product in products[:100]:  # 처음 100개만 확인
-            대분류 = product.get('제품대분류', '').strip()
+            대분류 = str(product.get('대분류', '')).strip()
             if 대분류 and ("숏" in 대분류.lower() or "반바지" in 대분류.lower() or "short" in 대분류.lower()):
                 unique_categories.add(대분류)
         if unique_categories:
-            print(f"DB에서 발견된 숏팬츠 관련 제품대분류: {list(unique_categories)}")
+            print(f"DB에서 발견된 숏팬츠 관련 대분류: {list(unique_categories)}")
     
     if not exact_matches:
         return []
@@ -272,7 +293,7 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     
     for i, p in enumerate(result):
         category = "상의" if p.get("is_top") else ("하의" if p.get("is_bottom") else "기타")
-        print(f"최종 선택 {i+1}: [{category}] {p.get('제품이름', 'N/A')[:30]}... (대분류: {p.get('제품대분류', 'N/A')})")
+        print(f"최종 선택 {i+1}: [{category}] {p.get('상품명', 'N/A')[:30]}... (대분류: {p.get('대분류', 'N/A')})")
     
     return result
 
@@ -316,7 +337,7 @@ def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
     print(f"찾는 키워드: {style_info['keywords']}")
     
     for product in products:
-        product_text = f"{product.get('상품명', '')} {product.get('상품영문명', '')} {product.get('제품대분류', '')} {product.get('제품소분류', '')}".lower()
+        product_text = f"{product.get('상품명', '')} {product.get('영어브랜드명', '')} {product.get('대분류', '')} {product.get('소분류', '')}".lower()
         
         # 상황별 키워드 매칭
         for keyword in style_info["keywords"]:
@@ -334,47 +355,367 @@ def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
     result = random.sample(matched_products, count)
     
     for i, p in enumerate(result):
-        print(f"상황별 선택 {i+1}: {p.get('제품이름', 'N/A')[:25]}...")
+        print(f"상황별 선택 {i+1}: {p.get('상품명', 'N/A')[:25]}...")
     
     return result
 
+def analyze_user_intent_with_context(user_input: str, conversation_context: str = "") -> dict:
+    """사용자 의도 분석 (대화 컨텍스트 고려)"""
+    user_input_lower = user_input.lower()
+    context_lower = conversation_context.lower()
+    
+    # 컨텍스트에서 이전 대화 내용 분석
+    context_keywords = []
+    if conversation_context:
+        # 이전 대화에서 언급된 키워드들 추출
+        context_keywords = extract_keywords_from_context(conversation_context)
+        print(f"컨텍스트 키워드: {context_keywords}")
+    
+    # 상황별 키워드
+    situations = {
+        "졸업식": ["졸업식", "졸업", "학위수여식"],
+        "결혼식": ["결혼식", "웨딩", "피로연"],
+        "데이트": ["데이트", "소개팅", "만남"],
+        "면접": ["면접", "취업", "입사", "회사"],
+        "파티": ["파티", "클럽", "놀기"],
+        "외출": ["외출", "나들이", "쇼핑"],
+        "동창회": ["동창회", "모임"]
+    }
+    
+    # 직접 필터링 키워드
+    direct_keywords = ["티셔츠", "셔츠", "바지", "청바지", "니트", "후드", 
+                      "빨간", "파란", "검은", "흰", "회색", "red", "blue", "black"]
+    
+    # 컨텍스트와 현재 입력을 모두 고려한 상황별 매칭
+    for situation, keywords in situations.items():
+        # 현재 입력에서 키워드 확인
+        current_match = any(keyword in user_input_lower for keyword in keywords)
+        # 컨텍스트에서 키워드 확인
+        context_match = any(keyword in context_lower for keyword in keywords)
+        
+        if current_match or context_match:
+            return {
+                "type": "SITUATION",
+                "situation": situation,
+                "original_input": user_input,
+                "context_used": context_match
+            }
+    
+    # 직접 필터링 매칭 확인
+    if any(keyword in user_input_lower for keyword in direct_keywords):
+        return {
+            "type": "FILTERING", 
+            "original_input": user_input
+        }
+    
+    # 기본값은 일반 검색
+    return {
+        "type": "FILTERING",
+        "original_input": user_input
+    }
+
+
+def extract_keywords_from_context(context: str) -> List[str]:
+    """컨텍스트에서 키워드를 추출합니다."""
+    keywords = []
+    
+    # 색상 키워드
+    color_keywords = ["빨간", "파란", "검은", "흰", "회색", "red", "blue", "black", "white", "gray"]
+    for color in color_keywords:
+        if color in context.lower():
+            keywords.append(color)
+    
+    # 의류 키워드
+    clothing_keywords = ["티셔츠", "셔츠", "바지", "청바지", "니트", "후드", "shirt", "pants", "jeans"]
+    for clothing in clothing_keywords:
+        if clothing in context.lower():
+            keywords.append(clothing)
+    
+    return keywords
+
 @router.post("/", response_class=JSONResponse)
-async def chat_recommend(user_input: str = Form(...)):
-    """챗봇 추천 API - 정확 매칭 + 랜덤"""
+async def chat_recommend(
+    user_input: str = Form(...),
+    session_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """챗봇 추천 API - LLM Agent 기반"""
     try:
-        if not clothing_data:
-            initialize_chatbot_data()
+        print(f"챗봇 요청: {user_input}, 세션: {session_id}, 사용자: {user_name}")
         
-        # 의도 분석
-        intent = analyze_user_intent(user_input)
-        print(f"=== 의도 분석 ===")
-        print(f"타입: {intent['type']}, 상황: {intent.get('situation', 'N/A')}")
+        # 사용자 정보 가져오기
+        user = get_user_by_username(db, user_name)
+        if not user:
+            print(f"사용자를 찾을 수 없음: {user_name}")
+            return JSONResponse(content={
+                "message": "사용자 정보를 찾을 수 없습니다.",
+                "products": []
+            })
         
-        if intent["type"] == "FILTERING":
-            # 직접 필터링
-            recommendations = exact_match_filter(user_input, clothing_data)
-            if recommendations:
-                message = "요청하신 조건에 맞는 상품을 찾았어요! 😊"
-            else:
-                message = "죄송해요, 요청하신 조건에 맞는 상품을 찾을 수 없어요. 😅 다른 키워드로 다시 검색해보시겠어요?"
-                
-        elif intent["type"] == "SITUATION":
-            # 상황별 추천
-            recommendations = situation_filter(intent["situation"], clothing_data)
-            style_info = get_situation_style(intent["situation"])
-            if recommendations:
-                message = style_info["message"]
-            else:
-                message = f"{intent['situation']} 상황에 맞는 상품을 찾을 수 없어요. 😅 다른 상황으로 검색해보시겠어요?"
+        print(f"사용자 ID: {user.id}")
+        
+        # 세션 처리
+        if session_id:
+            # 기존 세션 사용
+            chat_session = get_chat_session_by_id(db, session_id, user.id)
+            if not chat_session:
+                print(f"세션을 찾을 수 없음: {session_id}")
+                return JSONResponse(content={
+                    "message": "세션을 찾을 수 없습니다.",
+                    "products": []
+                })
+        else:
+            # 항상 새로운 세션 생성 (기존 세션 재사용하지 않음)
+            session_name = f"대화 {user_input[:20]}{'...' if len(user_input) > 20 else ''}"
+            chat_session = create_chat_session(db, user.id, session_name)
+            print(f"새 세션 생성: {chat_session.id} - {session_name}")
+        
+        # 사용자 메시지 저장
+        user_message = create_chat_message(db, chat_session.id, "user", user_input)
+        print(f"사용자 메시지 저장: {user_message.id}")
+        
+        # 대화 컨텍스트 가져오기 (최근 3쌍)
+        conversation_context = get_conversation_context(db, chat_session.id, max_messages=6)
+        print(f"대화 컨텍스트: {conversation_context}")
+        
+        # LLM Agent를 통해 의도 분석 및 응답 생성
+        try:
+            llm_response = llm_service.analyze_intent_and_call_tool(
+                user_input=user_input,
+                conversation_context=conversation_context,
+                available_products=clothing_data if clothing_data else []
+            )
+            
+            message = llm_response.final_message
+            products = llm_response.products
+            
+            print(f"LLM 응답 - 의도: {llm_response.intent_result.intent}, 제품 수: {len(products)}")
+            
+            # 상품 링크 디버깅
+            if products:
+                print("=== 상품 링크 디버깅 ===")
+                for i, product in enumerate(products[:3]):  # 처음 3개만 확인
+                    print(f"상품 {i+1}: {product.get('상품명', 'N/A')}")
+                    print(f"  - 상품링크: '{product.get('상품링크', 'N/A')}'")
+                    print(f"  - 링크: '{product.get('링크', 'N/A')}'")
+                    print(f"  - URL: '{product.get('URL', 'N/A')}'")
+                    print(f"  - 모든 키: {list(product.keys())}")
+                    print("---")
+            
+        except Exception as e:
+            print(f"LLM 처리 오류: {e}")
+            # LLM 오류 시 기본 응답
+            message = f"'{user_input}'에 대한 의류를 찾아보겠습니다! 🔍"
+            products = []
+        
+        # 챗봇 응답 저장
+        bot_message = create_chat_message(db, chat_session.id, "bot", message)
+        print(f"봇 메시지 저장: {bot_message.id}")
         
         return JSONResponse(content={
             "message": message,
-            "products": recommendations
+            "products": products,
+            "session_id": chat_session.id,
+            "session_name": chat_session.session_name
         })
         
     except Exception as e:
         print(f"챗봇 오류: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse(content={
             "message": "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.",
             "products": []
+        })
+
+@router.get("/sessions", response_class=JSONResponse)
+async def get_chat_sessions(
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """사용자의 모든 챗봇 세션을 조회합니다."""
+    try:
+        user = get_user_by_username(db, user_name)
+        if not user:
+            return JSONResponse(content={
+                "success": False,
+                "message": "사용자 정보를 찾을 수 없습니다.",
+                "sessions": []
+            })
+        
+        sessions = get_user_chat_sessions(db, user.id, limit=50)
+        
+        session_list = []
+        for session in sessions:
+            # 각 세션의 메시지 수 계산
+            messages = get_session_messages(db, session.id, user.id)
+            
+            session_list.append({
+                "id": session.id,
+                "name": session.session_name,
+                "created_at": session.created_at.isoformat() if session.created_at else None,
+                "updated_at": session.updated_at.isoformat() if session.updated_at else None,
+                "message_count": len(messages)
+            })
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "세션 목록을 성공적으로 조회했습니다.",
+            "sessions": session_list
+        })
+        
+    except Exception as e:
+        print(f"세션 목록 조회 오류: {e}")
+        return JSONResponse(content={
+            "success": False,
+            "message": "세션 목록 조회 중 오류가 발생했습니다.",
+            "sessions": []
+        })
+
+@router.get("/session/{session_id}", response_class=JSONResponse)
+async def get_session_messages_api(
+    session_id: int,
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """특정 세션의 메시지들을 조회합니다."""
+    try:
+        user = get_user_by_username(db, user_name)
+        if not user:
+            return JSONResponse(content={
+                "success": False,
+                "message": "사용자 정보를 찾을 수 없습니다.",
+                "messages": []
+            })
+        
+        messages = get_session_messages(db, session_id, user.id)
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "세션 메시지를 성공적으로 조회했습니다.",
+            "messages": messages
+        })
+        
+    except Exception as e:
+        print(f"세션 메시지 조회 오류: {e}")
+        return JSONResponse(content={
+            "success": False,
+            "message": "세션 메시지 조회 중 오류가 발생했습니다.",
+            "messages": []
+        })
+
+@router.put("/session/{session_id}/name", response_class=JSONResponse)
+async def update_session_name_api(
+    session_id: int,
+    new_name: str = Form(...),
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """세션 이름을 변경합니다."""
+    try:
+        user = get_user_by_username(db, user_name)
+        if not user:
+            return JSONResponse(content={
+                "success": False,
+                "message": "사용자 정보를 찾을 수 없습니다."
+            })
+        
+        success = update_session_name(db, session_id, user.id, new_name)
+        
+        if success:
+            return JSONResponse(content={
+                "success": True,
+                "message": "세션 이름이 성공적으로 변경되었습니다."
+            })
+        else:
+            return JSONResponse(content={
+                "success": False,
+                "message": "세션을 찾을 수 없거나 권한이 없습니다."
+            })
+        
+    except Exception as e:
+        print(f"세션 이름 변경 오류: {e}")
+        return JSONResponse(content={
+            "success": False,
+            "message": "세션 이름 변경 중 오류가 발생했습니다."
+        })
+
+@router.delete("/session/{session_id}", response_class=JSONResponse)
+async def delete_session_api(
+    session_id: int,
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """세션을 삭제합니다."""
+    try:
+        user = get_user_by_username(db, user_name)
+        if not user:
+            return JSONResponse(content={
+                "success": False,
+                "message": "사용자 정보를 찾을 수 없습니다."
+            })
+        
+        success = delete_chat_session(db, session_id, user.id)
+        
+        if success:
+            return JSONResponse(content={
+                "success": True,
+                "message": "세션이 성공적으로 삭제되었습니다."
+            })
+        else:
+            return JSONResponse(content={
+                "success": False,
+                "message": "세션을 찾을 수 없거나 권한이 없습니다."
+            })
+        
+    except Exception as e:
+        print(f"세션 삭제 오류: {e}")
+        return JSONResponse(content={
+            "success": False,
+            "message": "세션 삭제 중 오류가 발생했습니다."
+        })
+
+@router.get("/history", response_class=JSONResponse)
+async def get_chat_history(
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """사용자의 챗봇 대화 기록을 조회합니다."""
+    try:
+        user = get_user_by_username(db, user_name)
+        if not user:
+            return JSONResponse(content={
+                "success": False,
+                "message": "사용자 정보를 찾을 수 없습니다.",
+                "history": []
+            })
+        
+        from crud.chat_crud import get_user_chat_history
+        
+        # 최근 20개 메시지 조회
+        messages = get_user_chat_history(db, user.id, limit=20)
+        
+        # 메시지 형식 변환
+        history = []
+        for msg in messages:
+            history.append({
+                "id": msg.id,
+                "type": msg.message_type,
+                "text": msg.text,
+                "created_at": msg.created_at.isoformat() if msg.created_at else None
+            })
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "대화 기록을 성공적으로 조회했습니다.",
+            "history": history
+        })
+        
+    except Exception as e:
+        print(f"대화 기록 조회 오류: {e}")
+        return JSONResponse(content={
+            "success": False,
+            "message": "대화 기록 조회 중 오류가 발생했습니다.",
+            "history": []
         }) 

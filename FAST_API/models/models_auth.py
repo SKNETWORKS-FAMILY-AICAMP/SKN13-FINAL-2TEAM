@@ -18,4 +18,5 @@ class User(Base):
     role = Column(String(20), nullable=False, server_default=text("'user'"))
 
     preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan")
+    chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
 

@@ -6,6 +6,7 @@ from typing import List, Dict, Optional
 from botocore.exceptions import NoCredentialsError, ClientError
 import json
 import io
+from utils.safe_utils import safe_lower, safe_str
 
 class S3DataLoader:
     """S3에서 데이터를 로드하는 클래스"""
@@ -126,7 +127,7 @@ class S3DataLoader:
                     product_id = hashlib.md5(key_src.encode('utf-8')).hexdigest()[:16]
                 
                 # 분류/성별/평점 등 사전 계산하여 이후 요청시 재계산 방지
-                name_lower = str(item.get("상품명", "")).lower()
+                name_lower = safe_lower(item.get("상품명", ""))
                 
                 # 의류 타입/소분류
                 if any(w in name_lower for w in ['티셔츠', 't-shirt', 'tshirt', '티 ', 'shirt']):

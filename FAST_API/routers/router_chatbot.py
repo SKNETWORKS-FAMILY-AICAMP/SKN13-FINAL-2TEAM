@@ -447,6 +447,8 @@ def extract_keywords_from_context(context: str) -> List[str]:
 async def chat_recommend(
     user_input: str = Form(...),
     session_id: Optional[int] = Form(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
     db: Session = Depends(get_db),
     user_name: str = Depends(login_required)
 ):
@@ -497,12 +499,14 @@ async def chat_recommend(
                 # 간단한 형태로 변환 (실제로는 더 복잡한 파싱이 필요할 수 있음)
                 chat_history_for_llm = [ChatMessage(role="user", content=conversation_context)]
             
-            llm_response: LLMResponse = llm_service.analyze_intent_and_call_tool(
+            llm_response: LLMResponse = await llm_service.analyze_intent_and_call_tool(
                 user_input=user_input,
                 chat_history=chat_history_for_llm,
                 available_products=clothing_data if clothing_data else [],
                 db=db,
-                user_id=user.id
+                user_id=user.id,
+                latitude=latitude,
+                longitude=longitude
             )
             
             message = llm_response.final_message

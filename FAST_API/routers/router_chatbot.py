@@ -477,7 +477,7 @@ async def chat_recommend(
                 })
         else:
             # 항상 새로운 세션 생성 (기존 세션 재사용하지 않음)
-            session_name = f"대화 {user_input[:20]}{'...' if len(user_input) > 20 else ''}"
+            session_name = f"{user_input[:20]}{'...' if len(user_input) > 20 else ''}"
             chat_session = create_chat_session(db, user.id, session_name)
             print(f"새 세션 생성: {chat_session.id} - {session_name}")
         
@@ -500,7 +500,9 @@ async def chat_recommend(
             llm_response: LLMResponse = llm_service.analyze_intent_and_call_tool(
                 user_input=user_input,
                 chat_history=chat_history_for_llm,
-                available_products=clothing_data if clothing_data else []
+                available_products=clothing_data if clothing_data else [],
+                db=db,
+                user_id=user.id
             )
             
             message = llm_response.final_message
@@ -589,7 +591,7 @@ async def get_chat_sessions(
             "sessions": []
         })
 
-@router.get("/session/{session_id}", response_class=JSONResponse)
+@router.get("/session/{session_id}/messages", response_class=JSONResponse)
 async def get_session_messages_api(
     session_id: int,
     db: Session = Depends(get_db),
@@ -734,4 +736,49 @@ async def get_chat_history(
             "success": False,
             "message": "대화 기록 조회 중 오류가 발생했습니다.",
             "history": []
+        })
+
+@router.get("/recommendations", response_class=JSONResponse)
+async def get_user_recommendations(
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """사용자의 추천 기록을 조회합니다."""
+    try:
+        user = get_user_by_username(db, user_name)
+        if not user:
+            return JSONResponse(content={
+                "success": False,
+                "message": "사용자 정보를 찾을 수 없습니다.",
+                "recommendations": []
+            })
+        
+        from crud.recommendation_crud import get_user_recommendations
+        
+        # 최근 50개 추천 기록 조회
+        recommendations = get_user_recommendations(db, user.id, limit=50)
+        
+        # 추천 기록 형식 변환
+        recommendation_list = []
+        for rec in recommendations:
+            recommendation_list.append({
+                "id": rec.id,
+                "item_id": rec.item_id,
+                "query": rec.query,
+                "reason": rec.reason,
+                "created_at": rec.created_at.isoformat() if rec.created_at else None
+            })
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "추천 기록을 성공적으로 조회했습니다.",
+            "recommendations": recommendation_list
+        })
+        
+    except Exception as e:
+        print(f"추천 기록 조회 오류: {e}")
+        return JSONResponse(content={
+            "success": False,
+            "message": "추천 기록 조회 중 오류가 발생했습니다.",
+            "recommendations": []
         }) 

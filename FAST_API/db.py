@@ -43,6 +43,7 @@ def init_db() -> None:
     from models import models_mypage  # noqa: F401
     from models import models_jjim  # noqa: F401
     from models import models_chat  # noqa: F401
+    from models import recommendation  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     _migrate_users_table()

@@ -385,18 +385,54 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function sendMessageToAPI(message) {
+        // 날씨 관련 키워드 확인
+        const weatherKeywords = ['날씨', '기온', '덥', '춥', '비와', '눈와'];
+        const isWeatherQuery = weatherKeywords.some(keyword => message.includes(keyword));
+
+        let latitude = null;
+        let longitude = null;
+
+        // 날씨 질문일 경우, 위치 정보 요청
+        if (isWeatherQuery) {
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject(new Error('Geolocation is not supported by your browser.'));
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                });
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
+                console.log(`위치 정보 확보: ${latitude}, ${longitude}`);
+            } catch (error) {
+                console.error('위치 정보를 가져올 수 없습니다.', error);
+                removeLoadingIndicator();
+                addMessage('현재 위치를 가져올 수 없어요. 😥 브라우저의 위치 정보 접근을 허용했는지 확인해주세요!', 'bot');
+                return; // 위치 정보 없으면 전송 중단
+            }
+        }
+
+        // API로 메시지 전송
         try {
             const formData = new FormData();
             formData.append('user_input', message);
             if (currentSessionId) {
                 formData.append('session_id', currentSessionId);
             }
+            if (latitude && longitude) {
+                formData.append('latitude', String(latitude));
+                formData.append('longitude', String(longitude));
+            }
 
-            console.log('메시지 전송:', message, '세션:', currentSessionId);
+            console.log('메시지 전송:', message, '세션:', currentSessionId, '위치:', latitude, longitude);
 
-            const response = await fetch('/chat', {
+            const response = await fetch('/chat/', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
             });
 
             const data = await response.json();
@@ -404,21 +440,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log('챗봇 응답:', data);
 
-            // 응답 구조 변경
             if (data.message) {
                 addMessage(data.message, "bot");
                 
-                // 상품이 있으면 카드 형태로도 표시
                 if (data.products && data.products.length > 0) {
                     addRecommendations(data.products);
                 }
                 
-                // 세션 정보 업데이트
                 if (data.session_id && data.session_id !== currentSessionId) {
                     currentSessionId = data.session_id;
                     currentSessionName = data.session_name;
                     updateSessionNameDisplay();
-                    loadSessions(); // 세션 목록 새로고침
+                    loadSessions();
                 }
             } else {
                 addMessage("죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.", "bot");

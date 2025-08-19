@@ -41,7 +41,7 @@
         ] %}
         <section class="content-row">
         {% if section_title == "USER_CONTENT_TITLE" %}
-            <h2>{{ request.session.user_name }}님이 좋아할 만한 한 콘텐츠</h2>
+            <h2>{{ request.session.user_name }}님이 좋아할 만한 콘텐츠</h2>
         {% else %}
             <h2>{{ section_title }}</h2>
         {% endif %}
@@ -49,7 +49,25 @@
 <div class="scroll-arrow left">❮</div>
 <div class="row-posters">
                     {% for item in section_items %}
-                    <img alt="{{ item['제품이름'] }}" src="{{ item['사진'] }}" title="{{ item['제품이름'] }}: {{ item['브랜드'] }}"/>
+                                         <div style="position: relative; display: inline-block; cursor: pointer;" 
+                          class="home-product-card" 
+                          data-product-id="{{ item.get('상품코드') }}"
+                          data-product-name="{{ item.get('제품이름') }}"
+                          data-product-brand="{{ item.get('브랜드') or item.get('한글브랜드명') }}"
+                          data-product-category="{{ item.get('대분류') }}"
+                          data-product-subcategory="{{ item.get('소분류') }}"
+                          data-product-color="{{ item.get('색상') }}"
+                          data-product-price="{{ item.get('원가') }}"
+                          data-product-image="{{ item.get('사진') }}"
+                          data-product-link="{{ item.get('상품링크') }}">
+                        <img alt="{{ item['제품이름'] }}" src="{{ item['사진'] }}" title="{{ item['제품이름'] }}: {{ item['브랜드'] }}"/>
+                        {% if item.get('jjim_count', 0) > 0 %}
+                        <div style="position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            <span style="font-size: 10px;">❤️</span>
+                            <span style="font-size: 11px;">{{ item['jjim_count'] }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
                     {% endfor %}
                 </div>
 <div class="scroll-arrow right">❯</div>
@@ -57,6 +75,20 @@
 </section>
         {% endfor %}
     </div>
+
+<!-- Product Detail Modal -->
+<div id="homeProductModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
+  <div style="background:#fff; padding:20px; width:90%; max-width:500px; border-radius:8px; max-height:90vh; overflow:auto;">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+       <h3 style="margin:0; color:#333; font-weight:600;">상품 상세 정보</h3>
+       <button id="closeHomeProductModal" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+     </div>
+    <div id="homeProductDetails">
+      <!-- 상품 상세 정보가 여기에 표시됩니다 -->
+    </div>
+  </div>
+</div>
+
 <!-- GSAP Animation Script -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -138,6 +170,70 @@
 
             setInterval(showNextImage, intervalTime);
         }
+
+        // 상품 상세 모달 기능
+        const homeProductModal = document.getElementById('homeProductModal');
+        const closeHomeProductBtn = document.getElementById('closeHomeProductModal');
+        const homeProductDetails = document.getElementById('homeProductDetails');
+
+        function openHomeProductModal() { 
+            homeProductModal.style.display = 'flex'; 
+        }
+        function closeHomeProductModal() { 
+            homeProductModal.style.display = 'none'; 
+        }
+
+                 function loadHomeProductDetails(productCard) {
+             const productId = productCard.getAttribute('data-product-id');
+             const productName = productCard.getAttribute('data-product-name');
+             const productBrand = productCard.getAttribute('data-product-brand');
+             const productCategory = productCard.getAttribute('data-product-category');
+             const productSubcategory = productCard.getAttribute('data-product-subcategory');
+             const productColor = productCard.getAttribute('data-product-color');
+             const productPrice = productCard.getAttribute('data-product-price');
+             const productImage = productCard.getAttribute('data-product-image');
+             const productLink = productCard.getAttribute('data-product-link');
+
+             // 가격 포맷팅 함수
+             function formatPrice(price) {
+                 if (!price || price === 'N/A') return 'N/A';
+                 const numPrice = parseInt(price);
+                 if (isNaN(numPrice)) return price;
+                 return numPrice.toLocaleString('ko-KR') + '원';
+             }
+
+             homeProductDetails.innerHTML = `
+                 <div style="display:flex; gap:20px; margin-bottom:20px;">
+                     <img src="${productImage || 'https://via.placeholder.com/200'}" 
+                          alt="${productName}" 
+                          style="width:200px; height:200px; object-fit:cover; border-radius:8px;">
+                     <div style="flex:1;">
+                         <h4 style="margin:0 0 15px 0; color:#333; font-size:18px; font-weight:600;">${productName}</h4>
+                         <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
+                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">브랜드:</strong> <span style="color:#34495e;">${productBrand || 'N/A'}</span></p>
+                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">카테고리:</strong> <span style="color:#34495e;">${productCategory || 'N/A'} > ${productSubcategory || 'N/A'}</span></p>
+                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">색상:</strong> <span style="color:#34495e;">${productColor || 'N/A'}</span></p>
+                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">가격:</strong> <span style="color:#e74c3c; font-weight:600; font-size:16px;">${formatPrice(productPrice)}</span></p>
+                         </div>
+                         ${productLink ? `<a href="${productLink}" target="_blank" style="display:inline-block; margin-top:10px; padding:12px 20px; background:linear-gradient(135deg, #3498db, #2980b9); color:#fff; text-decoration:none; border-radius:6px; font-weight:600; box-shadow:0 2px 8px rgba(52,152,219,0.3); transition:all 0.3s ease;">상품 보기</a>` : ''}
+                     </div>
+                 </div>
+             `;
+         }
+
+        // 상품 카드 클릭 이벤트
+        document.addEventListener('click', (e) => {
+            const productCard = e.target.closest('.home-product-card');
+            if (productCard) {
+                loadHomeProductDetails(productCard);
+                openHomeProductModal();
+            }
+        });
+
+        closeHomeProductBtn.addEventListener('click', closeHomeProductModal);
+        homeProductModal.addEventListener('click', (e) => { 
+            if (e.target === homeProductModal) closeHomeProductModal(); 
+        });
     });
 
     </script>

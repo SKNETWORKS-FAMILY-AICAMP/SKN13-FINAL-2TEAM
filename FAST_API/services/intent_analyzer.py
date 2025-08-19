@@ -40,18 +40,28 @@ class IntentAnalyzer:
 2. conversation: 상황 기반 대화형 추천 요청
    예시: "여름 데이트룩 추천해줘", "면접복 추천해줘", "파티에 입을 옷 추천해줘"
 
-3. general: 일반적인 대화나 질문
+   예시: "오늘 날씨 어때?", "지금 비 와?", "서울 날씨 알려줘", "현재 날씨"
+
+4. general: 일반적인 대화나 질문
    예시: "안녕하세요", "도움말", "감사합니다"
+
+- `weather` 의도인 경우, `extracted_info`의 `locations` 필드에 지역명을 정확히 추출해주세요. 
+- 만약 사용자가 '현재', '여기' 같은 단어를 쓰지 않고 특정 지역명을 언급했다면, 반드시 그 지역명을 추출해야 합니다.
+- 예시:
+  - "서울 날씨 알려줘" -> locations: ["서울"]
+  - "제주도 날씨" -> locations: ["제주도"]
+  - "창원시 마산회원구 날씨" -> locations: ["창원시 마산회원구"]
 
 응답은 다음 JSON 형식으로만 해주세요:
 {
-    "intent": "search|conversation|general",
+    "intent": "search|conversation|weather|general",
     "confidence": 0.0-1.0,
     "extracted_info": {
         "colors": ["색상들"],
         "categories": ["카테고리들"],
         "situations": ["상황들"],
         "styles": ["스타일들"],
+        "locations": ["지역명들"],
         "keywords": ["키워드들"]
     }
 }"""

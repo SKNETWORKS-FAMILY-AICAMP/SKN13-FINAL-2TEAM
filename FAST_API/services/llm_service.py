@@ -27,7 +27,7 @@ class LLMService:
         self.intent_analyzer = IntentAnalyzer()
         self.recommendation_engine = RecommendationEngine()
         
-    def analyze_intent_and_call_tool(self, user_input: str, chat_history: List[ChatMessage], available_products: List[Dict]) -> LLMResponse:
+    def analyze_intent_and_call_tool(self, user_input: str, chat_history: List[ChatMessage], available_products: List[Dict], db=None, user_id=None) -> LLMResponse:
         """사용자 입력을 분석하고 적절한 도구를 호출합니다."""
         
         # 1. 의도 분석
@@ -39,7 +39,7 @@ class LLMService:
         if intent_result.intent == "search":
             tool_result = self.search_products(intent_result, available_products)
         elif intent_result.intent == "conversation":
-            tool_result = self.recommendation_engine.conversation_recommendation(intent_result, available_products)
+            tool_result = self.recommendation_engine.conversation_recommendation(intent_result, available_products, db, user_id)
         else:  # general
             tool_result = self._handle_general_conversation(intent_result)
         
@@ -133,6 +133,7 @@ class LLMService:
         
         user_input_lower = safe_lower(intent_result.original_query)
         
+        # 키워드 매칭 시도
         for keyword, response in general_responses.items():
             if keyword in user_input_lower:
                 return ToolResult(
@@ -142,10 +143,24 @@ class LLMService:
                     metadata={"conversation_type": "general"}
                 )
         
-        # 기본 응답
+        # 의류와 관련 없는 질문인지 확인
+        clothing_keywords = ["옷", "의류", "패션", "스타일", "셔츠", "바지", "치마", "드레스", "코트", "재킷", "니트", "후드", "티셔츠", "청바지", "운동복", "정장", "데이트", "면접", "파티", "결혼식", "졸업식"]
+        
+        has_clothing_context = any(keyword in user_input_lower for keyword in clothing_keywords)
+        
+        if not has_clothing_context:
+            # 의류와 관련 없는 질문에 대한 응답
+            return ToolResult(
+                success=True,
+                message="저는 의류 추천 전문 챗봇이에요! 👗\n\n의류나 패션에 관한 질문을 해주시면 도움을 드릴 수 있어요.\n\n예시:\n• '파란색 셔츠 추천해줘'\n• '데이트룩 추천해줘'\n• '면접복 추천해줘'",
+                products=[],
+                metadata={"conversation_type": "general", "non_clothing_question": True}
+            )
+        
+        # 기본 응답 (의류 관련이지만 구체적이지 않은 경우)
         return ToolResult(
             success=True,
-            message="안녕하세요! 의류 추천을 도와드릴게요. 어떤 옷을 찾고 계신가요? 👕",
+            message="안녕하세요! 의류 추천을 도와드릴게요. 어떤 옷을 찾고 계신가요? 👕\n\n구체적으로 말씀해주시면 더 정확한 추천을 드릴 수 있어요!",
             products=[],
             metadata={"conversation_type": "general"}
         )

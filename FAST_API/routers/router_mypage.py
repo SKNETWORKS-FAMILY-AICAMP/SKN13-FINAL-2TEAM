@@ -14,43 +14,64 @@ from crud.user_crud import (
     remove_jjim,
     remove_jjim_bulk,
 )
+from crud.recommendation_crud import get_user_recommendations
+from crud.chat_crud import get_user_chat_sessions, get_session_messages
+from datetime import timedelta
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def mypage(request: Request, db: Session = Depends(get_db)):
-    # Placeholder data for the new dashboard sections
-    import random
-    # S3 로드 데이터에서 샘플링
-    sample = lambda n: random.sample(clothing_data, min(n, len(clothing_data))) if clothing_data else []
-    viewed_products = sample(6)
-    recommended_products = sample(6)
-    jjim_products = []
-    
-    # Debugging: Print image URLs to console
-    print("--- Viewed Products Image URLs ---")
-    for p in viewed_products:
-        print(p.get('이미지URL') or p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
-    print("--- Recommended Products Image URLs ---")
-    for p in recommended_products:
-        print(p.get('이미지URL') or p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
-    print("--- Jjim Products Image URLs ---")
-    for p in jjim_products:
-        print(p.get('이미지URL') or p.get('사진') or p.get('대표이미지URL', 'No Image URL'))
-
-    # 내 찜목록 불러오기 (전체 데이터에서 사용자 찜만 필터)
+    # 사용자 정보 가져오기
     user = get_user_by_username(db, request.session.get("user_name"))
-    ids = list_jjim_product_ids(db, user.id) if user else []
-
-    id_set = set(str(pid) for pid in ids)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    # 1. 최근 추천받은 상품 (최근 6개)
+    recent_recommendations = get_user_recommendations(db, user.id, limit=6)
+    recommended_products = []
+    for rec in recent_recommendations:
+        # clothing_data에서 해당 상품 찾기
+        product = next((p for p in clothing_data if str(p.get('상품코드')) == str(rec.item_id)), None)
+        if product:
+            recommended_products.append({
+                'product': product,
+                'query': rec.query,
+                'reason': rec.reason
+            })
+    
+    # 2. 찜한 상품
+    jjim_ids = list_jjim_product_ids(db, user.id)
+    id_set = set(str(pid) for pid in jjim_ids)
     jjim_products = [p for p in clothing_data if str(p.get('상품코드')) in id_set]
+    
+    # 3. 대화 내역 (최근 3개)
+    chat_sessions = get_user_chat_sessions(db, user.id, limit=3)
+    chat_history = []
+    for session in chat_sessions:
+        messages = get_session_messages(db, session.id, user.id)
+        if messages:
+            # 딕셔너리 형태로 반환되므로 ['text']로 접근
+            first_message = messages[0]['text'] if messages else ""
+            last_response = messages[-1]['text'] if len(messages) > 1 else ""
+            # 시간을 +9시간으로 조정
+            adjusted_time = session.created_at + timedelta(hours=9)
+            chat_history.append({
+                'session_id': session.id,
+                'session_name': session.session_name,
+                'created_at': adjusted_time,
+                'first_message': first_message[:50] + "..." if len(first_message) > 50 else first_message,
+                'last_response': last_response[:50] + "..." if len(last_response) > 50 else last_response,
+                'message_count': len(messages)
+            })
 
     return templates.TemplateResponse("mypage/mypage.html", {
         "request": request,
-        "viewed_products": viewed_products,
         "recommended_products": recommended_products,
-        "jjim_products": jjim_products
+        "jjim_products": jjim_products,
+        "chat_history": chat_history,
+        "clothing_data": clothing_data
     })
 
 

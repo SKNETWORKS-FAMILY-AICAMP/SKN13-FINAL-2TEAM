@@ -30,7 +30,7 @@ class RecommendationEngine:
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o-mini"
     
-    def conversation_recommendation(self, intent_result, available_products: List[Dict]) -> ToolResult:
+    def conversation_recommendation(self, intent_result, available_products: List[Dict], db=None, user_id=None) -> ToolResult:
         """개선된 대화 기반 상황별 추천을 수행합니다."""
         
         print(f"=== 1. 컨벌세이션 인텐트 확인 ===")
@@ -104,6 +104,10 @@ class RecommendationEngine:
         from services.chat_logger import prepare_chat_log_data
         matched_items_with_products = [item for item in matched_items if item.matched_product is not None]
         chat_log_data = prepare_chat_log_data(matched_items_with_products, balanced_products)
+        
+        # 7. 데이터베이스에 추천 결과 저장
+        if db and user_id and balanced_products:
+            self._save_recommendations_to_db(db, user_id, intent_result.original_query, matched_items_with_products)
         
         print(f"최종 추천 상품 수: {len(balanced_products)}")
         
@@ -218,7 +222,7 @@ class RecommendationEngine:
             product_category = product.get("대분류", "")
             if category == "상의" and product_category in ["상의", "탑", "TOP"]:
                 score += 3
-            elif category == "하의" and product_category in ["하의", "바텀", "BOTTOM"]:
+            elif category == "하의" and product_category in ["하의", "바텀", "BOTTOM", "바지", "팬츠", "반바지", "숏팬츠", "쇼츠", "SHORTS"]:
                 score += 3
             
             # 색상 매칭
@@ -391,3 +395,30 @@ class RecommendationEngine:
             products=selected_products,
             metadata={"fallback": True}
         )
+    
+    def _save_recommendations_to_db(self, db, user_id: int, query: str, matched_items: List[RecommendationItem]):
+        """추천 결과를 데이터베이스에 저장합니다."""
+        try:
+            from crud.recommendation_crud import create_multiple_recommendations
+            
+            recommendations_data = []
+            for item in matched_items:
+                if item.matched_product:
+                    # 상품코드를 item_id로 사용
+                    item_id = item.matched_product.get("상품코드", 0)
+                    if item_id:
+                        recommendations_data.append({
+                            "item_id": item_id,
+                            "query": query,
+                            "reason": item.reason
+                        })
+            
+            if recommendations_data:
+                create_multiple_recommendations(db, user_id, recommendations_data)
+                print(f"✅ 추천 결과 {len(recommendations_data)}개를 데이터베이스에 저장했습니다.")
+            else:
+                print("⚠️ 저장할 추천 결과가 없습니다.")
+                
+        except Exception as e:
+            print(f"❌ 추천 결과 저장 중 오류: {e}")
+            # 저장 실패해도 추천은 계속 진행

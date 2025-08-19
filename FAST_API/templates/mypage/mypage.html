@@ -30,37 +30,20 @@
 
   <!-- 활동 기록 섹션 -->
   <div class="activity-grid">
-    <!-- 최근 본 상품 -->
+    <!-- 최근 추천받은 상품 -->
     <section class="activity-section">
-      <h2 class="section-title">최근 본 상품</h2>
-      {% if viewed_products %}
-      <div class="product-grid">
-        {% for product in viewed_products %}
-        <div class="product-card">
-          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
-          <p class="product-name">{{ product.get('제품이름') }}</p>
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <p class="no-records-message">최근 본 상품 기록이 없습니다.</p>
-      {% endif %}
-    </section>
-
-    <!-- 추천 상품 -->
-    <section class="activity-section">
-      <h2 class="section-title">회원님을 위한 추천</h2>
+      <h2 class="section-title">최근 추천받은 상품</h2>
       {% if recommended_products %}
       <div class="product-grid">
-        {% for product in recommended_products %}
-        <div class="product-card">
-          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
-          <p class="product-name">{{ product.get('제품이름') }}</p>
+        {% for rec in recommended_products %}
+        <div class="product-card recommendation-card" data-product-id="{{ rec.product.get('상품코드') }}" data-query="{{ rec.query }}" data-reason="{{ rec.reason }}" style="cursor: pointer;">
+          <img src="{{ rec.product.get('사진') or rec.product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ rec.product.get('제품이름') }}">
+          <p class="product-name">{{ rec.product.get('제품이름') }}</p>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <p class="no-records-message">추천 상품 기록이 없습니다.</p>
+      <p class="no-records-message">아직 추천받은 상품이 없습니다.</p>
       {% endif %}
     </section>
 
@@ -74,7 +57,7 @@
       </form>
       <div class="product-grid" id="jjim-grid" style="overflow-x:auto; white-space:nowrap; gap:12px; display:flex;">
         {% for product in jjim_products %}
-        <div class="product-card" data-product-id="{{ product.get('상품ID') }}" style="display:inline-block; min-width:180px; position:relative;">
+        <div class="product-card" data-product-id="{{ product.get('상품코드') }}" style="display:inline-block; min-width:180px; position:relative;">
           <label style="position:absolute; top:6px; left:6px; background:#fff; padding:2px 4px; border-radius:4px;">
             <input type="checkbox" class="mypage-select-item">
           </label>
@@ -84,13 +67,51 @@
         {% endfor %}
       </div>
       {% else %}
-      <p class="no-records-message">찜한 상품 기록이 없습니다.</p>
+      <p class="no-records-message">찜한 상품이 없습니다.</p>
+      {% endif %}
+    </section>
+
+    <!-- 대화 내역 -->
+    <section class="activity-section">
+      <h2 class="section-title">대화 내역</h2>
+      {% if chat_history %}
+      <div class="chat-history-grid">
+        {% for chat in chat_history %}
+        <div class="chat-card">
+          <div class="chat-header">
+            <h3 class="chat-title">{{ chat.session_name }}</h3>
+            <span class="chat-date">{{ chat.created_at.strftime('%m월 %d일 %H:%M') }}</span>
+          </div>
+          <div class="chat-content">
+            <div class="chat-message-preview">
+              <span class="message-label">나:</span>
+              <span class="message-text">{{ chat.first_message }}</span>
+            </div>
+            {% if chat.last_response %}
+            <div class="chat-response-preview">
+              <span class="message-label">챗봇:</span>
+              <span class="message-text">{{ chat.last_response }}</span>
+            </div>
+            {% endif %}
+          </div>
+          <div class="chat-footer">
+            <span class="message-count">{{ chat.message_count }}개의 메시지</span>
+            <button class="view-chat-btn" data-session-id="{{ chat.session_id }}">대화 보기</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="no-records-message">아직 대화 내역이 없습니다.</p>
       {% endif %}
     </section>
   </div>
 </div>
 
 <script>
+// 전역 변수로 clothing_data 추가
+const clothing_data = {{ clothing_data | tojson | safe }};
+
 document.addEventListener("DOMContentLoaded", () => {
     // --- 전체 타임라인 설정 ---
     const masterTimeline = gsap.timeline({
@@ -111,11 +132,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const productCards = section.querySelectorAll(".product-card");
 
         masterTimeline
-            .to(sectionTitle, { opacity: 1, y: 0, duration: 0.7 }, "-=.6") // 이전 애니메이션과 살짝 겹치게
+            .to(sectionTitle, { opacity: 1, y: 0, duration: 0.7 }, "-=.6")
             .to(productCards, {
                 opacity: 1,
                 y: 0,
-                stagger: 0.08, // 0.08초 간격으로 순차 등장
+                stagger: 0.08,
                 duration: 0.5
             }, "-=0.5");
     });
@@ -141,111 +162,260 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     });
-  // 프로필 수정 모달
-  const modalHtml = `
-  <div id="profileModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
-    <div style="background:#fff; padding:20px; width:360px; border-radius:8px; max-height:90vh; overflow:auto;">
-      <h3 style="margin-top:0;">프로필 수정</h3>
-      <form id="profileForm">
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          <input type="email" name="email" placeholder="이메일"/>
-          <select name="gender">
-            <option value="">성별(선택)</option>
-            <option value="male">남성</option>
-            <option value="female">여성</option>
-            <option value="unisex">기타/선택안함</option>
-          </select>
-          <input type="number" name="height" placeholder="키(cm)" min="0"/>
-          <input type="number" name="weight" placeholder="체중(kg)" min="0"/>
-          <input type="text" name="preferred_color" placeholder="선호 색상"/>
-          <input type="text" name="preferred_style" placeholder="선호 스타일(선택)"/>
-        </div>
-        <div style="margin-top:16px; display:flex; gap:8px; justify-content:flex-end;">
-          <button type="button" id="closeProfileModal">취소</button>
-          <button type="submit">저장</button>
-        </div>
-      </form>
-    </div>
-  </div>`;
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-  const profileModal = document.getElementById('profileModal');
-  const openBtn = document.getElementById('openEditProfile');
-  const closeBtn = document.getElementById('closeProfileModal');
-  const form = document.getElementById('profileForm');
-
-  function openModal() { profileModal.style.display = 'flex'; }
-  function closeModal() { profileModal.style.display = 'none'; }
-
-  async function loadProfile() {
-    try {
-      const res = await fetch('/mypage/profile/me');
-      const data = await res.json();
-      if (!data.success) return;
-      form.email.value = data.user.email || '';
-      form.gender.value = data.user.gender || '';
-      form.height.value = data.preference.height || '';
-      form.weight.value = data.preference.weight || '';
-      form.preferred_color.value = data.preference.preferred_color || '';
-      form.preferred_style.value = data.preference.preferred_style || '';
-    } catch (e) { console.error(e); }
-  }
-
-  openBtn.addEventListener('click', async () => {
-    await loadProfile();
-    openModal();
-  });
-  profileModal.addEventListener('click', (e) => { if (e.target === profileModal) closeModal(); });
-  document.addEventListener('click', (e) => { if (e.target && e.target.id === 'closeProfileModal') closeModal(); });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(form);
-    try {
-      const res = await fetch('/mypage/profile/update', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.success) {
-        alert('프로필이 저장되었습니다.');
-        closeModal();
-        // 화면 즉시 반영: 사용자명/표시값은 바뀌지 않지만 후속 로딩시 반영됨
-      } else {
-        alert(data.message || '저장에 실패했습니다.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('오류가 발생했습니다.');
-    }
-  });
-
-  // 찜 삭제
-  const jjimGrid = document.getElementById('jjim-grid');
-  const selectAll = document.getElementById('mypageSelectAll');
-  const bulkBtn = document.getElementById('mypageBulkDeleteBtn');
-  selectAll?.addEventListener('change', () => {
-    jjimGrid.querySelectorAll('.mypage-select-item').forEach(cb => { cb.checked = selectAll.checked; });
-  });
-  bulkBtn?.addEventListener('click', async () => {
-    const ids = Array.from(jjimGrid.querySelectorAll('.product-card')).filter(card => card.querySelector('.mypage-select-item')?.checked).map(card => card.querySelector('.mypage-select-item') && card.getAttribute('data-product-id') || card.dataset.productId || card.getAttribute('data-product-id'));
-    const clean = ids.filter(Boolean);
-    if (clean.length === 0) return;
-    try {
-      const fd = new FormData();
-      fd.append('product_ids', clean.join(','));
-      const res = await fetch('/mypage/jjim/delete', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.success) {
-        clean.forEach(id => {
-          const card = Array.from(jjimGrid.querySelectorAll('.product-card')).find(el => (el.getAttribute('data-product-id') || el.dataset.productId) === id);
-          card?.remove();
+    // 추천 상품 카드 클릭 이벤트
+    const recommendationCards = document.querySelectorAll('.recommendation-card');
+    recommendationCards.forEach(card => {
+        card.addEventListener('click', async (e) => {
+            console.log('추천 상품 카드 클릭됨');
+            const productId = card.getAttribute('data-product-id');
+            const query = card.getAttribute('data-query');
+            const reason = card.getAttribute('data-reason');
+            
+            console.log('상품 ID:', productId);
+            console.log('쿼리:', query);
+            console.log('이유:', reason);
+            
+            await loadProductDetails(productId, query, reason);
+            openProductModal();
         });
-      } else {
-        alert('삭제 실패');
-      }
-    } catch(err) {
-      console.error(err);
-      alert('오류');
+    });
+
+    // 프로필 수정 모달
+    const modalHtml = `
+    <div id="profileModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
+      <div style="background:#fff; padding:20px; width:360px; border-radius:8px; max-height:90vh; overflow:auto;">
+        <h3 style="margin-top:0;">프로필 수정</h3>
+        <form id="profileForm">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <input type="email" name="email" placeholder="이메일"/>
+            <select name="gender">
+              <option value="">성별(선택)</option>
+              <option value="male">남성</option>
+              <option value="female">여성</option>
+              <option value="unisex">기타/선택안함</option>
+            </select>
+            <input type="number" name="height" placeholder="키(cm)" min="0"/>
+            <input type="number" name="weight" placeholder="체중(kg)" min="0"/>
+            <input type="text" name="preferred_color" placeholder="선호 색상"/>
+            <input type="text" name="preferred_style" placeholder="선호 스타일(선택)"/>
+          </div>
+          <div style="margin-top:16px; display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" id="closeProfileModal">취소</button>
+            <button type="submit">저장</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const profileModal = document.getElementById('profileModal');
+    const openBtn = document.getElementById('openEditProfile');
+    const closeBtn = document.getElementById('closeProfileModal');
+    const form = document.getElementById('profileForm');
+
+    function openModal() { profileModal.style.display = 'flex'; }
+    function closeModal() { profileModal.style.display = 'none'; }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch('/mypage/profile/me');
+        const data = await res.json();
+        if (!data.success) return;
+        form.email.value = data.user.email || '';
+        form.gender.value = data.user.gender || '';
+        form.height.value = data.preference.height || '';
+        form.weight.value = data.preference.weight || '';
+        form.preferred_color.value = data.preference.preferred_color || '';
+        form.preferred_style.value = data.preference.preferred_style || '';
+      } catch (e) { console.error(e); }
     }
-  });
+
+    openBtn.addEventListener('click', async () => {
+      await loadProfile();
+      openModal();
+    });
+    profileModal.addEventListener('click', (e) => { if (e.target === profileModal) closeModal(); });
+    document.addEventListener('click', (e) => { if (e.target && e.target.id === 'closeProfileModal') closeModal(); });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      try {
+        const res = await fetch('/mypage/profile/update', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          alert('프로필이 저장되었습니다.');
+          closeModal();
+        } else {
+          alert(data.message || '저장에 실패했습니다.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('오류가 발생했습니다.');
+      }
+    });
+
+    // 찜 삭제
+    const jjimGrid = document.getElementById('jjim-grid');
+    const selectAll = document.getElementById('mypageSelectAll');
+    const bulkBtn = document.getElementById('mypageBulkDeleteBtn');
+    selectAll?.addEventListener('change', () => {
+      jjimGrid.querySelectorAll('.mypage-select-item').forEach(cb => { cb.checked = selectAll.checked; });
+    });
+    bulkBtn?.addEventListener('click', async () => {
+      const ids = Array.from(jjimGrid.querySelectorAll('.product-card')).filter(card => card.querySelector('.mypage-select-item')?.checked).map(card => card.querySelector('.mypage-select-item') && card.getAttribute('data-product-id') || card.dataset.productId || card.getAttribute('data-product-id'));
+      const clean = ids.filter(Boolean);
+      if (clean.length === 0) return;
+      try {
+        const fd = new FormData();
+        fd.append('product_ids', clean.join(','));
+        const res = await fetch('/mypage/jjim/delete', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) {
+          clean.forEach(id => {
+            const card = Array.from(jjimGrid.querySelectorAll('.product-card')).find(el => (el.getAttribute('data-product-id') || el.dataset.productId) === id);
+            card?.remove();
+          });
+        } else {
+          alert('삭제 실패');
+        }
+      } catch(err) {
+        console.error(err);
+        alert('오류');
+      }
+    });
+
+    // 대화 내역 모달
+    const chatModalHtml = `
+    <div id="chatModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
+      <div style="background:#fff; padding:20px; width:90%; max-width:600px; border-radius:8px; max-height:90vh; overflow:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="margin:0;">대화 내역</h3>
+          <button id="closeChatModal" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        <div id="chatMessages" style="max-height:400px; overflow-y:auto; border:1px solid #ddd; padding:15px; border-radius:8px; background:#f9f9f9;">
+          <!-- 대화 메시지들이 여기에 표시됩니다 -->
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', chatModalHtml);
+
+    const chatModal = document.getElementById('chatModal');
+    const closeChatBtn = document.getElementById('closeChatModal');
+    const chatMessages = document.getElementById('chatMessages');
+
+    function openChatModal() { chatModal.style.display = 'flex'; }
+    function closeChatModal() { chatModal.style.display = 'none'; }
+
+    // 대화 보기 버튼 이벤트 리스너
+    document.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('view-chat-btn')) {
+        const sessionId = e.target.getAttribute('data-session-id');
+        await loadChatMessages(sessionId);
+        openChatModal();
+      }
+    });
+
+    // 추천 상품 상세 정보 모달
+    const productModalHtml = `
+    <div id="productModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
+      <div style="background:#fff; padding:20px; width:90%; max-width:500px; border-radius:8px; max-height:90vh; overflow:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="margin:0;">추천 상품 상세</h3>
+          <button id="closeProductModal" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        <div id="productDetails">
+          <!-- 상품 상세 정보가 여기에 표시됩니다 -->
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', productModalHtml);
+
+    const productModal = document.getElementById('productModal');
+    const closeProductBtn = document.getElementById('closeProductModal');
+    const productDetails = document.getElementById('productDetails');
+
+    function openProductModal() { productModal.style.display = 'flex'; }
+    function closeProductModal() { productModal.style.display = 'none'; }
+
+    async function loadProductDetails(productId, query, reason) {
+      try {
+        console.log('loadProductDetails 호출됨:', productId, query, reason);
+        console.log('clothing_data 길이:', clothing_data.length);
+        
+        // clothing_data에서 상품 정보 찾기 (객체 속성 접근 방식으로 수정)
+        const product = clothing_data.find(p => String(p['상품코드']) === String(productId));
+        
+        console.log('찾은 상품:', product);
+        
+        if (product) {
+          productDetails.innerHTML = `
+            <div style="display:flex; gap:20px; margin-bottom:20px;">
+              <img src="${product['사진'] || product['대표이미지URL'] || 'https://via.placeholder.com/200'}" 
+                   alt="${product['제품이름']}" 
+                   style="width:200px; height:200px; object-fit:cover; border-radius:8px;">
+              <div style="flex:1;">
+                <h4 style="margin:0 0 10px 0;">${product['제품이름']}</h4>
+                <p style="margin:5px 0; color:#666;"><strong>브랜드:</strong> ${product['한글브랜드명'] || 'N/A'}</p>
+                <p style="margin:5px 0; color:#666;"><strong>카테고리:</strong> ${product['대분류'] || 'N/A'} > ${product['소분류'] || 'N/A'}</p>
+                <p style="margin:5px 0; color:#666;"><strong>색상:</strong> ${product['색상'] || 'N/A'}</p>
+                ${product['상품링크'] ? `<a href="${product['상품링크']}" target="_blank" style="display:inline-block; margin-top:10px; padding:8px 16px; background:#3498db; color:#fff; text-decoration:none; border-radius:4px;">상품 보기</a>` : ''}
+              </div>
+            </div>
+            <div style="border-top:1px solid #eee; padding-top:15px;">
+              <h5 style="margin:0 0 10px 0;">추천 요청</h5>
+              <p style="background:#f8f9fa; padding:10px; border-radius:4px; margin:0 0 15px 0; border-left:3px solid #3498db;">"${query}"</p>
+              <h5 style="margin:0 0 10px 0;">추천 이유</h5>
+              <p style="background:#f8f9fa; padding:10px; border-radius:4px; margin:0;">${reason}</p>
+            </div>
+          `;
+        } else {
+          productDetails.innerHTML = '<p style="text-align:center; color:#666;">상품 정보를 찾을 수 없습니다.</p>';
+        }
+      } catch (err) {
+        console.error('loadProductDetails 오류:', err);
+        productDetails.innerHTML = '<p style="text-align:center; color:#666;">오류가 발생했습니다.</p>';
+      }
+    }
+
+    closeProductBtn.addEventListener('click', closeProductModal);
+    productModal.addEventListener('click', (e) => { if (e.target === productModal) closeProductModal(); });
+
+    // 대화 보기 기능
+    async function loadChatMessages(sessionId) {
+      try {
+        const res = await fetch(`/chat/session/${sessionId}/messages`);
+        const data = await res.json();
+        if (data.success && data.messages) {
+          displayChatMessages(data.messages);
+        } else {
+          chatMessages.innerHTML = '<p style="text-align:center; color:#666;">대화 내역을 불러올 수 없습니다.</p>';
+        }
+      } catch (err) {
+        console.error(err);
+        chatMessages.innerHTML = '<p style="text-align:center; color:#666;">오류가 발생했습니다.</p>';
+      }
+    }
+
+    function displayChatMessages(messages) {
+      chatMessages.innerHTML = messages.map(msg => `
+        <div style="margin-bottom:15px; padding:12px; border-radius:8px; ${msg.type === 'user' ? 'background:#e3f2fd; margin-left:20px; border-left:4px solid #2196f3;' : 'background:#fff; margin-right:20px; border-left:4px solid #4caf50;'}">
+          <div style="font-weight:600; margin-bottom:8px; color:#333; font-size:0.9em;">
+            ${msg.type === 'user' ? '나' : '챗봇'}
+          </div>
+          <div style="line-height:1.6; color:#555; font-size:0.95em;">
+            ${msg.text}
+          </div>
+          <div style="font-size:0.8em; color:#999; margin-top:8px;">
+            ${new Date(msg.created_at).toLocaleString('ko-KR')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    closeChatBtn.addEventListener('click', closeChatModal);
+    chatModal.addEventListener('click', (e) => { if (e.target === chatModal) closeChatModal(); });
 });
 </script>
 {% endblock %}

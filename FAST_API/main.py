@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from db import init_db, bootstrap_admin
 
 # 라우터 임포트
@@ -31,6 +32,15 @@ from routers.router_chatbot import router as chatbot_router
 from routers.router_cache_admin import router as cache_admin_router
 
 app = FastAPI()
+
+# CORS 미들웨어 추가
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 모든 출처 허용
+    allow_credentials=True,
+    allow_methods=["*"],  # 모든 HTTP 메소드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+)
 
 # 미들웨어 및 정적 파일 설정
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "change-me"))

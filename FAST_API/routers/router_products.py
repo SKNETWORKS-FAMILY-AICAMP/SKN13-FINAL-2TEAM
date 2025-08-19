@@ -143,8 +143,8 @@ def process_product_data(products):
 
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def products(request: Request):
-    # 미리 가공된 전역 데이터 사용
-    display_products = processed_clothing_data[:20]
+    # 홈화면과 동일하게 clothing_data 사용
+    display_products = clothing_data[:20]
     
     return templates.TemplateResponse("products/category_browse.html", {
         "request": request, 

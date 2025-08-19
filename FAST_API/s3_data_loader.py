@@ -67,7 +67,6 @@ class S3DataLoader:
             return f"https://image.msscdn.net{url}"
         
         # 그 외의 경우 빈 문자열 반환
-        print(f"⚠️ [URL 경고] 인식할 수 없는 URL 형식: '{url}'")
         return ""
 
 

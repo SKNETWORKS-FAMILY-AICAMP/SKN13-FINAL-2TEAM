@@ -34,13 +34,17 @@
 </section>
 <!-- Content Rows -->
         {% for section_title, section_items in [
-            ("지민님이 좋아할 만한 한 콘텐츠", section1_items),
+            ("USER_CONTENT_TITLE", section1_items),
             ("지금 뜨는 콘텐츠", section2_items),
             ("새로 추가된 콘텐츠", section3_items),
             ("추가 추천 콘텐츠", section4_items)
         ] %}
         <section class="content-row">
-<h2>{{ section_title }}</h2>
+        {% if section_title == "USER_CONTENT_TITLE" %}
+            <h2>{{ request.session.user_name }}님이 좋아할 만한 한 콘텐츠</h2>
+        {% else %}
+            <h2>{{ section_title }}</h2>
+        {% endif %}
 <div class="scroll-container">
 <div class="scroll-arrow left">❮</div>
 <div class="row-posters">

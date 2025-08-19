@@ -84,11 +84,7 @@ async def startup_event():
     else:
         print("⚠️ S3에서 데이터를 불러오지 못했거나 데이터가 비어있습니다.")
 
-    # 챗봇 데이터 초기화
-    from routers.router_chatbot import initialize_chatbot_data
-    print("🤖 챗봇 데이터 초기화를 시작합니다...")
-    initialize_chatbot_data()
-    print("✅ 챗봇 데이터 초기화 완료")
+    print("✅ 챗봇 데이터는 기본 clothing_data를 사용합니다")
 
 if __name__ == "__main__":
     import uvicorn

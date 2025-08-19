@@ -436,7 +436,17 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const messageContent = document.createElement("div");
         messageContent.classList.add("widget-message-content");
-        messageContent.textContent = message;
+        
+        // 마크다운 스타일 텍스트를 HTML로 변환
+        let formattedMessage = message
+            .replace(/\n/g, '<br>')  // 엔터를 <br>로 변환
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **텍스트** → <strong>텍스트</strong>
+            .replace(/^(\d+\.\s)/gm, '<strong>$1</strong>')  // 숫자. → 볼드
+            .replace(/^(👕|👖)\s*\*\*(.*?)\*\*/gm, '$1 <strong>$2</strong>')  // 이모지 + 제목
+            .replace(/^(\s+)(📍|💰|✨)\s*/gm, '$1$2 ')  // 아이콘 정렬
+            .replace(/^(💡)\s*\*\*(.*?)\*\*/gm, '$1 <strong>$2</strong>');  // 팁 제목
+        
+        messageContent.innerHTML = formattedMessage;
         messageWrapper.appendChild(messageContent);
         
         widgetMessages.appendChild(messageWrapper);
@@ -455,7 +465,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const productName = product.상품명 || product.제품이름 || '상품명 없음';
             const brand = product.한글브랜드명 || product.브랜드 || '브랜드 없음';
             const imageUrl = product.이미지URL || product.사진 || product.대표이미지URL || '';
-            const price = product.할인가 || product.가격 || product.원가 || 0;
+                         // 원가 우선 사용
+             const price = product.원가 || product.가격 || product.할인가 || 0;
             const productLink = product.상품링크 || product.링크 || product.URL || '';
             
             // 디버깅: 상품 링크 정보 출력
@@ -470,7 +481,6 @@ document.addEventListener("DOMContentLoaded", () => {
             
             recommendationsHTML += `
                 <div class="product-card" data-product-index="${index}" style="display: flex; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef; ${hasLink ? 'cursor: pointer;' : 'cursor: default;'} transition: all 0.3s ease;" 
-                     ${hasLink ? `onclick="openProductLink('${productLink.replace(/'/g, "\\'")}', '${productName.replace(/'/g, "\\'")}')"` : ''}
                      onmouseover="${hasLink ? 'this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.15)\'' : ''}"
                      onmouseout="${hasLink ? 'this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'none\'' : ''}">
                     ${imageUrl && imageUrl.trim() !== '' ? 

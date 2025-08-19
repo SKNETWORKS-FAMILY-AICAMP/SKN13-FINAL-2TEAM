@@ -52,34 +52,11 @@
                     {% endfor %}
                 </tr>
 
-                <!-- Rating -->
-                <tr>
-                    <th class="attribute-header">평점</th>
-                    {% for product in products %}
-                    <td>
-                        <div class="rating">
-                            <span class="stars" data-rating="{{ product.get('평점', '0') }}">★★★★★</span>
-                            <span class="rating-text">{{ "%.1f"|format(product.get('평점', 0)) }}/5.0</span>
-                        </div>
-                    </td>
-                    {% endfor %}
-                </tr>
+                
 
-                <!-- Material -->
-                <tr>
-                    <th class="attribute-header">소재</th>
-                    {% for product in products %}
-                    <td>{{ product.get('제품소재', '정보 없음') }}</td>
-                    {% endfor %}
-                </tr>
+                
 
-                <!-- Laundry Info -->
-                <tr>
-                    <th class="attribute-header">세탁법</th>
-                    {% for product in products %}
-                    <td>{{ product.get('세탁법', '정보 없음') }}</td>
-                    {% endfor %}
-                </tr>
+                
 
             </tbody>
         </table>

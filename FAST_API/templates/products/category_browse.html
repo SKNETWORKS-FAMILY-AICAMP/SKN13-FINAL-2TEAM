@@ -7,7 +7,8 @@
 
 {% block content %}
 <section class="category-page">
-  <aside class="sidebar">
+  <!-- 필터 사이드바 -->
+  <aside class="filter-sidebar">
     <h2>필터</h2>
 
     <!-- 성별 필터 -->
@@ -54,102 +55,6 @@
         </div>
     </div>
 
-    <!-- 상의 소분류 필터 -->
-    <div class="filter-section" id="top-subcategories" style="display: none;">
-        <h3>상의 소분류</h3>
-        <div class="filter-options">
-            <label class="filter-option">
-                <input type="checkbox" name="top_subcategory" value="tshirt" class="filter-checkbox">
-                <span class="checkmark"></span>
-                티셔츠
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="top_subcategory" value="sweatshirt" class="filter-checkbox">
-                <span class="checkmark"></span>
-                맨투맨/후드
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="top_subcategory" value="shirt" class="filter-checkbox">
-                <span class="checkmark"></span>
-                셔츠/블라우스
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="top_subcategory" value="knit" class="filter-checkbox">
-                <span class="checkmark"></span>
-                니트
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="top_subcategory" value="sleeveless" class="filter-checkbox">
-                <span class="checkmark"></span>
-                민소매
-            </label>
-        </div>
-    </div>
-
-    <!-- 하의 소분류 필터 -->
-    <div class="filter-section" id="bottom-subcategories" style="display: none;">
-        <h3>하의 소분류</h3>
-        <div class="filter-options">
-            <label class="filter-option">
-                <input type="checkbox" name="bottom_subcategory" value="jeans" class="filter-checkbox">
-                <span class="checkmark"></span>
-                청바지
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="bottom_subcategory" value="pants" class="filter-checkbox">
-                <span class="checkmark"></span>
-                팬츠
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="bottom_subcategory" value="shorts" class="filter-checkbox">
-                <span class="checkmark"></span>
-                반바지
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="bottom_subcategory" value="leggings" class="filter-checkbox">
-                <span class="checkmark"></span>
-                레깅스
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="bottom_subcategory" value="joggers" class="filter-checkbox">
-                <span class="checkmark"></span>
-                조거팬츠
-            </label>
-        </div>
-    </div>
-
-    <!-- 스커트 소분류 필터 -->
-    <div class="filter-section" id="skirt-subcategories" style="display: none;">
-        <h3>스커트 소분류</h3>
-        <div class="filter-options">
-            <label class="filter-option">
-                <input type="checkbox" name="skirt_subcategory" value="mini" class="filter-checkbox">
-                <span class="checkmark"></span>
-                미니스커트
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="skirt_subcategory" value="midi" class="filter-checkbox">
-                <span class="checkmark"></span>
-                미디스커트
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="skirt_subcategory" value="maxi" class="filter-checkbox">
-                <span class="checkmark"></span>
-                맥시스커트
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="skirt_subcategory" value="pleated" class="filter-checkbox">
-                <span class="checkmark"></span>
-                플리츠스커트
-            </label>
-            <label class="filter-option">
-                <input type="checkbox" name="skirt_subcategory" value="a_line" class="filter-checkbox">
-                <span class="checkmark"></span>
-                A라인스커트
-            </label>
-        </div>
-    </div>
-
     <!-- 가격 필터 -->
     <div class="filter-section">
         <h3>가격 범위</h3>
@@ -168,32 +73,6 @@
         </div>
     </div>
 
-    <!-- 평점 필터 -->
-    <div class="filter-section">
-        <h3>평점</h3>
-        <div class="rating-filter">
-            <div class="rating-inputs">
-                <input type="number" id="min-rating" placeholder="최소" min="0" max="5" step="0.1" class="rating-input">
-                <span class="rating-separator">~</span>
-                <input type="number" id="max-rating" placeholder="최대" min="0" max="5" step="0.1" class="rating-input">
-            </div>
-            <div class="rating-buttons">
-                <button type="button" class="rating-btn" data-min="4.0" data-max="5.0">4.0점 이상</button>
-                <button type="button" class="rating-btn" data-min="3.0" data-max="5.0">3.0점 이상</button>
-                <button type="button" class="rating-btn" data-min="2.0" data-max="5.0">2.0점 이상</button>
-                <button type="button" class="rating-btn" data-min="0" data-max="5.0">전체</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 브랜드 필터 -->
-    <div class="filter-section">
-        <h3>브랜드</h3>
-        <div class="brand-search">
-            <input type="text" id="brand-search" placeholder="브랜드명을 입력하세요 (쉼표로 구분)" class="brand-input">
-        </div>
-    </div>
-
     <!-- 필터 초기화 -->
     <div class="filter-actions">
         <button id="clear-filters" class="clear-btn">필터 초기화</button>
@@ -201,6 +80,7 @@
     </div>
   </aside>
 
+  <!-- 상품 목록 섹션 -->
   <main class="product-listing-area">
     <div class="listing-header">
         <h1>상품 목록</h1>
@@ -209,52 +89,176 @@
                 <option value="default">기본순</option>
                 <option value="price-low">가격 낮은순</option>
                 <option value="price-high">가격 높은순</option>
-                <option value="rating">평점순</option>
                 <option value="name">이름순</option>
             </select>
         </div>
     </div>
-    
-    <div class="active-filters" id="active-filters">
-        <!-- 활성화된 필터들이 여기에 표시됩니다 -->
-    </div>
 
+    <!-- 상품 그리드 -->
     <div class="product-grid" id="product-grid">
         {% for product in products %}
         <div class="product-card" 
-             data-gender="{{ product.get('성별', '') }}" data-gender-key="{{ product.get('gender_key','') }}"
-             data-type="{{ product.get('의류타입', '') }}" data-type-key="{{ product.get('type_key','') }}"
-             data-subcategory="{{ product.get('소분류', '') }}" data-subcat-key="{{ product.get('subcat_key','') }}"
-             data-price="{{ product.get('processed_price', '0') }}"
-             data-rating="{{ product.get('평점', '') }}"
-             data-brand="{{ product.get('브랜드', '') }}">
-            <img src="{{ product.get('대표이미지URL') or product.get('사진') }}" alt="{{ product['상품명'] }}">
-            <div class="product-card-content">
-                <h3>{{ product['제품이름'] }}</h3>
-                <p class="brand">{{ product.get('브랜드', '') }}</p>
-                <p class="price">{{ product['가격'] }}</p>
-                
-                <button class="add-to-cart">장바구니에 추가</button>
-            </div>
+             data-product-id="{{ product.get('상품코드', '') }}"
+             data-product-name="{{ product.get('상품명', '') }}"
+             data-product-brand="{{ product.get('한글브랜드명', '') }}"
+             data-product-category="{{ product.get('대분류', '') }}"
+             data-product-subcategory="{{ product.get('소분류', '') }}"
+             data-product-color="{{ product.get('색상', '') }}"
+             data-product-price="{{ product.get('원가', '0') }}"
+             data-product-image="{{ product.get('이미지URL', '') }}"
+             data-product-link="{{ product.get('상품링크', '') }}"
+             data-product-material="{{ product.get('소재', '') }}"
+             data-gender="{{ product.get('성별', '') }}"
+             data-type="{{ product.get('대분류', '') }}">
+            <img src="{{ product.get('이미지URL', '') }}" 
+                 alt="{{ product.get('상품명', '') }}"
+                 title="{{ product.get('상품명', '') }}: {{ product.get('한글브랜드명', '') }}">
         </div>
         {% endfor %}
     </div>
 
-    <div class="pagination-container" id="pagination-container"></div>
-
-    <div class="no-results" id="no-results" style="display: none;">
+    <!-- 결과 없음 메시지 -->
+    <div id="no-results" class="no-results" style="display: none;">
         <p>조건에 맞는 상품이 없습니다.</p>
-        <button onclick="clearAllFilters()" class="clear-all-btn">모든 필터 초기화</button>
-    </div>
-    
-    <div class="load-more-container" id="load-more-container" style="display: none;">
-        <button id="load-more-btn" class="load-more-btn">더 많은 상품 보기</button>
     </div>
   </main>
 </section>
+
+<!-- 제품 상세 모달 -->
+<div id="product-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>상품 상세 정보</h3>
+      <button id="close-modal">&times;</button>
+    </div>
+    <div id="product-details" class="modal-body">
+      <!-- 상품 상세 정보가 여기에 표시됩니다 -->
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('static', path='js/filters.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // 모달 요소들
+  const modal = document.getElementById('product-modal');
+  const closeBtn = document.getElementById('close-modal');
+  const productDetails = document.getElementById('product-details');
+
+  // 모달 열기/닫기
+  function openModal() {
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  // 제품 상세 정보 로드
+  function loadProductDetails(card) {
+    const productId = card.dataset.productId;
+    const productName = card.dataset.productName;
+    const productBrand = card.dataset.productBrand;
+    const productCategory = card.dataset.productCategory;
+    const productSubcategory = card.dataset.productSubcategory;
+    const productColor = card.dataset.productColor;
+    const productPrice = card.dataset.productPrice;
+    const productImage = card.dataset.productImage;
+    const productLink = card.dataset.productLink;
+
+    // 가격 포맷팅
+    function formatPrice(price) {
+      if (!price || price === '0') return 'N/A';
+      return parseInt(price).toLocaleString('ko-KR') + '원';
+    }
+
+    productDetails.innerHTML = `
+      <div class="product-detail-content">
+        <div class="product-image">
+          <img src="${productImage}" alt="${productName}">
+        </div>
+        <div class="product-info">
+          <h4>${productName}</h4>
+          <div class="product-details">
+            <p><strong>브랜드:</strong> ${productBrand || 'N/A'}</p>
+            <p><strong>카테고리:</strong> ${productCategory || 'N/A'} > ${productSubcategory || 'N/A'}</p>
+            <p><strong>색상:</strong> ${productColor || 'N/A'}</p>
+            <p><strong>가격:</strong> <span class="price">${formatPrice(productPrice)}</span></p>
+          </div>
+          <div class="product-actions">
+            <a href="${productLink}" target="_blank" class="btn btn-primary">🔗 링크로 이동</a>
+            <button onclick="addToJjim('${productId}')" class="btn btn-secondary">❤️ 찜목록에 추가</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 제품 카드 클릭 이벤트
+  document.addEventListener('click', function(e) {
+    const card = e.target.closest('.product-card');
+    if (card) {
+      loadProductDetails(card);
+      openModal();
+    }
+  });
+
+  // 모달 닫기 이벤트
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeModal();
+  });
+
+  // 찜목록 추가 함수
+  window.addToJjim = async function(productId) {
+    if (!productId) {
+      alert('상품 ID를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('product_id', productId);
+
+      const response = await fetch('/preference/jjim', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        alert('찜목록에 추가되었습니다!');
+      } else {
+        const result = await response.json();
+        if (result.message === '사용자 없음') {
+          alert('로그인이 필요합니다.');
+        } else {
+          alert(`찜목록 추가에 실패했습니다: ${result.message || '알 수 없는 오류'}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error adding to jjim:', error);
+      alert('찜목록 추가 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 필터 기능 (기본적인 것만)
+  document.getElementById('apply-filters').addEventListener('click', function() {
+    // 필터 로직은 나중에 구현
+    console.log('필터 적용');
+  });
+
+  document.getElementById('clear-filters').addEventListener('click', function() {
+    // 모든 체크박스 해제
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    // 가격 입력 필드 초기화
+    document.getElementById('min-price').value = '';
+    document.getElementById('max-price').value = '';
+    // 정렬 초기화
+    document.getElementById('sort-select').value = 'default';
+  });
+});
+</script>
 {% endblock %}

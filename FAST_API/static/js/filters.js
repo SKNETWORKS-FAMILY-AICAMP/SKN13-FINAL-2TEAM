@@ -92,10 +92,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h3>${product.제품이름}</h3>
                     <p class="brand">${product.브랜드 || ''}</p>
                     <p class="price">${product.가격}</p>
-                    <div class="rating">
-                        <span class="stars" data-rating="${rating}">${stars}</span>
-                        <span class="rating-text">${rating.toFixed(1)}/5</span>
-                    </div>
                     <button class="add-to-cart">장바구니에 추가</button>
                 </div>
             `;

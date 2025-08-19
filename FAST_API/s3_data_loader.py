@@ -76,7 +76,7 @@ class S3DataLoader:
         """제품 데이터를 S3에서 로드하고 가공하여 반환 (캐싱 지원 및 상세 로깅)"""
         from cache_manager import cache_manager
         # 캐시 식별자에 버전(_v5)을 추가하여 이전 캐시를 무효화합니다.
-        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v5"
+        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v6"
         
         if use_cache:
             cached_data = cache_manager.get(cache_identifier)
@@ -203,6 +203,7 @@ class S3DataLoader:
                     "영어브랜드명": item.get("영어브랜드명", ""),
                     
                     # 호환성을 위한 기존 필드들 (하위 호환성)
+                    "제품이름": item.get("상품명", ""),
                     "브랜드": item.get("한글브랜드명", ""),
                     "가격": int(price),
                     "사진": fixed_img,

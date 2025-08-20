@@ -2,6 +2,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', path='css/preference.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/preference_custom.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -19,6 +20,10 @@
             <div class="card-feedback dislike">NOPE</div>
         </div>
         {% endfor %}
+        <div id="no-more-products-message" class="preference-message-container">
+            <p>😔 더 이상 추천할 상품이 없습니다.</p>
+            <button id="load-new-products-button" class="preference-load-button">새로운 상품 불러오기</button>
+        </div>
     </div>
 
         <div class="action-buttons">
@@ -26,10 +31,7 @@
         <button class="action-btn dislike-btn" id="dislike-btn">❌</button>
     </div>
 
-    <div class="no-more-cards" id="no-more-cards" style="display: none;">
-        <p>더 이상 추천할 상품이 없습니다.</p>
-        <button id="refresh-cards-btn" class="refresh-btn">새로운 상품 불러오기</button>
-    </div>
+    
 </div>
 
 </div>
@@ -40,20 +42,22 @@
         let cards = Array.from(stack.querySelectorAll('.preference-card')).reverse();
         const likeBtn = document.getElementById('like-btn');
         const dislikeBtn = document.getElementById('dislike-btn');
-        const noMoreCardsDiv = document.getElementById('no-more-cards');
-        const refreshCardsBtn = document.getElementById('refresh-cards-btn');
+        const noMoreCardsDiv = document.getElementById('no-more-products-message');
+        const refreshCardsBtn = document.getElementById('load-new-products-button');
 
         let activeCard = null;
 
         function setupCards() {
-            console.log('setupCards called. Initial cards.length:', cards.length);
+            console.log('setupCards called. Current cards.length:', cards.length);
             if (cards.length === 0) {
-                console.log('No cards initially, showing noMoreCardsDiv.');
-                noMoreCardsDiv.style.display = 'block';
+                console.log('No cards. Showing noMoreCardsDiv. Button display:', refreshCardsBtn.style.display);
+                noMoreCardsDiv.classList.add('show');
+                refreshCardsBtn.style.display = 'block'; // Add this line
+                noMoreCardsDiv.querySelector('p').textContent = '😔 더 이상 추천할 상품이 없습니다.'; // Ensure correct message
                 return;
             }
             // Temporarily remove this line to see if it's ever visible
-            // noMoreCardsDiv.style.display = 'none';
+            // noMoreCardsDiv.classList.remove('show');
 
             cards.forEach((card, index) => {
                 const zIndex = index + 1;
@@ -130,14 +134,20 @@
                         console.log('Draggable instance killed.');
                     }
 
+                    console.log('GSAP animation onComplete. Before cards.pop(), cards.length:', cards.length);
                     cards.pop();
-                    console.log('Card popped from array. New cards.length:', cards.length);
+                    console.log('After cards.pop(), cards.length:', cards.length);
+                    console.log('Card swiped. Remaining cards:', cards.length);
                     activeCard = cards.length > 0 ? cards[cards.length - 1] : null;
                     reorganizeStack();
                     console.log('Checking for last card. Current cards.length:', cards.length);
+                    console.log('Checking if cards.length is 0:', cards.length === 0);
                     if (cards.length === 0) {
-                        console.log('All cards processed. Showing noMoreCardsDiv.');
-                        noMoreCardsDiv.style.display = 'block';
+                        console.log('Attempting to show noMoreCardsDiv from swipeCard.');
+                        console.log('All cards exhausted. Showing noMoreCardsDiv. Button display:', refreshCardsBtn.style.display);
+                        noMoreCardsDiv.classList.add('show');
+                        refreshCardsBtn.style.display = 'block'; // Add this line
+                        noMoreCardsDiv.querySelector('p').textContent = '😔 더 이상 추천할 상품이 없습니다.'; // Ensure correct message
                         console.log('noMoreCardsDiv display after setting:', noMoreCardsDiv.style.display);
                     }
                 }
@@ -182,15 +192,24 @@
         });
 
         refreshCardsBtn.addEventListener('click', async () => {
-            console.log('Refresh button clicked.');
-            noMoreCardsDiv.style.display = 'none';
+            console.log('Refresh button clicked. Hiding noMoreCardsDiv.');
+            noMoreCardsDiv.classList.remove('show');
+            console.log('Fetching new items...');
             try {
                 const response = await fetch('/preference/api/items');
+                console.log('Response status:', response.status);
                 if (!response.ok) throw new Error('Failed to fetch new items');
                 const newItems = await response.json();
+                console.log('newItems.length:', newItems.length);
 
                 if (newItems.length > 0) {
-                    stack.innerHTML = ''; // Clear existing cards
+                    console.log('New items found. Clearing stack and setting up new cards.');
+                    // noMoreCardsDiv를 임시로 DOM 밖으로 옮깁니다.
+                    const preferenceContainer = document.querySelector('.preference-container');
+                    preferenceContainer.appendChild(noMoreCardsDiv);
+
+                    stack.innerHTML = ''; // 기존 카드들을 지웁니다.
+
                     newItems.forEach(item => {
                         const cardHtml = `
                             <div class="preference-card" data-product-id="${item.상품ID}">
@@ -205,12 +224,21 @@
                         `;
                         stack.insertAdjacentHTML('beforeend', cardHtml);
                     });
+
+                    // noMoreCardsDiv를 다시 stack 안으로 옮깁니다.
+                    stack.appendChild(noMoreCardsDiv);
+
                     cards = Array.from(stack.querySelectorAll('.preference-card')).reverse();
                     setupCards(); // Re-initialize Draggable for new cards
+                    refreshCardsBtn.style.display = 'block'; // Ensure button is visible
+                    noMoreCardsDiv.querySelector('p').textContent = '😔 더 이상 추천할 상품이 없습니다.'; // Reset message text
+                    console.log('noMoreCardsDiv text reset. Button display:', refreshCardsBtn.style.display);
                 } else {
-                    noMoreCardsDiv.style.display = 'block'; // Show message if no new items
+                    console.log('No new items found. Showing noMoreCardsDiv with "no more to load" message.');
+                    noMoreCardsDiv.classList.add('show'); // Show message if no new items
                     noMoreCardsDiv.querySelector('p').textContent = '더 이상 불러올 상품이 없습니다.';
                     refreshCardsBtn.style.display = 'none';
+                    console.log('Button display:', refreshCardsBtn.style.display);
                 }
             } catch (error) {
                 console.error('Error refreshing cards:', error);

@@ -26,6 +26,7 @@ from services.llm_service import LLMService, LLMResponse
 from services.intent_analyzer import ChatMessage, IntentResult, analyze_user_intent, analyze_user_intent_with_context
 from services.recommendation_engine import ToolResult
 from services.product_filter import exact_match_filter, situation_filter
+from services.clothing_recommender import recommend_clothing_by_weather
 from utils.safe_utils import safe_lower, safe_str
 
 router = APIRouter()
@@ -511,6 +512,109 @@ async def chat_recommend(
             
             message = llm_response.final_message
             products = llm_response.products
+            print(f"DEBUG: llm_response.final_message: {llm_response.final_message}") # NEW PRINT
+
+            # 날씨 의도 처리 및 의류 추천 통합
+            if llm_response.intent_result.intent == "weather":
+                import re
+                temperature = None
+                weather_description = None
+                
+                try:
+                    # 1. LLM 응답 메시지에서 기온 및 날씨 상황 추출 (문자열 조작 사용)
+                    temp_start_idx = llm_response.final_message.find('🌡️ **기온**: ')
+                    temp_end_idx = llm_response.final_message.find('°C', temp_start_idx)
+                    if temp_start_idx != -1 and temp_end_idx != -1:
+                        temperature_str = llm_response.final_message[temp_start_idx + len('🌡️ **기온**: '):temp_end_idx].strip()
+                        temperature = float(temperature_str)
+                    else:
+                        temperature = None
+
+                    weather_desc_start_idx = llm_response.final_message.find('✨ **날씨 상황**: ')
+                    if weather_desc_start_idx != -1:
+                        weather_description = llm_response.final_message[weather_desc_start_idx + len('✨ **날씨 상황**: '):].strip()
+                    else:
+                        weather_description = None
+                    
+                    print(f"DEBUG: Extracted temperature: {temperature}, weather_description: {weather_description})")
+                except Exception as e:
+                    import traceback
+                    print(f"ERROR: Regex parsing for weather failed. Exception Type: {type(e).__name__}, Message: {e}")
+                    print(f"TRACEBACK: {traceback.format_exc()}")
+                    # Fallback if parsing fails
+                    message = llm_response.final_message + "\n\n날씨 정보 파싱 중 오류가 발생했습니다."
+                    products = []
+                    # Skip further processing and return
+                    bot_message = create_chat_message(db, chat_session.id, "bot", message)
+                    print(f"봇 메시지 저장: {bot_message.id}")
+                    return JSONResponse(content={
+                        "message": message,
+                        "products": products,
+                        "session_id": chat_session.id,
+                        "session_name": chat_session.session_name
+                    })
+
+                # 2. 사용자 성별 가져오기 (user 객체에 gender 속성이 있다고 가정)
+                raw_gender = user.gender if hasattr(user, 'gender') else None
+                if raw_gender == "male":
+                    user_gender = "남성"
+                elif raw_gender == "female":
+                    user_gender = "여성"
+                else: # "unisex" or None
+                    user_gender = "남성" # Default for unisex or unspecified
+
+                if weather_description is not None: # 날씨 상황이 추출된 경우에만 추천 진행
+                    try:
+                        # 3. 의류 추천 함수 호출 (날씨 상황 전달)
+                        recommended_clothing = recommend_clothing_by_weather(weather_description, user_gender)
+                        print(f"DEBUG: recommended_clothing from recommender: {recommended_clothing}")
+                    except Exception as e:
+                        print(f"ERROR: recommend_clothing_by_weather failed: {e}")
+                        message = llm_response.final_message + "\n\n의류 추천 생성 중 오류가 발생했습니다."
+                        products = []
+                        # Skip further processing and return
+                        bot_message = create_chat_message(db, chat_session.id, "bot", message)
+                        print(f"봇 메시지 저장: {bot_message.id}")
+                        return JSONResponse(content={
+                            "message": message,
+                            "products": products,
+                            "session_id": chat_session.id,
+                            "session_name": chat_session.session_name
+                        })
+
+                    try:
+                        # 4. 추천 의류를 자연어 메시지로 변환
+                        clothing_str_parts = []
+                        for category, items in recommended_clothing.items():
+                            if items:
+                                clothing_str_parts.append(f"{category}: {', '.join(items)}")
+                        
+                        clothing_recommendation_message = ""
+                        if clothing_str_parts:
+                            clothing_recommendation_message = f"\n\n오늘 날씨에는 {', '.join(clothing_str_parts)}을(를) 추천해 드려요! 👕👖"
+                        
+                        # 기존 날씨 메시지에서 불필요한 부분 제거하고 추천 메시지 추가
+                        message = llm_response.final_message.strip()
+                        message += clothing_recommendation_message
+                    except Exception as e:
+                        print(f"ERROR: Clothing recommendation message formatting failed: {e}")
+                        message = llm_response.final_message + "\n\n추천 메시지 구성 중 오류가 발생했습니다."
+                        products = []
+                        # Skip further processing and return
+                        bot_message = create_chat_message(db, chat_session.id, "bot", message)
+                        print(f"봇 메시지 저장: {bot_message.id}")
+                        return JSONResponse(content={
+                            "message": message,
+                            "products": products,
+                            "session_id": chat_session.id,
+                            "session_name": chat_session.session_name
+                        })
+                else:
+                    # 날씨 상황 추출 실패 시 기존 메시지 유지
+                    message = llm_response.final_message
+            # 날씨 의도가 아닐 경우 기존 메시지 유지
+            else:
+                message = llm_response.final_message
             
             print(f"LLM 응답 - 의도: {llm_response.intent_result.intent}, 제품 수: {len(products)}")
             

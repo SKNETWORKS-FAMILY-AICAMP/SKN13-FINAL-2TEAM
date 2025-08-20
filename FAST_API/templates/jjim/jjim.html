@@ -28,13 +28,10 @@
         </div>
         <div class="product-grid" id="jjimGrid">
             {% for product in jjim_products %}
-            <div class="product-card" data-product-id="{{ product['상품ID'] }}">
-                <input type="checkbox" class="product-checkbox" data-product-id="{{ product['상품ID'] }}">
+            <div class="jjim-product-card" data-product-id="{{ product['상품ID'] }}">
+                <input type="checkbox" class="jjim-product-checkbox" data-product-id="{{ product['상품ID'] }}">
                 
                 <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product['상품명'] }}">
-                <div class="product-card-info">
-                    <h3>{{ product['제품이름'] }}</h3>
-                </div>
                 <!-- Hidden details for JS -->
                 <div class="product-details"
                      data-name="{{ product.get('제품이름', '이름 없음') }}"
@@ -71,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- 상태 관리 ---
     function updateCompareButton() {
-        const filledSlots = slots.filter(slot => slot.querySelector('.product-card')).length;
+        const filledSlots = slots.filter(slot => slot.querySelector('.jjim-product-card')).length;
         gsap.to(compareBtn, {
             className: "compare-button" + (filledSlots === 2 ? " visible" : ""),
             duration: 0.4,
@@ -84,15 +81,38 @@ document.addEventListener("DOMContentLoaded", () => {
         const isFromWishlist = card.parentElement.classList.contains('product-grid');
 
         if (isFromWishlist) {
-            const emptySlot = slots.find(slot => !slot.querySelector('.product-card'));
+            const emptySlot = slots.find(slot => !slot.querySelector('.jjim-product-card'));
             if (emptySlot) {
                 emptySlot.innerHTML = ''; // placeholder 제거
-                emptySlot.appendChild(card);
+                
+                // 카드를 복제하고 이름 정보 추가
+                const cardClone = card.cloneNode(true);
+                const details = cardClone.querySelector('.product-details');
+                const productName = details ? details.dataset.name : '상품명 없음';
+                
+                // 카드에 이름 정보 div 추가
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'product-card-info';
+                nameDiv.innerHTML = `<h3>${productName}</h3>`;
+                cardClone.appendChild(nameDiv);
+                
+                emptySlot.appendChild(cardClone);
                 emptySlot.classList.add('filled');
+                
+                // 원본 카드는 wishlist에서 제거
+                card.remove();
             }
         } else {
             const parentSlot = card.parentElement;
-            wishlistGrid.appendChild(card);
+            
+            // 카드를 다시 wishlist로 이동할 때는 이름 정보 제거
+            const cardClone = card.cloneNode(true);
+            const nameInfo = cardClone.querySelector('.product-card-info');
+            if (nameInfo) {
+                nameInfo.remove();
+            }
+            
+            wishlistGrid.appendChild(cardClone);
             parentSlot.classList.remove('filled');
             parentSlot.innerHTML = `<span>상품 ${parentSlot.dataset.slotId}을 선택하세요</span>`;
         }
@@ -102,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- 통합 클릭 리스너 ---
     document.querySelector('.jjim-page-container').addEventListener('click', e => {
-        const card = e.target.closest('.product-card');
+        const card = e.target.closest('.jjim-product-card');
         if (card) {
             moveCard(card);
         }
@@ -110,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- 모달 제어 ---
     function showModal() {
-        const productsInSlots = slots.map(slot => slot.querySelector('.product-card'));
+        const productsInSlots = slots.map(slot => slot.querySelector('.jjim-product-card'));
         if (productsInSlots.some(p => !p)) return;
 
         // 데이터 추출 (숨겨진 div의 data-* 속성에서)
@@ -167,7 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- 삭제 기능 ---
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    const productCheckboxes = document.querySelectorAll('.jjim-product-checkbox');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const jjimGrid = document.getElementById('jjimGrid');
 
@@ -215,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert(`${result.deleted_count}개의 상품이 삭제되었습니다.`);
                 // 삭제된 상품들을 DOM에서 제거
                 selectedProductIds.forEach(id => {
-                    const cardToRemove = document.querySelector(`.product-card[data-product-id="${id}"]`);
+                    const cardToRemove = document.querySelector(`.jjim-product-card[data-product-id="${id}"]`);
                     if (cardToRemove) {
                         cardToRemove.remove();
                     }

@@ -11,6 +11,11 @@
     <link rel="stylesheet" href="{{ url_for('static', path='css/survey.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/preference.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/chatbot.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/mypage.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/faq.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/jjim.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/category_browse.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/filters.css') }}">
     <link rel="icon" href="{{ url_for('static', path='img/favicon.png') }}">
 
     {% block head %}{% endblock %}
@@ -168,73 +173,7 @@
             }
         }
         
-        /* 채팅 위젯 스타일 수정 */
-        .chatbot-toggle-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            border: none !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
-        }
-        
-        .floating-chatbot-widget {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            border: none !important;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
-        }
-        
-        .widget-header {
-            background: rgba(255,255,255,0.1) !important;
-            border-bottom: 1px solid rgba(255,255,255,0.2) !important;
-        }
-        
-        .widget-header h3 {
-            color: white !important;
-        }
-        
-        .widget-close-btn {
-            color: white !important;
-            background: rgba(255,255,255,0.2) !important;
-            border: none !important;
-            border-radius: 50% !important;
-            width: 30px !important;
-            height: 30px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 18px !important;
-            cursor: pointer !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        .widget-close-btn:hover {
-            background: rgba(255,255,255,0.3) !important;
-            transform: scale(1.1) !important;
-        }
-        
-        .widget-messages {
-            background: rgba(255,255,255,0.05) !important;
-        }
-        
-        .widget-form input {
-            background: rgba(255,255,255,0.1) !important;
-            border: 1px solid rgba(255,255,255,0.2) !important;
-            color: white !important;
-        }
-        
-        .widget-form input::placeholder {
-            color: rgba(255,255,255,0.7) !important;
-        }
-        
-        .widget-form button {
-            background: rgba(255,255,255,0.2) !important;
-            border: none !important;
-            color: white !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        .widget-form button:hover {
-            background: rgba(255,255,255,0.3) !important;
-            transform: scale(1.05) !important;
-        }
+        /* 챗봇 위젯은 chatbot.css에서 관리하므로 여기서는 제거 */
     </style>
 </head>
 <body>
@@ -298,6 +237,7 @@
             <!-- GSAP CDN -->
             <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Flip.min.js"></script>
             

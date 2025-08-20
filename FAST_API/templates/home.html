@@ -76,38 +76,7 @@
         {% endfor %}
     </div>
 
-<!-- 디버깅: 첫 번째 상품 데이터 확인 -->
-{% if section1_items %}
-<div style="background:#f0f0f0; padding:20px; margin:20px 0; border-radius:8px; font-family:monospace; font-size:12px;" id="debug-info">
-    <h4>🔍 홈화면 디버깅 정보 (첫 번째 상품)</h4>
-    상품코드: {{ section1_items[0].get('상품코드', '없음') }}<br>
-    제품이름: {{ section1_items[0].get('제품이름', '없음') }}<br>
-    상품명: {{ section1_items[0].get('상품명', '없음') }}<br>
-    브랜드: {{ section1_items[0].get('브랜드', '없음') }}<br>
-    한글브랜드명: {{ section1_items[0].get('한글브랜드명', '없음') }}<br>
-    대분류: {{ section1_items[0].get('대분류', '없음') }}<br>
-    소분류: {{ section1_items[0].get('소분류', '없음') }}<br>
-    원가: {{ section1_items[0].get('원가', '없음') }}<br>
-    할인가: {{ section1_items[0].get('할인가', '없음') }}<br>
-    성별: {{ section1_items[0].get('성별', '없음') }}<br>
-    사진: {{ section1_items[0].get('사진', '없음') }}<br>
-    이미지URL: {{ section1_items[0].get('이미지URL', '없음') }}<br>
-    대표이미지URL: {{ section1_items[0].get('대표이미지URL', '없음') }}<br>
-    소재: {{ section1_items[0].get('소재', '없음') }}<br>
-    색상: {{ section1_items[0].get('색상', '없음') }}<br>
-    좋아요수: {{ section1_items[0].get('좋아요수', '없음') }}<br>
-    상품링크: {{ section1_items[0].get('상품링크', '없음') }}<br>
-    영어브랜드명: {{ section1_items[0].get('영어브랜드명', '없음') }}<br>
-    <br>
-    <strong>전체 데이터 키:</strong><br>
-    {% for key, value in section1_items[0].items() %}
-    {{ key }}: {{ value }}<br>
-    {% endfor %}
-</div>
-<script>
-    console.log('Home Debug info:', document.getElementById('debug-info').innerHTML);
-</script>
-{% endif %}
+
 
 <!-- Product Detail Modal -->
 <div id="homeProductModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">

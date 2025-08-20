@@ -28,8 +28,8 @@ async def mypage(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/auth/login")
     
-    # 1. 최근 추천받은 상품 (최근 6개)
-    recent_recommendations = get_user_recommendations(db, user.id, limit=6)
+    # 1. 최근 추천받은 상품 (모든 추천 상품)
+    recent_recommendations = get_user_recommendations(db, user.id, limit=50)
     recommended_products = []
     for rec in recent_recommendations:
         # clothing_data에서 해당 상품 찾기

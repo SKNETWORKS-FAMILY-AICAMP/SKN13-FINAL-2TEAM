@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/mypage.css') }}">
 <style>
   /* GSAP 애니메이션을 위한 초기 상태 설정 */
   .profile-card, .section-title, .product-card {
@@ -34,13 +33,29 @@
     <section class="activity-section">
       <h2 class="section-title">최근 추천받은 상품</h2>
       {% if recommended_products %}
-      <div class="product-grid">
-        {% for rec in recommended_products %}
-        <div class="product-card recommendation-card" data-product-id="{{ rec.product.get('상품코드') }}" data-query="{{ rec.query }}" data-reason="{{ rec.reason }}" style="cursor: pointer;">
-          <img src="{{ rec.product.get('사진') or rec.product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ rec.product.get('제품이름') }}">
-          <p class="product-name">{{ rec.product.get('제품이름') }}</p>
+      <div class="scroll-container">
+        <div class="scroll-arrow left">❮</div>
+        <div class="row-posters" id="recommendation-grid">
+          {% for rec in recommended_products %}
+          <div class="product-card recommendation-card" 
+               data-product-id="{{ rec.product.get('상품코드') }}" 
+               data-product-name="{{ rec.product.get('제품이름') }}"
+               data-product-brand="{{ rec.product.get('브랜드') or rec.product.get('한글브랜드명') }}"
+               data-product-category="{{ rec.product.get('대분류') }}"
+               data-product-subcategory="{{ rec.product.get('소분류') }}"
+               data-product-color="{{ rec.product.get('색상') }}"
+               data-product-price="{{ rec.product.get('원가') }}"
+               data-product-image="{{ rec.product.get('사진') }}"
+               data-product-link="{{ rec.product.get('상품링크') }}"
+               data-query="{{ rec.query }}" 
+               data-reason="{{ rec.reason }}" 
+               style="cursor: pointer;">
+            <img src="{{ rec.product.get('사진') or rec.product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ rec.product.get('제품이름') }}">
+            <p class="product-name">{{ rec.product.get('제품이름') }}</p>
+          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
+        <div class="scroll-arrow right">❯</div>
       </div>
       {% else %}
       <p class="no-records-message">아직 추천받은 상품이 없습니다.</p>
@@ -55,16 +70,30 @@
         <button type="button" id="mypageBulkDeleteBtn">선택 삭제</button>
         <label><input type="checkbox" id="mypageSelectAll"> 전체 선택</label>
       </form>
-      <div class="product-grid" id="jjim-grid" style="overflow-x:auto; white-space:nowrap; gap:12px; display:flex;">
-        {% for product in jjim_products %}
-        <div class="product-card" data-product-id="{{ product.get('상품코드') }}" style="display:inline-block; min-width:180px; position:relative;">
-          <label style="position:absolute; top:6px; left:6px; background:#fff; padding:2px 4px; border-radius:4px;">
-            <input type="checkbox" class="mypage-select-item">
-          </label>
-          <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
-          <p class="product-name">{{ product.get('제품이름') }}</p>
+      <div class="scroll-container">
+        <div class="scroll-arrow left">❮</div>
+        <div class="row-posters" id="jjim-grid">
+          {% for product in jjim_products %}
+          <div class="product-card" 
+               data-product-id="{{ product.get('상품코드') }}" 
+               data-product-name="{{ product.get('제품이름') }}"
+               data-product-brand="{{ product.get('브랜드') or product.get('한글브랜드명') }}"
+               data-product-category="{{ product.get('대분류') }}"
+               data-product-subcategory="{{ product.get('소분류') }}"
+               data-product-color="{{ product.get('색상') }}"
+               data-product-price="{{ product.get('원가') }}"
+               data-product-image="{{ product.get('사진') }}"
+               data-product-link="{{ product.get('상품링크') }}"
+               style="position:relative; cursor: pointer;">
+            <label style="position:absolute; top:6px; left:6px; background:#fff; padding:2px 4px; border-radius:4px; z-index:10;">
+              <input type="checkbox" class="mypage-select-item">
+            </label>
+            <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
+            <p class="product-name">{{ product.get('제품이름') }}</p>
+          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
+        <div class="scroll-arrow right">❯</div>
       </div>
       {% else %}
       <p class="no-records-message">찜한 상품이 없습니다.</p>
@@ -105,6 +134,19 @@
       <p class="no-records-message">아직 대화 내역이 없습니다.</p>
       {% endif %}
     </section>
+  </div>
+</div>
+
+<!-- 상품 상세 모달 -->
+<div id="mypageProductModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
+  <div style="background:#fff; padding:20px; width:90%; max-width:500px; border-radius:8px; max-height:90vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 style="margin:0; color:#333; font-weight:600;">상품 상세 정보</h3>
+      <button id="closeMypageProductModal" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+    </div>
+    <div id="mypageProductDetails">
+      <!-- 상품 상세 정보가 여기에 표시됩니다 -->
+    </div>
   </div>
 </div>
 
@@ -163,22 +205,90 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // 추천 상품 카드 클릭 이벤트
+    // 상품 상세 모달 기능
+    const mypageProductModal = document.getElementById('mypageProductModal');
+    const closeMypageProductBtn = document.getElementById('closeMypageProductModal');
+    const mypageProductDetails = document.getElementById('mypageProductDetails');
+
+    function openMypageProductModal() { 
+        mypageProductModal.style.display = 'flex'; 
+    }
+    function closeMypageProductModal() { 
+        mypageProductModal.style.display = 'none'; 
+    }
+
+    function loadMypageProductDetails(productCard) {
+        const productId = productCard.getAttribute('data-product-id');
+        const productName = productCard.getAttribute('data-product-name');
+        const productBrand = productCard.getAttribute('data-product-brand');
+        const productCategory = productCard.getAttribute('data-product-category');
+        const productSubcategory = productCard.getAttribute('data-product-subcategory');
+        const productColor = productCard.getAttribute('data-product-color');
+        const productPrice = productCard.getAttribute('data-product-price');
+        const productImage = productCard.getAttribute('data-product-image');
+        const productLink = productCard.getAttribute('data-product-link');
+
+        // 가격 포맷팅 함수
+        function formatPrice(price) {
+            if (!price || price === 'N/A') return 'N/A';
+            const numPrice = parseInt(price);
+            if (isNaN(numPrice)) return price;
+            return numPrice.toLocaleString('ko-KR') + '원';
+        }
+
+        mypageProductDetails.innerHTML = `
+            <div style="display:flex; gap:20px; margin-bottom:20px;">
+                <img src="${productImage || 'https://via.placeholder.com/200'}" 
+                     alt="${productName}" 
+                     style="width:200px; height:200px; object-fit:cover; border-radius:8px;">
+                <div style="flex:1;">
+                    <h4 style="margin:0 0 15px 0; color:#333; font-size:18px; font-weight:600;">${productName}</h4>
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
+                        <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">브랜드:</strong> <span style="color:#34495e;">${productBrand || 'N/A'}</span></p>
+                        <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">카테고리:</strong> <span style="color:#34495e;">${productCategory || 'N/A'} > ${productSubcategory || 'N/A'}</span></p>
+                        <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">색상:</strong> <span style="color:#34495e;">${productColor || 'N/A'}</span></p>
+                        <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">가격:</strong> <span style="color:#e74c3c; font-weight:600; font-size:16px;">${formatPrice(productPrice)}</span></p>
+                    </div>
+                    ${productLink ? `<a href="${productLink}" target="_blank" style="display:inline-block; margin-top:10px; padding:12px 20px; background:linear-gradient(135deg, #3498db, #2980b9); color:#fff; text-decoration:none; border-radius:6px; font-weight:600; box-shadow:0 2px 8px rgba(52,152,219,0.3); transition:all 0.3s ease;">상품 보기</a>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // 상품 카드 클릭 이벤트 (추천 상품)
     const recommendationCards = document.querySelectorAll('.recommendation-card');
     recommendationCards.forEach(card => {
         card.addEventListener('click', async (e) => {
+            // 체크박스 클릭 시 모달 열리지 않도록 방지
+            if (e.target.type === 'checkbox' || e.target.closest('label')) {
+                return;
+            }
+            
             console.log('추천 상품 카드 클릭됨');
-            const productId = card.getAttribute('data-product-id');
-            const query = card.getAttribute('data-query');
-            const reason = card.getAttribute('data-reason');
-            
-            console.log('상품 ID:', productId);
-            console.log('쿼리:', query);
-            console.log('이유:', reason);
-            
-            await loadProductDetails(productId, query, reason);
-            openProductModal();
+            loadMypageProductDetails(card);
+            openMypageProductModal();
         });
+    });
+
+    // 찜 상품 카드 클릭 이벤트
+    document.addEventListener('click', (e) => {
+        const productCard = e.target.closest('.product-card');
+        if (productCard && productCard.closest('#jjim-grid')) {
+            // 체크박스 클릭 시 모달 열리지 않도록 방지
+            if (e.target.type === 'checkbox' || e.target.closest('label')) {
+                return;
+            }
+            
+            console.log('찜 상품 카드 클릭됨');
+            loadMypageProductDetails(productCard);
+            openMypageProductModal();
+        }
+    });
+
+    // 모달 닫기 이벤트
+    closeMypageProductBtn.addEventListener('click', closeMypageProductModal);
+    mypageProductModal.addEventListener('click', (e) => { 
+        if (e.target === mypageProductModal) closeMypageProductModal(); 
     });
 
     // 프로필 수정 모달
@@ -317,81 +427,56 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // 추천 상품 상세 정보 모달
-    const productModalHtml = `
-    <div id="productModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
-      <div style="background:#fff; padding:20px; width:90%; max-width:500px; border-radius:8px; max-height:90vh; overflow:auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <h3 style="margin:0; color:#333; font-weight:600;">추천 상품 상세</h3>
-          <button id="closeProductModal" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
-        </div>
-        <div id="productDetails">
-          <!-- 상품 상세 정보가 여기에 표시됩니다 -->
-        </div>
-      </div>
-    </div>`;
-    document.body.insertAdjacentHTML('beforeend', productModalHtml);
 
-    const productModal = document.getElementById('productModal');
-    const closeProductBtn = document.getElementById('closeProductModal');
-    const productDetails = document.getElementById('productDetails');
 
-    function openProductModal() { productModal.style.display = 'flex'; }
-    function closeProductModal() { productModal.style.display = 'none'; }
+    // 수평 스크롤 기능 - 홈페이지와 동일한 방식
+    document.querySelectorAll('.scroll-container').forEach(container => {
+        const leftArrow = container.querySelector('.scroll-arrow.left');
+        const rightArrow = container.querySelector('.scroll-arrow.right');
+        const posters = container.querySelector('.row-posters');
 
-    async function loadProductDetails(productId, query, reason) {
-      try {
-        console.log('loadProductDetails 호출됨:', productId, query, reason);
-        console.log('clothing_data 길이:', clothing_data.length);
-        
-        // clothing_data에서 상품 정보 찾기 (객체 속성 접근 방식으로 수정)
-        const product = clothing_data.find(p => String(p['상품코드']) === String(productId));
-        
-        console.log('찾은 상품:', product);
-        
-        if (product) {
-          // 가격 포맷팅 함수
-          function formatPrice(price) {
-            if (!price || price === 'N/A') return 'N/A';
-            const numPrice = parseInt(price);
-            if (isNaN(numPrice)) return price;
-            return numPrice.toLocaleString('ko-KR') + '원';
-          }
+        if (leftArrow && rightArrow && posters) {
+            leftArrow.addEventListener('click', () => {
+                // GSAP가 로드되어 있는지 확인 후 사용
+                if (typeof gsap !== 'undefined' && gsap.to) {
+                    gsap.to(posters, {scrollTo: {x: "-=600"}, duration: 0.8, ease: "power1.out"});
+                } else {
+                    // GSAP가 없으면 기본 방식 사용
+                    posters.scrollBy({ left: -600, behavior: 'smooth' });
+                }
+            });
+            
+            rightArrow.addEventListener('click', () => {
+                // GSAP가 로드되어 있는지 확인 후 사용
+                if (typeof gsap !== 'undefined' && gsap.to) {
+                    gsap.to(posters, {scrollTo: {x: "+=600"}, duration: 0.8, ease: "power1.out"});
+                } else {
+                    // GSAP가 없으면 기본 방식 사용
+                    posters.scrollBy({ left: 600, behavior: 'smooth' });
+                }
+            });
 
-          productDetails.innerHTML = `
-            <div style="display:flex; gap:20px; margin-bottom:20px;">
-              <img src="${product['사진'] || product['대표이미지URL'] || 'https://via.placeholder.com/200'}" 
-                   alt="${product['제품이름']}" 
-                   style="width:200px; height:200px; object-fit:cover; border-radius:8px;">
-              <div style="flex:1;">
-                <h4 style="margin:0 0 15px 0; color:#333; font-size:18px; font-weight:600;">${product['제품이름']}</h4>
-                <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
-                  <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">브랜드:</strong> <span style="color:#34495e;">${product['한글브랜드명'] || 'N/A'}</span></p>
-                  <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">카테고리:</strong> <span style="color:#34495e;">${product['대분류'] || 'N/A'} > ${product['소분류'] || 'N/A'}</span></p>
-                  <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">색상:</strong> <span style="color:#34495e;">${product['색상'] || 'N/A'}</span></p>
-                  <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">가격:</strong> <span style="color:#e74c3c; font-weight:600; font-size:16px;">${formatPrice(product['원가'])}</span></p>
-                </div>
-                ${product['상품링크'] ? `<a href="${product['상품링크']}" target="_blank" style="display:inline-block; margin-top:10px; padding:12px 20px; background:linear-gradient(135deg, #3498db, #2980b9); color:#fff; text-decoration:none; border-radius:6px; font-weight:600; box-shadow:0 2px 8px rgba(52,152,219,0.3); transition:all 0.3s ease;">상품 보기</a>` : ''}
-              </div>
-            </div>
-            <div style="border-top:1px solid #eee; padding-top:15px;">
-              <h5 style="margin:0 0 10px 0; color:#333; font-weight:600;">추천 요청</h5>
-              <p style="background:#f8f9fa; padding:10px; border-radius:4px; margin:0 0 15px 0; border-left:3px solid #3498db; color:#333;">"${query}"</p>
-              <h5 style="margin:0 0 10px 0; color:#333; font-weight:600;">추천 이유</h5>
-              <p style="background:#f8f9fa; padding:10px; border-radius:4px; margin:0; color:#333;">${reason}</p>
-            </div>
-          `;
-        } else {
-          productDetails.innerHTML = '<p style="text-align:center; color:#666;">상품 정보를 찾을 수 없습니다.</p>';
+            // 마우스 휠로 수평 스크롤 (GSAP 애니메이션 적용)
+            posters.addEventListener('wheel', (e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault();
+                    
+                    // GSAP로 부드러운 휠 스크롤
+                    if (typeof gsap !== 'undefined' && gsap.to) {
+                        const scrollAmount = e.deltaY * 2; // 휠 감도 조정
+                        gsap.to(posters, {
+                            scrollTo: {x: "+=" + scrollAmount}, 
+                            duration: 0.5, 
+                            ease: "power2.out"
+                        });
+                    } else {
+                        // 폴백: 기본 방식
+                        posters.scrollBy({ left: e.deltaY * 2, behavior: 'smooth' });
+                    }
+                }
+            }, { passive: false });
         }
-      } catch (err) {
-        console.error('loadProductDetails 오류:', err);
-        productDetails.innerHTML = '<p style="text-align:center; color:#666;">오류가 발생했습니다.</p>';
-      }
-    }
-
-    closeProductBtn.addEventListener('click', closeProductModal);
-    productModal.addEventListener('click', (e) => { if (e.target === productModal) closeProductModal(); });
+    });
 
     // 대화 보기 기능
     async function loadChatMessages(sessionId) {

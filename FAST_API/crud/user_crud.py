@@ -167,7 +167,7 @@ def get_personalized_recommendations(db: Session, user_id: int, limit: int = 20)
     Returns:
         사용자 맞춤형 추천 상품 정보 리스트
     """
-    from sqlalchemy import func, and_, or_
+    from sqlalchemy import func, and_
     
     # 1. 사용자의 키와 체중 정보 가져오기
     user_pref = get_preference_by_user_id(db, user_id)
@@ -177,7 +177,6 @@ def get_personalized_recommendations(db: Session, user_id: int, limit: int = 20)
     
     user_height = user_pref.height
     user_weight = user_pref.weight
-    user_preferred_color = user_pref.preferred_color
     
     # 2. 키와 체중 ±5 범위에 속하는 사용자들 찾기
     similar_users_stmt = (
@@ -323,24 +322,29 @@ def filter_products_by_color(products: list[dict], preferred_color: str) -> list
     
     # 색상 매칭 로직 (간단한 키워드 매칭)
     color_keywords = {
-        '검정': ['검정', '블랙', 'black'],
-        '흰색': ['흰색', '화이트', 'white'],
-        '빨강': ['빨강', '레드', 'red'],
-        '파랑': ['파랑', '블루', 'blue'],
-        '노랑': ['노랑', '옐로우', 'yellow'],
-        '초록': ['초록', '그린', 'green'],
-        '보라': ['보라', '퍼플', 'purple'],
-        '주황': ['주황', '오렌지', 'orange'],
-        '분홍': ['분홍', '핑크', 'pink'],
-        '회색': ['회색', '그레이', 'gray', 'grey'],
-        '갈색': ['갈색', '브라운', 'brown'],
-        '베이지': ['베이지', 'beige'],
-        '네이비': ['네이비', 'navy'],
-        '카키': ['카키', 'khaki'],
-        '민트': ['민트', 'mint'],
-        '코랄': ['코랄', 'coral'],
-        '골드': ['골드', 'gold'],
-        '실버': ['실버', 'silver']
+        '검정': ['검정', '블랙', 'black', '흑색', '까만', '흑', '다크', 'dark', 'charcoal', '차콜', 'jet', '젯', 'ebony', '에보니', 'obsidian', '옵시디언', 'coal', '석탄', 'raven', '까마귀', 'soot', '그을음'],
+        
+        '흰색': ['흰색', '화이트', 'white', '백색', '하얀', '백', 'ivory', '아이보리', 'cream', '크림', 'pearl', '진주', 'snow', '눈', 'vanilla', '바닐라', 'bone', '뼈', 'linen', '리넨', 'cotton', '코튼', 'milk', '우유', 'eggshell', '달걀껍질', 'chalk', '분필'],
+        
+        '빨강': ['빨강', '레드', 'red', '적색', '빨간', '적', 'crimson', '크림슨', 'scarlet', '스칼렛', 'cherry', '체리', 'rose', '로즈', 'wine', '와인', 'burgundy', '버건디', 'maroon', '마룬', 'brick', '브릭', 'rust', '러스트', 'cardinal', '카디널', 'fire', '파이어', 'blood', '블러드', 'tomato', '토마토', 'strawberry', '딸기', 'ruby', '루비'],
+        
+        '파랑': ['파랑', '블루', 'blue', '네이비', 'navy', '청색', '남색', '하늘색', 'sky', 'skyblue', 'lightblue', 'darkblue', 'royal', 'royalblue', 'cobalt', 'azure', 'cyan', 'teal', 'turquoise', 'aqua', 'steel', 'steelblue', 'powder', 'powderblue', 'cornflower', 'midnight', 'midnightblue', 'slate', 'slateblue', 'dodger', 'dodgerblue', 'deep', 'deepblue', 'electric', 'electricblue', 'sapphire', 'indigo', '인디고', '아쿠아', '시안', '틸', '터키석', '사파이어', '코발트', '하늘', '스카이', '로얄', '미드나잇', '슬레이트', '파우더', '스틸'],
+        
+        '노랑': ['노랑', '옐로우', 'yellow', '황색', '노란', '황', 'gold', '골드', 'lemon', '레몬', 'banana', '바나나', 'corn', '옥수수', 'mustard', '머스타드', 'amber', '앰버', 'honey', '꿀', 'butter', '버터', 'cream', '크림', 'sand', '모래', 'wheat', '밀', 'champagne', '샴페인', 'canary', '카나리아', 'sunshine', '햇빛', 'dandelion', '민들레'],
+        
+        '초록': ['초록', '그린', 'green', '녹색', '초록색', '녹', 'forest', '포레스트', 'emerald', '에메랄드', 'lime', '라임', 'mint', '민트', 'olive', '올리브', 'sage', '세이지', 'jade', '제이드', 'kelly', '켈리', 'hunter', '헌터', 'grass', '잔디', 'leaf', '잎', 'moss', '이끼', 'pine', '소나무', 'seafoam', '시폼', 'spring', '봄', 'apple', '사과', 'chartreuse', '샤르트뢰즈'],
+        
+        '보라': ['보라', '퍼플', 'purple', '자주', '자색', '보랏빛', 'violet', '바이올렛', 'lavender', '라벤더', 'plum', '자두', 'grape', '포도', 'eggplant', '가지', 'orchid', '난초', 'lilac', '라일락', 'magenta', '마젠타', 'fuchsia', '푸시아', 'amethyst', '자수정', 'royal', '로얄퍼플', 'deep', '딥퍼플', 'dark', '다크퍼플', 'light', '라이트퍼플', 'mauve', '모브', 'periwinkle', '페리윙클'],
+        
+        '주황': ['주황', '오렌지', 'orange', '주황색', '오렌지색', 'tangerine', '탠저린', 'peach', '피치', 'coral', '코랄', 'salmon', '샐몬', 'apricot', '살구', 'mandarin', '만다린', 'pumpkin', '호박', 'carrot', '당근', 'rust', '러스트', 'burnt', '번트', 'terra', '테라', 'cinnamon', '시나몬', 'copper', '구리', 'bronze', '브론즈', 'autumn', '가을', 'sunset', '석양'],
+        
+        '분홍': ['분홍', '핑크', 'pink', '분홍색', '핑크색', 'rose', '로즈', 'blush', '블러시', 'cherry', '체리', 'salmon', '샐몬', 'coral', '코랄', 'peach', '피치', 'baby', '베이비', 'hot', '핫핑크', 'magenta', '마젠타', 'fuchsia', '푸시아', 'bubblegum', '버블검', 'cotton', '솜사탕', 'flamingo', '플라밍고', 'carnation', '카네이션', 'dusty', '더스티', 'pale', '페일', 'light', '라이트'],
+        
+        '회색': ['회색', '그레이', 'gray', 'grey', '회', '회색빛', 'silver', '실버', 'charcoal', '차콜', 'slate', '슬레이트', 'ash', '애시', 'smoke', '스모크', 'steel', '스틸', 'pewter', '퓨터', 'graphite', '그래파이트', 'storm', '스톰', 'fog', '포그', 'mist', '미스트', 'cement', '시멘트', 'concrete', '콘크리트', 'stone', '스톤', 'gunmetal', '건메탈', 'platinum', '플래티넘'],
+        
+        '갈색': ['갈색', '브라운', 'brown', '갈', '갈색빛', 'chocolate', '초콜릿', 'coffee', '커피', 'tan', '탄', 'beige', '베이지', 'khaki', '카키', 'camel', '카멜', 'chestnut', '밤색', 'mahogany', '마호가니', 'walnut', '호두', 'cinnamon', '시나몬', 'bronze', '브론즈', 'copper', '구리', 'rust', '러스트', 'amber', '앰버', 'honey', '꿀', 'sand', '모래', 'earth', '어스', 'mud', '머드', 'wood', '우드'],
+        
+        '베이지': ['베이지', 'beige', '연갈색', 'cream', '크림', 'ivory', '아이보리', 'tan', '탄', 'sand', '모래', 'wheat', '밀', 'oatmeal', '오트밀', 'linen', '리넨', 'vanilla', '바닐라', 'champagne', '샴페인', 'buff', '버프', 'nude', '누드', 'natural', '내추럴', 'ecru', '에크루', 'bone', '뼈', 'pearl', '진주', 'oyster', '굴', 'parchment', '양피지']
     }
     
     # 선호 색상에 해당하는 키워드 찾기

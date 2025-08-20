@@ -41,14 +41,25 @@ class LLMService:
         print(f"의도 분류 결과: {intent_result.intent} (신뢰도: {intent_result.confidence})")
 
         # 2. 의도에 따른 도구 호출
-        if intent_result.intent == "weather":
-            tool_result = await self.handle_weather_intent(intent_result, latitude, longitude)
-        elif intent_result.intent == "search":
-            tool_result = self.search_products(intent_result, available_products)
-        elif intent_result.intent == "conversation":
-            tool_result = self.recommendation_engine.conversation_recommendation(intent_result, available_products, db, user_id)
-        else:  # general
-            tool_result = self._handle_general_conversation(intent_result)
+        tool_result = None # tool_result 초기화
+        try:
+            if intent_result.intent == "weather":
+                tool_result = await self.handle_weather_intent(intent_result, latitude, longitude)
+            elif intent_result.intent == "search":
+                tool_result = self.search_products(intent_result, available_products)
+            elif intent_result.intent == "conversation":
+                tool_result = self.recommendation_engine.conversation_recommendation(intent_result, available_products, db, user_id)
+            else:  # general
+                tool_result = self._handle_general_conversation(intent_result)
+        except Exception as e:
+            print(f"ERROR: Exception during tool call for intent {intent_result.intent}: {e}")
+            # Return an LLMResponse indicating failure
+            return LLMResponse(
+                intent_result=intent_result,
+                tool_result=ToolResult(success=False, message=f"도구 호출 중 오류가 발생했습니다: {e}", products=[], metadata={"error_during_tool_call": str(e)}),
+                final_message=f"죄송합니다. 요청을 처리하는 중 오류가 발생했습니다: {e}",
+                products=[]
+            )
 
         # 3. 최종 응답 구성
         final_message = tool_result.message if tool_result else "죄송합니다. 요청을 처리할 수 없습니다."
@@ -101,8 +112,15 @@ class LLMService:
         precip_amount = weather_data.get('precipitation_amount')
 
         message = f"{location_display_name}의 날씨를 알려드릴게요! ☀️\n\n"
-        if temp:
-            message += f"🌡️ **기온**: {temp}°C\n"
+        if temp is not None:
+            try:
+                temp_float = float(temp)
+                message += f"🌡️ **기온**: {temp}°C\n"
+                # LLM을 사용하여 기온에 따른 날씨 상황 설명 추가
+                weather_description = self._get_llm_weather_description(temp_float)
+                message += f"✨ **날씨 상황**: {weather_description}\n"
+            except ValueError:
+                message += f"🌡️ **기온**: {temp}°C (온도 정보 처리 중 오류 발생)\n"
         if sky:
             message += f"☁️ **하늘**: {sky}\n"
         if precip_type and precip_type != "강수 없음":
@@ -112,7 +130,7 @@ class LLMService:
         if precip_amount and float(precip_amount) > 0:
             message += f"☔ **시간당 강수량**: {precip_amount}mm\n"
 
-        message += "\n오늘 날씨에 맞는 옷을 추천해드릴까요?"
+        
 
         return ToolResult(success=True, message=message, products=[], metadata={"weather_data": weather_data})
 
@@ -226,3 +244,55 @@ class LLMService:
             products=[],
             metadata={"conversation_type": "general"}
         )
+
+    def _get_llm_weather_description(self, temperature: float) -> str:
+        """기온에 따라 날씨 상황을 설명합니다. 규칙 기반을 우선 사용하고, 필요시 LLM을 호출합니다."""
+        
+        # 규칙 기반 날씨 설명
+        if temperature >= 35:
+            return "폭염, 숨 막히는 더위"
+        if temperature >= 30:
+            return "한여름, 매우 더운 날씨"
+        if temperature >= 28:
+            return "본격적인 여름 날씨"
+        if temperature >= 25:
+            return "초여름 날씨"
+        if temperature >= 20:
+            return "따뜻한 봄 날씨"
+        if temperature >= 15:
+            return "선선한 가을 날씨"
+        if temperature >= 10:
+            return "쌀쌀한 가을 날씨"
+        if temperature >= 5:
+            return "쌀쌀한 초겨울 날씨"
+        if temperature < 5:
+            return "추운 겨울 날씨"
+
+        # 규칙에 해당하지 않는 경우에만 LLM 호출 (현재 로직 상 모든 경우를 커버하므로 이 부분은 예비용)
+        system_prompt = """당신은 날씨 전문가입니다.
+        섭씨 온도가 주어지면, 해당 기온에 따른 날씨 상황을 간결하고 자연스러운 한국어 문구로 설명해주세요.
+        예시:
+        - 23도:過ごしやすい春の終わり
+        - 18도:過ごしやすい秋の日
+        """
+        user_prompt = f"현재 기온: {temperature}°C"
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.7,
+                max_tokens=50
+            )
+            raw_llm_desc_content = response.choices[0].message.content.strip()
+            print(f"DEBUG: Raw LLM weather description content: {raw_llm_desc_content}")
+            return raw_llm_desc_content
+        except Exception as e:
+            print(f"LLM 날씨 설명 요청 오류: {e}")
+            # 오류 발생 시 가장 안전한 기본값 반환
+            return "날씨 정보를 확인 중입니다"

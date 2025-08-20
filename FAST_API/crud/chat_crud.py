@@ -11,7 +11,7 @@ def create_chat_session(db: Session, user_id: int, session_name: Optional[str] =
     """새로운 챗봇 세션을 생성합니다."""
     if not session_name:
         # 기본 세션 이름 생성 (현재 시간 기반)
-        session_name = f"대화 {datetime.now().strftime('%m월 %d일 %H:%M')}"
+        session_name = f"{datetime.now().strftime('%m월 %d일 %H:%M')}"
     
     session = ChatSession(sender_id=user_id, session_name=session_name)
     db.add(session)

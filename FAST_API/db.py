@@ -6,8 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 
-# 환경변수 로드
-load_dotenv()
+# 환경변수는 main.py에서 로드됨
 
 
 def _build_database_url() -> str:
@@ -44,6 +43,7 @@ def init_db() -> None:
     from models import models_mypage  # noqa: F401
     from models import models_jjim  # noqa: F401
     from models import models_chat  # noqa: F401
+    from models import recommendation  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     _migrate_users_table()

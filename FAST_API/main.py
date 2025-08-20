@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from db import init_db, bootstrap_admin
 
 # 라우터 임포트
@@ -31,6 +32,15 @@ from routers.router_chatbot import router as chatbot_router
 from routers.router_cache_admin import router as cache_admin_router
 
 app = FastAPI()
+
+# CORS 미들웨어 추가
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 모든 출처 허용
+    allow_credentials=True,
+    allow_methods=["*"],  # 모든 HTTP 메소드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+)
 
 # 미들웨어 및 정적 파일 설정
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "change-me"))
@@ -84,11 +94,7 @@ async def startup_event():
     else:
         print("⚠️ S3에서 데이터를 불러오지 못했거나 데이터가 비어있습니다.")
 
-    # 챗봇 데이터 초기화
-    from routers.router_chatbot import initialize_chatbot_data
-    print("🤖 챗봇 데이터 초기화를 시작합니다...")
-    initialize_chatbot_data()
-    print("✅ 챗봇 데이터 초기화 완료")
+    print("✅ 챗봇 데이터는 기본 clothing_data를 사용합니다")
 
 if __name__ == "__main__":
     import uvicorn

@@ -6,6 +6,7 @@ import re
 import random
 import math
 from data_store import clothing_data, processed_clothing_data
+from utils.safe_utils import safe_lower, safe_str
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -37,8 +38,8 @@ def process_product_data(products):
                 processed_product['processed_price'] = 0
         
         # 성별 판단 (상품명과 브랜드 기반) - 새로운 컬럼명 사용
-        product_name = str(product.get('상품명', '')).lower()
-        brand = str(product.get('한글브랜드명', product.get('브랜드', ''))).lower()
+        product_name = safe_lower(product.get('상품명', ''))
+        brand = safe_lower(product.get('한글브랜드명', product.get('브랜드', '')))
         
         if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
             processed_product['성별'] = '여성'
@@ -142,8 +143,8 @@ def process_product_data(products):
 
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def products(request: Request):
-    # 미리 가공된 전역 데이터 사용
-    display_products = processed_clothing_data[:20]
+    # 홈화면과 동일하게 clothing_data 사용
+    display_products = clothing_data[:20]
     
     return templates.TemplateResponse("products/category_browse.html", {
         "request": request, 
@@ -180,7 +181,7 @@ async def get_products_api(
             include_product = False
         if min_rating is not None and product.get('평점', 0) < min_rating:
             include_product = False
-        if brand and brand.lower() not in str(product.get('브랜드', '')).lower():
+        if brand and safe_lower(brand) not in safe_lower(product.get('브랜드', '')):
             include_product = False
             
         if include_product:

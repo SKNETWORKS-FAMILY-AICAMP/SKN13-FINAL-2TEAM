@@ -385,18 +385,54 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function sendMessageToAPI(message) {
+        // 날씨 관련 키워드 확인
+        const weatherKeywords = ['날씨', '기온', '덥', '춥', '비와', '눈와'];
+        const isWeatherQuery = weatherKeywords.some(keyword => message.includes(keyword));
+
+        let latitude = null;
+        let longitude = null;
+
+        // 날씨 질문일 경우, 위치 정보 요청
+        if (isWeatherQuery) {
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject(new Error('Geolocation is not supported by your browser.'));
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                });
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
+                console.log(`위치 정보 확보: ${latitude}, ${longitude}`);
+            } catch (error) {
+                console.error('위치 정보를 가져올 수 없습니다.', error);
+                removeLoadingIndicator();
+                addMessage('현재 위치를 가져올 수 없어요. 😥 브라우저의 위치 정보 접근을 허용했는지 확인해주세요!', 'bot');
+                return; // 위치 정보 없으면 전송 중단
+            }
+        }
+
+        // API로 메시지 전송
         try {
             const formData = new FormData();
             formData.append('user_input', message);
             if (currentSessionId) {
                 formData.append('session_id', currentSessionId);
             }
+            if (latitude && longitude) {
+                formData.append('latitude', String(latitude));
+                formData.append('longitude', String(longitude));
+            }
 
-            console.log('메시지 전송:', message, '세션:', currentSessionId);
+            console.log('메시지 전송:', message, '세션:', currentSessionId, '위치:', latitude, longitude);
 
-            const response = await fetch('/chat', {
+            const response = await fetch('/chat/', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
             });
 
             const data = await response.json();
@@ -404,21 +440,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log('챗봇 응답:', data);
 
-            // 응답 구조 변경
             if (data.message) {
                 addMessage(data.message, "bot");
                 
-                // 상품이 있으면 카드 형태로도 표시
                 if (data.products && data.products.length > 0) {
                     addRecommendations(data.products);
                 }
                 
-                // 세션 정보 업데이트
                 if (data.session_id && data.session_id !== currentSessionId) {
                     currentSessionId = data.session_id;
                     currentSessionName = data.session_name;
                     updateSessionNameDisplay();
-                    loadSessions(); // 세션 목록 새로고침
+                    loadSessions();
                 }
             } else {
                 addMessage("죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.", "bot");
@@ -436,7 +469,17 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const messageContent = document.createElement("div");
         messageContent.classList.add("widget-message-content");
-        messageContent.textContent = message;
+        
+        // 마크다운 스타일 텍스트를 HTML로 변환
+        let formattedMessage = message
+            .replace(/\n/g, '<br>')  // 엔터를 <br>로 변환
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **텍스트** → <strong>텍스트</strong>
+            .replace(/^(\d+\.\s)/gm, '<strong>$1</strong>')  // 숫자. → 볼드
+            .replace(/^(👕|👖)\s*\*\*(.*?)\*\*/gm, '$1 <strong>$2</strong>')  // 이모지 + 제목
+            .replace(/^(\s+)(📍|💰|✨)\s*/gm, '$1$2 ')  // 아이콘 정렬
+            .replace(/^(💡)\s*\*\*(.*?)\*\*/gm, '$1 <strong>$2</strong>');  // 팁 제목
+        
+        messageContent.innerHTML = formattedMessage;
         messageWrapper.appendChild(messageContent);
         
         widgetMessages.appendChild(messageWrapper);
@@ -455,7 +498,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const productName = product.상품명 || product.제품이름 || '상품명 없음';
             const brand = product.한글브랜드명 || product.브랜드 || '브랜드 없음';
             const imageUrl = product.이미지URL || product.사진 || product.대표이미지URL || '';
-            const price = product.할인가 || product.가격 || product.원가 || 0;
+                         // 원가 우선 사용
+             const price = product.원가 || product.가격 || product.할인가 || 0;
             const productLink = product.상품링크 || product.링크 || product.URL || '';
             
             // 디버깅: 상품 링크 정보 출력
@@ -470,7 +514,6 @@ document.addEventListener("DOMContentLoaded", () => {
             
             recommendationsHTML += `
                 <div class="product-card" data-product-index="${index}" style="display: flex; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef; ${hasLink ? 'cursor: pointer;' : 'cursor: default;'} transition: all 0.3s ease;" 
-                     ${hasLink ? `onclick="openProductLink('${productLink.replace(/'/g, "\\'")}', '${productName.replace(/'/g, "\\'")}')"` : ''}
                      onmouseover="${hasLink ? 'this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.15)\'' : ''}"
                      onmouseout="${hasLink ? 'this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'none\'' : ''}">
                     ${imageUrl && imageUrl.trim() !== '' ? 

@@ -47,6 +47,17 @@ app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "ch
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# Jinja2Templates에 url_for 함수 추가
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
+
+def url_for(request: StarletteRequest, name: str, **path_params: str) -> str:
+    if name == "static":
+        return f"/static/{path_params.get('filename', '')}"
+    return request.url_for(name, **path_params)
+
+templates.env.globals["url_for"] = url_for
+
 # 라우터 등록
 app.include_router(home_router, tags=["Home"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])

@@ -12,11 +12,11 @@
     border-radius: 10px;
     overflow: hidden;
     font-family: Arial, sans-serif;
-    background-color: #141414;
+    background-color: #667eea; /* 보라색으로 변경 */
 }
 
 .chat-header {
-    background-color: #87CEEB; /* 하늘색 */
+    background-color: #667eea; /* 보라색 */
     color: white;
     padding: 15px;
     text-align: center;
@@ -63,7 +63,7 @@
 }
 
 .user-message {
-    background-color: #B0E0E6; /* 연한 하늘색 */
+    background-color: #a8a4e6; /* 연한 보라색 */
     color: #333;
     align-self: flex-end;
 }
@@ -98,13 +98,13 @@
     margin-left: 10px;
     border: none;
     border-radius: 20px;
-    background-color: #87CEEB; /* 하늘색 */
+    background-color: #667eea; /* 보라색 */
     color: white;
     cursor: pointer;
 }
 
 .chat-input button:hover {
-    background-color: #4682B4; /* 더 진한 하늘색 */
+    background-color: #764ba2; /* 더 진한 보라색 */
 }
 
 .loading-indicator {
@@ -112,7 +112,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background-color: #87CEEB; /* 하늘색 */
+    background-color: #667eea; /* 보라색 */
     animation: bounce 0.6s infinite alternate;
     margin: 0 2px;
 }
@@ -150,7 +150,7 @@
 .product-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    border-color: #87CEEB; /* 호버시 하늘색 테두리 */
+    border-color: #667eea; /* 호버시 보라색 테두리 */
 }
 
 .product-card img {
@@ -176,7 +176,7 @@
 .product-info .brand {
     margin: 0 0 3px 0;
     font-size: 0.8em;
-    color: #87CEEB; /* 브랜드명 하늘색 */
+    color: #667eea; /* 브랜드명 보라색 */
     font-weight: bold;
 }
 
@@ -196,7 +196,7 @@
     background: white;
     border-radius: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    z-index: 9999; /* z-index를 더 높게 설정 */
     display: none;
     flex-direction: column;
     overflow: hidden;
@@ -208,36 +208,36 @@
     animation: slideIn 0.3s ease-out;
 }
 
-/* 위젯 토글 버튼 - 하늘색으로 변경 */
+/* 위젯 토글 버튼 - 보라색으로 변경 */
 .chatbot-toggle-btn {
     position: fixed;
     bottom: 20px;
     right: 20px;
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%); /* 하늘색 그라데이션 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* 보라색 그라데이션 */
     border: none;
     border-radius: 50%;
     color: white;
     font-size: 24px;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(70, 130, 180, 0.3); /* 하늘색 그림자 */
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); /* 보라색 그림자 */
     z-index: 1001;
     transition: all 0.3s ease;
 }
 
 .chatbot-toggle-btn:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .chatbot-toggle-btn.hidden {
     display: none;
 }
 
-/* 위젯 헤더 - 하늘색으로 변경 */
+/* 위젯 헤더 - 보라색으로 변경 */
 .widget-header {
-    background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%); /* 하늘색 그라데이션 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* 보라색 그라데이션 */
     color: white;
     padding: 15px;
     display: flex;
@@ -317,7 +317,7 @@
 }
 
 .session-sidebar-header {
-    background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 15px;
     display: flex;
@@ -368,16 +368,16 @@
 
 .session-item:hover {
     background: #e9ecef;
-    border-color: #87CEEB;
+    border-color: #667eea;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(135, 206, 235, 0.2);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .session-item.active {
-    background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    border-color: #4682B4;
-    box-shadow: 0 2px 8px rgba(70, 130, 180, 0.3);
+    border-color: #764ba2;
+    box-shadow: 0 2px 8px rgba(118, 75, 162, 0.3);
 }
 
 .session-item-header {
@@ -407,6 +407,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     line-height: 1.2;
+    color: #000000; /* 검은색으로 변경 */
 }
 
 .session-actions {
@@ -454,7 +455,7 @@
 }
 
 .session-message-count {
-    background: rgba(135, 206, 235, 0.2);
+    background: rgba(102, 126, 234, 0.2);
     padding: 2px 6px;
     border-radius: 10px;
     font-size: 0.7rem;
@@ -468,7 +469,7 @@
 
 /* 새 세션 버튼 */
 .new-session-btn {
-    background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
     padding: 15px;
@@ -482,18 +483,18 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 2px 8px rgba(70, 130, 180, 0.2);
+    box-shadow: 0 2px 8px rgba(118, 75, 162, 0.2);
 }
 
 .new-session-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(70, 130, 180, 0.4);
-    background: linear-gradient(135deg, #4682B4 0%, #87CEEB 100%);
+    box-shadow: 0 6px 16px rgba(118, 75, 162, 0.4);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 .new-session-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(70, 130, 180, 0.2);
+    box-shadow: 0 2px 8px rgba(118, 75, 162, 0.2);
 }
 
 /* 세션 이름 편집 */
@@ -501,7 +502,7 @@
     display: none;
     width: 100%;
     padding: 5px;
-    border: 1px solid #87CEEB;
+    border: 1px solid #667eea;
     border-radius: 4px;
     font-size: 0.9rem;
     outline: none;
@@ -524,14 +525,21 @@
     flex: 1;
     overflow-y: auto;
     padding: 15px;
-    background: #f8f9fa;
+    background: #f8f9fa; /* 연한 회색 배경으로 변경 */
+    color: #333; /* 기본 텍스트 색상 추가 */
+    border: 1px solid #e9ecef; /* 테두리 추가 */
+    min-height: 200px; /* 최소 높이 추가 */
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* 메시지 간격 */
 }
 
 /* 위젯 메시지 스타일 */
 .widget-message {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     display: flex;
     animation: fadeIn 0.3s ease-in;
+    width: 100%;
 }
 
 .widget-user-message {
@@ -550,6 +558,10 @@
     line-height: 1.5;
     font-size: 0.9rem;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    position: relative; /* 위치 설정 */
+    display: block;
+    clear: both;
+    margin-bottom: 4px; /* 하단 여백 추가 */
 }
 
 .widget-message-content strong {
@@ -561,19 +573,24 @@
     color: #2c3e50;
 }
 
-/* 사용자 메시지 색상도 하늘색으로 */
+/* 사용자 메시지 색상도 보라색으로 */
 .widget-user-message .widget-message-content {
-    background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%); /* 하늘색 그라데이션 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* 보라색 그라데이션 */
     color: white;
     border-bottom-right-radius: 5px;
+    font-weight: 600; /* 글씨를 더 굵게 */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* 텍스트 그림자 강화 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 그림자 추가 */
 }
 
 .widget-bot-message .widget-message-content {
-    background: white;
+    background: #ffffff; /* 흰색 배경으로 변경 */
     color: #2c3e50;
     border-bottom-left-radius: 5px;
     border: 1px solid #e9ecef;
     max-width: 90%;
+    font-weight: 500; /* 글씨를 더 굵게 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 그림자 추가 */
 }
 
 /* 위젯 입력 영역 */
@@ -597,17 +614,24 @@
     font-size: 0.9rem;
     outline: none;
     transition: all 0.3s ease;
+    background-color: #ffffff; /* 흰색 배경 명시 */
+    color: #333; /* 어두운 글씨색 명시 */
 }
 
-/* 위젯 입력 영역 버튼 - 하늘색으로 변경 */
+.widget-form input::placeholder {
+    color: #999; /* placeholder 텍스트 색상 */
+    opacity: 1; /* Firefox에서 opacity 설정 */
+}
+
+/* 위젯 입력 영역 버튼 - 보라색으로 변경 */
 .widget-form input:focus {
-    border-color: #87CEEB; /* 하늘색 */
-    box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.1);
+    border-color: #667eea; /* 보라색 */
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .widget-form button {
     padding: 10px 20px;
-    background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%); /* 하늘색 그라데이션 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* 보라색 그라데이션 */
     color: white;
     border: none;
     border-radius: 20px;
@@ -615,12 +639,12 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 3px 12px rgba(70, 130, 180, 0.3);
+    box-shadow: 0 3px 12px rgba(118, 75, 162, 0.3);
 }
 
 .widget-form button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(70, 130, 180, 0.4);
+    box-shadow: 0 4px 16px rgba(118, 75, 162, 0.4);
 }
 
 /* 애니메이션 */

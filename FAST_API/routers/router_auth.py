@@ -39,6 +39,7 @@ async def login_post(request: Request, username: str = Form(...), password: str 
         return templates.TemplateResponse("login.html", {"request": request, "error": "아이디 또는 비밀번호가 올바르지 않습니다."})
     
     request.session["user_name"] = user.username
+    request.session["user_id"] = user.id
     request.session["role"] = user.role or "user"
     return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
 

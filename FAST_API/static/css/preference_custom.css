@@ -1,0 +1,69 @@
+.preference-message-container {
+    display: none; /* Initially hidden */
+    flex-direction: column; /* Stack items vertically */
+    justify-content: center; /* Center vertically */
+    align-items: center; /* Center horizontally */
+    text-align: center;
+    padding: 40px 20px;
+    background-color: #ffffff; /* White background */
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Softer, larger shadow */
+    margin: 50px auto;
+    max-width: 500px; /* Slightly narrower */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+    color: #333;
+    min-height: 300px; /* Ensure it takes up space like a card */
+    position: absolute; /* Position absolutely to overlay cards */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10; /* Ensure it's above other elements */
+    opacity: 0; /* Start hidden for fade-in effect */
+    transition: opacity 0.5s ease-in-out; /* Smooth fade-in */
+}
+
+.preference-message-container.show {
+    display: flex; /* Show when active */
+    opacity: 1;
+}
+
+.preference-message-container p {
+    font-size: 1.6em; /* Slightly smaller, more elegant */
+    font-weight: 600; /* Semi-bold */
+    margin-bottom: 25px;
+    color: #555;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between emoji and text */
+}
+
+.preference-message-container p .emoji {
+    font-size: 1.8em; /* Larger emoji */
+}
+
+.preference-load-button {
+    background-color: #6c5ce7; /* A pleasant purple */
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    font-size: 1.1em;
+    border-radius: 8px; /* More rounded button */
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    letter-spacing: 0.5px; /* Slightly more spaced letters */
+    text-transform: uppercase; /* Uppercase text */
+    font-weight: bold;
+}
+
+.preference-load-button:hover {
+    background-color: #5a4bc4; /* Darker purple on hover */
+    transform: translateY(-3px); /* More pronounced lift */
+    box-shadow: 0 8px 20px rgba(108, 92, 231, 0.3); /* Shadow on hover */
+}
+
+.preference-load-button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}

@@ -22,7 +22,11 @@ from crud.chat_crud import (
     get_session_messages,
     get_chat_history_for_llm
 )
-from services.llm_service import LLMService, ChatMessage, IntentResult, ToolResult
+from services.llm_service import LLMService, LLMResponse
+from services.intent_analyzer import ChatMessage, IntentResult, analyze_user_intent, analyze_user_intent_with_context
+from services.recommendation_engine import ToolResult
+from services.product_filter import exact_match_filter, situation_filter
+from utils.safe_utils import safe_lower, safe_str
 
 router = APIRouter()
 
@@ -31,109 +35,54 @@ from data_store import clothing_data
 # LLM 서비스 초기화
 llm_service = LLMService()
 
-def initialize_chatbot_data():
-    """챗봇 데이터 초기화 - S3 전용"""
-    global clothing_data
-    import os
-    from dotenv import load_dotenv
-    
-    # 환경변수 로드
-    load_dotenv()
-    
-    try:
-        # S3에서 데이터 로드
-        print("🌟 S3에서 챗봇 데이터 로드 시작...")
-        from s3_data_loader import get_product_data_from_s3
-        
-        file_key = os.getenv("S3_PRODUCTS_FILE_KEY", "products/products.csv")
-        s3_data = get_product_data_from_s3(file_key)
-        
-        if s3_data:
-            clothing_data.clear()  # 리스트 내용만 지웁니다.
-            clothing_data.extend(s3_data)  # 새로운 데이터로 채웁니다.
-            print(f"✅ S3 챗봇 데이터 로드 완료: {len(clothing_data)}개 상품")
-        else:
-            print("❌ S3에서 데이터를 찾을 수 없습니다.")
-            clothing_data = []
-        
-    except Exception as e:
-        print(f"❌ S3 데이터 로드 실패: {e}")
-        clothing_data = []
+# initialize_chatbot_data 함수 제거됨 - main.py에서 통합 관리
 
-def analyze_user_intent(user_input: str) -> dict:
-    """사용자 의도 분석"""
-    user_input_lower = user_input.lower()
-    
-    # 상황별 키워드
-    situations = {
-        "졸업식": ["졸업식", "졸업", "학위수여식"],
-        "결혼식": ["결혼식", "웨딩", "피로연"],
-        "데이트": ["데이트", "소개팅", "만남"],
-        "면접": ["면접", "취업", "입사", "회사"],
-        "파티": ["파티", "클럽", "놀기"],
-        "외출": ["외출", "나들이", "쇼핑"],
-        "동창회": ["동창회", "모임"]
-    }
-    
-    # 직접 필터링 키워드
-    direct_keywords = ["티셔츠", "셔츠", "바지", "청바지", "니트", "후드", 
-                      "빨간", "파란", "검은", "흰", "회색", "red", "blue", "black"]
-    
-    # 상황별 매칭 확인
-    for situation, keywords in situations.items():
-        if any(keyword in user_input_lower for keyword in keywords):
-            return {
-                "type": "SITUATION",
-                "situation": situation,
-                "original_input": user_input
-            }
-    
-    # 직접 필터링 매칭 확인
-    if any(keyword in user_input_lower for keyword in direct_keywords):
-        return {
-            "type": "FILTERING", 
-            "original_input": user_input
-        }
-    
-    # 기본값은 일반 검색
-    return {
-        "type": "FILTERING",
-        "original_input": user_input
-    }
+# analyze_user_intent 함수는 services/intent_analyzer.py에서 import하여 사용
 
 def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     """정확 매칭 필터링 - DB 대분류 기반 + 정확한 카테고리 매칭"""
-    user_input_lower = user_input.lower()
+    # None 값 안전 처리 - safe_lower 사용
+    user_input_lower = safe_lower(user_input)
     
     # 정확한 의류 카테고리별 키워드 매핑
     category_keywords = {
-        # 상의 카테고리
-        "맨투맨/스웨트": ["맨투맨", "스웨트", "sweat", "sweatshirt"],
-        "후드 티셔츠": ["후드", "후드티", "hood", "hoodie"],
-        "셔츠/블라우스": ["셔츠", "블라우스", "shirt", "blouse"],
-        "긴소매 티셔츠": ["긴소매", "긴팔", "long sleeve", "longsleeve"],
-        "반소매 티셔츠": ["반소매", "반팔", "티셔츠", "tshirt", "t-shirt", "tee"],
-        "피케/카라 티셔츠": ["피케", "카라", "polo", "pique"],
-        "카라 티셔츠": ["카라", "collar"],
-        "니트/스웨터": ["니트", "스웨터", "knit", "sweater", "cardigan"],
-        "민소매 티셔츠": ["민소매", "나시", "tank", "sleeveless"],
+        # 상의 카테고리 (업데이트)
+        "후드티": ["후드", "후드티", "후드티셔츠", "hood", "hoodie"],
+        "셔츠블라우스": ["셔츠", "블라우스", "shirt", "blouse"],
+        "긴소매": ["긴소매", "긴팔", "long sleeve", "longsleeve"],
+        "반소매": ["반소매", "반팔", "티셔츠", "tshirt", "t-shirt", "tee"],
+        "피케카라": ["피케", "카라", "polo", "pique", "collar"],
+        "니트스웨터": ["니트", "스웨터", "knit", "sweater", "cardigan"],
+        "슬리브리스": ["슬리브리스", "민소매", "나시", "tank", "sleeveless"],
+        "애슬레저": ["애슬레저", "운동복", "스포츠", "athleisure", "activewear"],
         
-        # 하의 카테고리  
-        "데님 팬츠": ["데님", "청바지", "jeans", "jean", "denim"],
-        "트레이닝/조거 팬츠": ["트레이닝", "조거", "운동복", "training", "jogger", "track"],
-        "코튼 팬츠": ["코튼", "면바지", "cotton", "chino"],
-        "슈트 팬츠/슬랙스": ["슈트", "슬랙스", "정장", "suit", "slacks", "dress pants"],
-        "숏 팬츠": ["숏팬츠", "반바지", "shorts", "short"],
-        "레깅스": ["레깅스", "leggings"],
-        "점프 슈트/오버올": ["점프슈트", "오버올", "jumpsuit", "overall"]
+        # 하의 카테고리 (업데이트)
+        "데님팬츠": ["데님", "청바지", "jeans", "jean", "denim"],
+        "트레이닝조거팬츠": ["트레이닝", "조거", "운동복", "training", "jogger", "track"],
+        "코튼팬츠": ["코튼", "면바지", "cotton", "chino"],
+        "슈트팬츠슬랙스": ["슈트", "슬랙스", "정장", "suit", "slacks", "dress pants"],
+        "숏팬츠": ["숏팬츠", "반바지", "shorts", "short"],
+        "레깅스": ["레깅스", "leggings"]
     }
     
     color_keywords = {
-        "빨간색": ["red", "빨간", "레드"],
-        "파란색": ["blue", "파란", "블루", "navy", "네이비", "indigo"],
-        "검은색": ["black", "검은", "블랙"],
-        "흰색": ["white", "흰", "화이트"],
-        "회색": ["gray", "grey", "회색", "그레이"]
+        "빨간색": ["red", "빨간", "레드", "빨강"],
+        "파란색": ["blue", "파란", "블루", "navy", "네이비", "indigo", "파랑"],
+        "검은색": ["black", "검은", "블랙", "검정"],
+        "흰색": ["white", "흰", "화이트", "흰색", "화이트"],
+        "회색": ["gray", "grey", "회색", "그레이", "회"],
+        "베이지": ["beige", "베이지", "베이지색"],
+        "갈색": ["brown", "갈색", "브라운", "갈"],
+        "노란색": ["yellow", "노란", "옐로", "노랑", "노란색"],
+        "초록색": ["green", "초록", "그린", "녹색", "초록색"],
+        "분홍색": ["pink", "분홍", "핑크", "분홍색"],
+        "보라색": ["purple", "보라", "퍼플", "보라색"],
+        "주황색": ["orange", "주황", "오렌지", "주황색"],
+        "카키": ["khaki", "카키", "카키색"],
+        "민트": ["mint", "민트", "민트색"],
+        "네이비": ["navy", "네이비", "남색"],
+        "와인": ["wine", "와인", "와인색", "버건디"],
+        "올리브": ["olive", "올리브", "올리브색"]
     }
     
     # 사용자 입력에서 카테고리와 색상 찾기
@@ -157,9 +106,9 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
         print("카테고리나 색상 키워드가 없습니다.")
         return []
     
-    # 1단계: 대분류로 상의/하의 필터링
-    top_categories = ["맨투맨/스웨트", "후드 티셔츠", "셔츠/블라우스", "긴소매 티셔츠", "반소매 티셔츠", "피케/카라 티셔츠", "카라 티셔츠", "니트/스웨터", "민소매 티셔츠"]
-    bottom_categories = ["데님 팬츠", "트레이닝/조거 팬츠", "코튼 팬츠", "슈트 팬츠/슬랙스", "숏 팬츠", "레깅스", "점프 슈트/오버올"]
+    # 1단계: 대분류로 상의/하의 필터링 (업데이트된 카테고리)
+    top_categories = ["후드티", "셔츠블라우스", "긴소매", "반소매", "피케카라", "니트스웨터", "슬리브리스", "애슬레저"]
+    bottom_categories = ["데님팬츠", "트레이닝조거팬츠", "코튼팬츠", "슈트팬츠슬랙스", "숏팬츠", "레깅스"]
     
     # 사용자가 원하는 카테고리 타입 확인
     user_wants_top = any(cat[0] in top_categories for cat in found_categories)
@@ -168,15 +117,20 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     exact_matches = []
     
     for product in products:
-        product_text = f"{product.get('상품명', '')} {product.get('영어브랜드명', '')} {product.get('대분류', '')} {product.get('소분류', '')}".lower()
-        대분류 = str(product.get('대분류', '')).strip()
-        소분류 = str(product.get('소분류', '')).strip()
+        product_text = f"{safe_str(product.get('상품명', ''))} {safe_str(product.get('영어브랜드명', ''))} {safe_str(product.get('대분류', ''))} {safe_str(product.get('소분류', ''))}".lower()
+        대분류 = safe_str(product.get('대분류', '')).strip()
+        소분류 = safe_str(product.get('소분류', '')).strip()
         
-        # 1단계: DB 대분류/소분류로 상의/하의 정확 구분
-        is_db_top = (대분류 in ["상의", "탑", "TOP", "상의류"] or 
-                    소분류 in ["상의", "탑", "TOP", "상의류"])
-        is_db_bottom = (대분류 in ["하의", "바텀", "BOTTOM", "하의류", "팬츠", "반바지", "숏팬츠", "쇼츠", "SHORTS", "바지"] or
-                       소분류 in ["하의", "바텀", "BOTTOM", "하의류", "팬츠", "반바지", "숏팬츠", "쇼츠", "SHORTS", "바지"])
+        # 1단계: DB 대분류/소분류로 상의/하의 정확 구분 (소분류 강화)
+        is_db_top = (
+            대분류 in ["상의", "탑", "TOP", "상의류"] or 
+            소분류 in ["상의", "탑", "TOP", "상의류", "후드티", "셔츠블라우스", "긴소매", "피케카라", "니트스웨터", "슬리브리스", "애슬레저", "셔츠", "니트", "후드", "블라우스", "스웨터", "카디건"] or
+            (소분류 == "반소매" and any(keyword in product_text for keyword in ["티셔츠", "tshirt", "t-shirt", "tee"]))  # 반소매는 티셔츠일 때만 상의로 인정
+        )
+        is_db_bottom = (
+            대분류 in ["하의", "바텀", "BOTTOM", "하의류", "팬츠", "반바지", "숏팬츠", "쇼츠", "SHORTS", "바지"] or
+            소분류 in ["하의", "바텀", "BOTTOM", "하의류", "데님팬츠", "트레이닝조거팬츠", "코튼팬츠", "슈트팬츠슬랙스", "숏팬츠", "레깅스", "팬츠", "바지", "청바지", "데님", "슬랙스"]
+        )
         
         # 추가: 제품명에서 직접 하의 키워드 확인 (숏팬츠의 경우)
         # "short"는 "t-shirt"와 구분하기 위해 더 정확한 매칭 사용
@@ -199,15 +153,42 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
                 for category_name, variants in found_categories:
                     if category_name in top_categories:
                         # 정확한 카테고리 매칭 (셔츠 vs 티셔츠 구분)
-                        if category_name == "셔츠/블라우스":
-                            if any(variant in product_text for variant in variants) and "티셔츠" not in product_text:
+                        if category_name == "셔츠블라우스":
+                            # DB 소분류 컬럼에서 직접 매칭
+                            if 소분류 in ["셔츠", "블라우스", "셔츠블라우스"]:
                                 category_match = True
                                 break
-                        elif category_name == "반소매 티셔츠":
-                            if any(variant in product_text for variant in variants) and "셔츠" not in product_text.replace("티셔츠", ""):
+                            # 소분류가 정확하지 않으면 상품명으로 확인
+                            else:
+                                상품명 = safe_lower(product.get('상품명', ''))
+                                has_shirt_word = "셔츠" in 상품명 or "shirt" in 상품명
+                                has_tshirt_word = any(word in 상품명 for word in ["티셔츠", "tshirt", "t-shirt", "tee"])
+                                has_blouse = "블라우스" in 상품명 or "blouse" in 상품명
+                                
+                                if (has_shirt_word and not has_tshirt_word) or has_blouse:
+                                    category_match = True
+                                    break
+                                
+                        elif category_name == "반소매":
+                            # DB 소분류에서 직접 매칭
+                            if 소분류 in ["반소매", "반팔"]:
                                 category_match = True
                                 break
+                                
+                        elif category_name == "후드티":
+                            # DB 소분류에서 직접 매칭
+                            if 소분류 in ["후드티", "후드", "후드티셔츠"]:
+                                category_match = True
+                                break
+                                
+                        elif category_name == "니트스웨터":
+                            # DB 소분류에서 직접 매칭
+                            if 소분류 in ["니트", "스웨터", "니트스웨터", "카디건"]:
+                                category_match = True
+                                break
+                                
                         else:
+                            # 기타 카테고리는 기존 방식 사용
                             if any(variant in product_text for variant in variants):
                                 category_match = True
                                 break
@@ -219,9 +200,29 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
             if found_categories:
                 for category_name, variants in found_categories:
                     if category_name in bottom_categories:
-                        if any(variant in product_text for variant in variants):
-                            category_match = True
-                            break
+                        if category_name == "데님팬츠":
+                            # DB 소분류에서 직접 매칭
+                            if 소분류 in ["데님", "청바지", "데님팬츠"]:
+                                category_match = True
+                                break
+                                
+                        elif category_name == "숏팬츠":
+                            # DB 소분류에서 직접 매칭
+                            if 소분류 in ["숏팬츠", "반바지", "쇼츠"]:
+                                category_match = True
+                                break
+                                
+                        elif category_name == "슈트팬츠슬랙스":
+                            # DB 소분류에서 직접 매칭
+                            if 소분류 in ["슬랙스", "정장", "슈트팬츠"]:
+                                category_match = True
+                                break
+                                
+                        else:
+                            # 기타 하의 카테고리는 기존 방식 사용
+                            if any(variant in product_text for variant in variants):
+                                category_match = True
+                                break
             else:
                 category_match = True  # 카테고리 조건 없으면 통과
                 
@@ -229,11 +230,20 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
             # 카테고리 조건이 없으면 색상만 확인
             category_match = True
         
-        # 3단계: 색상 매칭
+        # 3단계: 색상 매칭 (DB 색상 컬럼 직접 매칭)
         color_match = False
         if found_colors:
+            # None 값 안전 처리 - safe_str 사용
+            db_color_raw = product.get('색상')
+            db_color = safe_str(db_color_raw).lower().strip()
+            
             for color_name, variants in found_colors:
-                if any(variant in product_text for variant in variants):
+                # DB 색상 컬럼에서 직접 매칭
+                if any(variant.lower() in db_color for variant in variants):
+                    color_match = True
+                    break
+                # 상품명에서도 확인 (DB 색상이 없는 경우 대비)
+                elif any(variant in product_text for variant in variants):
                     color_match = True
                     break
         else:
@@ -244,6 +254,8 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
             product["is_top"] = is_db_top
             product["is_bottom"] = is_db_bottom
             exact_matches.append(product)
+            
+
     
     print(f"정확 매칭 상품: {len(exact_matches)}개")
     
@@ -251,8 +263,8 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     if found_categories and any("숏" in cat[0] or "반바지" in cat[0] for cat in found_categories):
         unique_categories = set()
         for product in products[:100]:  # 처음 100개만 확인
-            대분류 = str(product.get('대분류', '')).strip()
-            if 대분류 and ("숏" in 대분류.lower() or "반바지" in 대분류.lower() or "short" in 대분류.lower()):
+            대분류 = safe_str(product.get('대분류', '')).strip()
+            if 대분류 and ("숏" in safe_lower(대분류) or "반바지" in safe_lower(대분류) or "short" in safe_lower(대분류)):
                 unique_categories.add(대분류)
         if unique_categories:
             print(f"DB에서 발견된 숏팬츠 관련 대분류: {list(unique_categories)}")
@@ -291,9 +303,7 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
         count = min(4, len(exact_matches))
         result = random.sample(exact_matches, count)
     
-    for i, p in enumerate(result):
-        category = "상의" if p.get("is_top") else ("하의" if p.get("is_bottom") else "기타")
-        print(f"최종 선택 {i+1}: [{category}] {p.get('상품명', 'N/A')[:30]}... (대분류: {p.get('대분류', 'N/A')})")
+
     
     return result
 
@@ -337,7 +347,7 @@ def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
     print(f"찾는 키워드: {style_info['keywords']}")
     
     for product in products:
-        product_text = f"{product.get('상품명', '')} {product.get('영어브랜드명', '')} {product.get('대분류', '')} {product.get('소분류', '')}".lower()
+        product_text = f"{safe_str(product.get('상품명', ''))} {safe_str(product.get('영어브랜드명', ''))} {safe_str(product.get('대분류', ''))} {safe_str(product.get('소분류', ''))}".lower()
         
         # 상황별 키워드 매칭
         for keyword in style_info["keywords"]:
@@ -354,15 +364,15 @@ def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
     count = min(4, len(matched_products))
     result = random.sample(matched_products, count)
     
-    for i, p in enumerate(result):
-        print(f"상황별 선택 {i+1}: {p.get('상품명', 'N/A')[:25]}...")
+
     
     return result
 
 def analyze_user_intent_with_context(user_input: str, conversation_context: str = "") -> dict:
     """사용자 의도 분석 (대화 컨텍스트 고려)"""
-    user_input_lower = user_input.lower()
-    context_lower = conversation_context.lower()
+    # None 값 안전 처리 - safe_lower 사용
+    user_input_lower = safe_lower(user_input)
+    context_lower = safe_lower(conversation_context)
     
     # 컨텍스트에서 이전 대화 내용 분석
     context_keywords = []
@@ -422,13 +432,13 @@ def extract_keywords_from_context(context: str) -> List[str]:
     # 색상 키워드
     color_keywords = ["빨간", "파란", "검은", "흰", "회색", "red", "blue", "black", "white", "gray"]
     for color in color_keywords:
-        if color in context.lower():
+        if color in safe_lower(context):
             keywords.append(color)
     
     # 의류 키워드
     clothing_keywords = ["티셔츠", "셔츠", "바지", "청바지", "니트", "후드", "shirt", "pants", "jeans"]
     for clothing in clothing_keywords:
-        if clothing in context.lower():
+        if clothing in safe_lower(context):
             keywords.append(clothing)
     
     return keywords
@@ -437,6 +447,8 @@ def extract_keywords_from_context(context: str) -> List[str]:
 async def chat_recommend(
     user_input: str = Form(...),
     session_id: Optional[int] = Form(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
     db: Session = Depends(get_db),
     user_name: str = Depends(login_required)
 ):
@@ -467,7 +479,7 @@ async def chat_recommend(
                 })
         else:
             # 항상 새로운 세션 생성 (기존 세션 재사용하지 않음)
-            session_name = f"대화 {user_input[:20]}{'...' if len(user_input) > 20 else ''}"
+            session_name = f"{user_input[:20]}{'...' if len(user_input) > 20 else ''}"
             chat_session = create_chat_session(db, user.id, session_name)
             print(f"새 세션 생성: {chat_session.id} - {session_name}")
         
@@ -479,12 +491,22 @@ async def chat_recommend(
         conversation_context = get_conversation_context(db, chat_session.id, max_messages=6)
         print(f"대화 컨텍스트: {conversation_context}")
         
-        # LLM Agent를 통해 의도 분석 및 응답 생성
+        # LLM Agent를 통해 의도 분석 및 응답 생성 (분리된 서비스 사용)
         try:
-            llm_response = llm_service.analyze_intent_and_call_tool(
+            # ChatMessage 리스트로 변환
+            chat_history_for_llm = []
+            if conversation_context:
+                # 간단한 형태로 변환 (실제로는 더 복잡한 파싱이 필요할 수 있음)
+                chat_history_for_llm = [ChatMessage(role="user", content=conversation_context)]
+            
+            llm_response: LLMResponse = await llm_service.analyze_intent_and_call_tool(
                 user_input=user_input,
-                conversation_context=conversation_context,
-                available_products=clothing_data if clothing_data else []
+                chat_history=chat_history_for_llm,
+                available_products=clothing_data if clothing_data else [],
+                db=db,
+                user_id=user.id,
+                latitude=latitude,
+                longitude=longitude
             )
             
             message = llm_response.final_message
@@ -573,7 +595,7 @@ async def get_chat_sessions(
             "sessions": []
         })
 
-@router.get("/session/{session_id}", response_class=JSONResponse)
+@router.get("/session/{session_id}/messages", response_class=JSONResponse)
 async def get_session_messages_api(
     session_id: int,
     db: Session = Depends(get_db),
@@ -718,4 +740,49 @@ async def get_chat_history(
             "success": False,
             "message": "대화 기록 조회 중 오류가 발생했습니다.",
             "history": []
+        })
+
+@router.get("/recommendations", response_class=JSONResponse)
+async def get_user_recommendations(
+    db: Session = Depends(get_db),
+    user_name: str = Depends(login_required)
+):
+    """사용자의 추천 기록을 조회합니다."""
+    try:
+        user = get_user_by_username(db, user_name)
+        if not user:
+            return JSONResponse(content={
+                "success": False,
+                "message": "사용자 정보를 찾을 수 없습니다.",
+                "recommendations": []
+            })
+        
+        from crud.recommendation_crud import get_user_recommendations
+        
+        # 최근 50개 추천 기록 조회
+        recommendations = get_user_recommendations(db, user.id, limit=50)
+        
+        # 추천 기록 형식 변환
+        recommendation_list = []
+        for rec in recommendations:
+            recommendation_list.append({
+                "id": rec.id,
+                "item_id": rec.item_id,
+                "query": rec.query,
+                "reason": rec.reason,
+                "created_at": rec.created_at.isoformat() if rec.created_at else None
+            })
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "추천 기록을 성공적으로 조회했습니다.",
+            "recommendations": recommendation_list
+        })
+        
+    except Exception as e:
+        print(f"추천 기록 조회 오류: {e}")
+        return JSONResponse(content={
+            "success": False,
+            "message": "추천 기록 조회 중 오류가 발생했습니다.",
+            "recommendations": []
         }) 

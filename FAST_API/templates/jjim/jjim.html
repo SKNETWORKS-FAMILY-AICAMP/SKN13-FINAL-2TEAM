@@ -143,8 +143,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     <tr><td>상품명</td>${productsData.map(p => `<td>${p.name}</td>`).join('')}</tr>
                     <tr><td>브랜드</td>${productsData.map(p => `<td>${p.brand}</td>`).join('')}</tr>
                     <tr><td>가격</td>${productsData.map(p => `<td>${p.price}</td>`).join('')}</tr>
-                    <tr><td>평점</td>${productsData.map(p => `<td>${p.rating} / 5.0</td>`).join('')}</tr>
-                    <tr><td>소재</td>${productsData.map(p => `<td>${p.material}</td>`).join('')}</tr>
                 </tbody>
             </table>
         `;

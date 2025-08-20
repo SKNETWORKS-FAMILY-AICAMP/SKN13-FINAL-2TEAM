@@ -6,6 +6,7 @@ from openai import OpenAI
 import os
 from typing import List, Dict
 import json
+from utils.safe_utils import safe_lower, safe_str
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -74,7 +75,7 @@ async def analyze_user_input_with_openai(user_input: str) -> Dict:
 
 def extract_basic_keywords(user_input: str) -> Dict:
     """기본 키워드 추출 (OpenAI API 실패 시 사용)"""
-    user_input_lower = user_input.lower()
+    user_input_lower = safe_lower(user_input)
     
     # 계절 키워드
     season_keywords = {
@@ -150,7 +151,7 @@ def filter_products_by_analysis(analysis: Dict, products: List[Dict]) -> List[Di
     
     for product in products:
         score = 0
-        product_text = f"{product.get('제품이름', '')} {product.get('브랜드', '')} {product.get('제품소재', '')} {product.get('색상옵션', '')}".lower()
+        product_text = f"{safe_str(product.get('제품이름', ''))} {safe_str(product.get('브랜드', ''))} {safe_str(product.get('제품소재', ''))} {safe_str(product.get('색상옵션', ''))}".lower()
         
         # 색상 매칭
         if analysis.get("color") != "상관없음":
@@ -237,13 +238,13 @@ async def chat_recommend(user_input: str = Form(...)):
             response_msg = "파티에 어울리는 화려하고 고급스러운 옷들을 추천해드릴게요! 🎉"
         elif analysis.get("occasion") == "여행":
             response_msg = "여행에 편리하고 실용적인 옷들을 추천해드릴게요! ✈️"
-        elif "여름" in user_input.lower():
+        elif "여름" in safe_lower(user_input):
             response_msg = "여름에 딱 맞는 시원하고 가벼운 옷들을 추천해드릴게요! "
-        elif "겨울" in user_input.lower():
+        elif "겨울" in safe_lower(user_input):
             response_msg = "겨울에 따뜻하고 스타일리시한 옷들을 추천해드릴게요! ❄️"
-        elif "봄" in user_input.lower():
+        elif "봄" in safe_lower(user_input):
             response_msg = "봄에 어울리는 가벼운 옷들을 추천해드릴게요! "
-        elif "가을" in user_input.lower():
+        elif "가을" in safe_lower(user_input):
             response_msg = "가을에 멋진 옷들을 추천해드릴게요! 🍂"
         else:
             response_msg = "입력해주신 내용을 바탕으로 추천해드릴게요! 😊"

@@ -6,6 +6,7 @@ from typing import List, Dict, Optional
 from botocore.exceptions import NoCredentialsError, ClientError
 import json
 import io
+from utils.safe_utils import safe_lower, safe_str
 
 class S3DataLoader:
     """S3에서 데이터를 로드하는 클래스"""
@@ -66,7 +67,6 @@ class S3DataLoader:
             return f"https://image.msscdn.net{url}"
         
         # 그 외의 경우 빈 문자열 반환
-        print(f"⚠️ [URL 경고] 인식할 수 없는 URL 형식: '{url}'")
         return ""
 
 
@@ -75,7 +75,7 @@ class S3DataLoader:
         """제품 데이터를 S3에서 로드하고 가공하여 반환 (캐싱 지원 및 상세 로깅)"""
         from cache_manager import cache_manager
         # 캐시 식별자에 버전(_v5)을 추가하여 이전 캐시를 무효화합니다.
-        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v5"
+        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v6"
         
         if use_cache:
             cached_data = cache_manager.get(cache_identifier)
@@ -126,7 +126,7 @@ class S3DataLoader:
                     product_id = hashlib.md5(key_src.encode('utf-8')).hexdigest()[:16]
                 
                 # 분류/성별/평점 등 사전 계산하여 이후 요청시 재계산 방지
-                name_lower = str(item.get("상품명", "")).lower()
+                name_lower = safe_lower(item.get("상품명", ""))
                 
                 # 의류 타입/소분류
                 if any(w in name_lower for w in ['티셔츠', 't-shirt', 'tshirt', '티 ', 'shirt']):
@@ -202,6 +202,7 @@ class S3DataLoader:
                     "영어브랜드명": item.get("영어브랜드명", ""),
                     
                     # 호환성을 위한 기존 필드들 (하위 호환성)
+                    "제품이름": item.get("상품명", ""),
                     "브랜드": item.get("한글브랜드명", ""),
                     "가격": int(price),
                     "사진": fixed_img,

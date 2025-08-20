@@ -73,8 +73,8 @@ async def read_home(request: Request, db: Session = Depends(get_db)):
     # 찜 횟수 순으로 정렬
     trending_products.sort(key=lambda x: x.get('jjim_count', 0), reverse=True)
     
-    # 데이터를 4개의 섹션으로 분할
-    section_size = len(sampled_data) // 4
+    # 데이터를 4개의 섹션으로 분할 (최소 10개씩)
+    section_size = max(10, len(sampled_data) // 4)
     
     # 섹션 1: 사용자 맞춤 추천 (새로운 로직)
     if personalized_products:

@@ -52,7 +52,7 @@
 }
 
 /* Card when it's inside a comparison slot */
-.comparison-slot .product-card {
+.comparison-slot .jjim-product-card {
     width: 100%;
     height: 100%;
     background: transparent; /* Slot provides the background */
@@ -60,26 +60,26 @@
     box-shadow: none;
 }
 
-.comparison-slot .product-card:hover {
+.comparison-slot .jjim-product-card:hover {
     transform: none;
     box-shadow: none;
 }
 
-.comparison-slot .product-card img {
+.comparison-slot .jjim-product-card img {
     height: 75%; /* Make image larger inside the slot */
     object-fit: contain; /* Ensure full image is visible */
     background: #000;
     border-radius: 12px;
 }
 
-.comparison-slot .product-card .product-card-info {
+.comparison-slot .jjim-product-card .product-card-info {
     height: 25%;
     padding-top: 16px;
     text-align: center;
     white-space: normal; /* Allow text to wrap */
 }
 
-.comparison-slot .product-card .product-card-info h3 {
+.comparison-slot .jjim-product-card .product-card-info h3 {
     font-size: 1.1rem; /* Make title visible */
     overflow: visible;
     text-overflow: initial;
@@ -172,37 +172,39 @@
 
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 15px;
 }
 
 /* Card in the right sidebar */
-.wishlist-sidebar .product-card {
+.wishlist-sidebar .jjim-product-card {
     border-radius: 12px;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     cursor: pointer;
     overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s;
+    aspect-ratio: 4 / 3;
+    position: relative;
 }
 
-.wishlist-sidebar .product-card:hover {
+.wishlist-sidebar .jjim-product-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.2);
 }
 
-.wishlist-sidebar .product-card img {
+.wishlist-sidebar .jjim-product-card img {
     width: 100%;
-    height: 150px;
+    height: 100%;
     object-fit: cover;
 }
 
-.wishlist-sidebar .product-card-info {
+.wishlist-sidebar .jjim-product-card .product-card-info {
     padding: 10px;
     text-align: center;
 }
 
-.wishlist-sidebar .product-card-info h3 {
+.wishlist-sidebar .jjim-product-card .product-card-info h3 {
     font-size: 0.9rem;
     margin: 0;
     color: var(--text-primary);
@@ -214,19 +216,21 @@
 .product-details { display: none; }
 
 /* Individual Product Checkbox */
-.product-card {
+.jjim-product-card {
     position: relative; /* To position the checkbox */
 }
 
-.product-checkbox {
+.jjim-product-checkbox {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 8px;
+    left: 8px;
     z-index: 10;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     accent-color: var(--accent); /* Highlight color for checkbox */
     cursor: pointer;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 3px;
 }
 
 /* === Compare Modal Styles === */

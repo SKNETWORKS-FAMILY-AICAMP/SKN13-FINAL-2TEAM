@@ -14,17 +14,20 @@
         <h3>성별</h3>
         <div class="filter-options">
             <label class="filter-option">
-                <input type="checkbox" name="gender" value="male" class="filter-checkbox">
+                <input type="checkbox" name="gender" value="male" class="filter-checkbox"
+                       {% if request.query_params.get('gender', '').find('male') != -1 %}checked{% endif %}>
                 <span class="checkmark"></span>
                 남성
             </label>
             <label class="filter-option">
-                <input type="checkbox" name="gender" value="female" class="filter-checkbox">
+                <input type="checkbox" name="gender" value="female" class="filter-checkbox"
+                       {% if request.query_params.get('gender', '').find('female') != -1 %}checked{% endif %}>
                 <span class="checkmark"></span>
                 여성
             </label>
             <label class="filter-option">
-                <input type="checkbox" name="gender" value="unisex" class="filter-checkbox">
+                <input type="checkbox" name="gender" value="unisex" class="filter-checkbox"
+                       {% if request.query_params.get('gender', '').find('unisex') != -1 %}checked{% endif %}>
                 <span class="checkmark"></span>
                 공용
             </label>
@@ -36,17 +39,20 @@
         <h3>의류 타입</h3>
         <div class="filter-options">
             <label class="filter-option">
-                <input type="checkbox" name="clothing_type" value="top" class="filter-checkbox">
+                <input type="checkbox" name="clothing_type" value="top" class="filter-checkbox"
+                       {% if request.query_params.get('clothing_type', '').find('top') != -1 %}checked{% endif %}>
                 <span class="checkmark"></span>
                 상의
             </label>
             <label class="filter-option">
-                <input type="checkbox" name="clothing_type" value="bottom" class="filter-checkbox">
+                <input type="checkbox" name="clothing_type" value="bottom" class="filter-checkbox"
+                       {% if request.query_params.get('clothing_type', '').find('bottom') != -1 %}checked{% endif %}>
                 <span class="checkmark"></span>
                 하의
             </label>
             <label class="filter-option">
-                <input type="checkbox" name="clothing_type" value="skirt" class="filter-checkbox">
+                <input type="checkbox" name="clothing_type" value="skirt" class="filter-checkbox"
+                       {% if request.query_params.get('clothing_type', '').find('skirt') != -1 %}checked{% endif %}>
                 <span class="checkmark"></span>
                 스커트
             </label>
@@ -58,9 +64,11 @@
         <h3>가격 범위</h3>
         <div class="price-filter">
             <div class="price-inputs">
-                <input type="number" id="min-price" placeholder="최소가격" class="price-input">
+                <input type="number" id="min-price" placeholder="최소가격" class="price-input" 
+                       value="{{ request.query_params.get('min_price', '') }}">
                 <span class="price-separator">~</span>
-                <input type="number" id="max-price" placeholder="최대가격" class="price-input">
+                <input type="number" id="max-price" placeholder="최대가격" class="price-input"
+                       value="{{ request.query_params.get('max_price', '') }}">
             </div>
             <div class="price-buttons">
                 <button class="price-btn" data-min="0" data-max="30000">3만원 이하</button>
@@ -84,10 +92,10 @@
         <h1>상품 목록</h1>
         <div class="sort-options">
             <select id="sort-select" class="sort-select">
-                <option value="default">기본순</option>
-                <option value="price-low">가격 낮은순</option>
-                <option value="price-high">가격 높은순</option>
-                <option value="name">이름순</option>
+                <option value="default" {% if request.query_params.get('sort') == 'default' or not request.query_params.get('sort') %}selected{% endif %}>기본순</option>
+                <option value="price-low" {% if request.query_params.get('sort') == 'price-low' %}selected{% endif %}>가격 낮은순</option>
+                <option value="price-high" {% if request.query_params.get('sort') == 'price-high' %}selected{% endif %}>가격 높은순</option>
+                <option value="name" {% if request.query_params.get('sort') == 'name' %}selected{% endif %}>이름순</option>
             </select>
         </div>
     </div>
@@ -103,14 +111,13 @@
              data-product-subcategory="{{ product.get('소분류', '') }}"
              data-product-color="{{ product.get('색상', '') }}"
              data-product-price="{{ product.get('원가', '0') }}"
-             data-product-image="{{ product.get('이미지URL', '') }}"
+             data-product-image="{{ product.get('이미지URL', product.get('대표이미지URL', '')) }}"
              data-product-link="{{ product.get('상품링크', '') }}"
-             data-product-material="{{ product.get('소재', '') }}"
-             data-gender="{{ product.get('성별', '') }}"
-             data-type="{{ product.get('대분류', '') }}">
-            <img src="{{ product.get('이미지URL', '') }}" 
+             data-type="{{ product.get('의류타입', product.get('대분류', '')) }}">
+            <img src="{{ product.get('이미지URL', product.get('대표이미지URL', '')) }}" 
                  alt="{{ product.get('상품명', '') }}"
                  title="{{ product.get('상품명', '') }}: {{ product.get('한글브랜드명', '') }}">
+
         </div>
         {% endfor %}
     </div>
@@ -119,6 +126,34 @@
     <div id="no-results" class="no-results" style="display: none;">
         <p>조건에 맞는 상품이 없습니다.</p>
     </div>
+
+    <!-- 페이지네이션 -->
+    {% if total_pages > 1 %}
+    <div class="pagination-container">
+        <div class="pagination-info">
+            <span>총 {{ total_products }}개 상품 중 {{ (current_page - 1) * items_per_page + 1 }}-{{ [current_page * items_per_page, total_products] | min }}개 표시</span>
+        </div>
+        <div class="pagination">
+            {% if current_page > 1 %}
+                <a href="?page=1{% for key, value in current_filters.items() %}&{{ key }}={{ value }}{% endfor %}" class="page-link">« 처음</a>
+                <a href="?page={{ current_page - 1 }}{% for key, value in current_filters.items() %}&{{ key }}={{ value }}{% endfor %}" class="page-link">‹ 이전</a>
+            {% endif %}
+            
+            {% for page_num in range([1, current_page - 2] | max, [current_page + 3, total_pages + 1] | min) %}
+                {% if page_num == current_page %}
+                    <span class="page-link current">{{ page_num }}</span>
+                {% else %}
+                    <a href="?page={{ page_num }}{% for key, value in current_filters.items() %}&{{ key }}={{ value }}{% endfor %}" class="page-link">{{ page_num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if current_page < total_pages %}
+                <a href="?page={{ current_page + 1 }}{% for key, value in current_filters.items() %}&{{ key }}={{ value }}{% endfor %}" class="page-link">다음 ›</a>
+                <a href="?page={{ total_pages }}{% for key, value in current_filters.items() %}&{{ key }}={{ value }}{% endfor %}" class="page-link">마지막 »</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
   </main>
 </section>
 
@@ -138,125 +173,5 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', path='js/filters.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // 모달 요소들
-  const modal = document.getElementById('product-modal');
-  const closeBtn = document.getElementById('close-modal');
-  const productDetails = document.getElementById('product-details');
-
-  // 모달 열기/닫기
-  function openModal() {
-    modal.style.display = 'flex';
-  }
-
-  function closeModal() {
-    modal.style.display = 'none';
-  }
-
-  // 제품 상세 정보 로드
-  function loadProductDetails(card) {
-    const productId = card.dataset.productId;
-    const productName = card.dataset.productName;
-    const productBrand = card.dataset.productBrand;
-    const productCategory = card.dataset.productCategory;
-    const productSubcategory = card.dataset.productSubcategory;
-    const productColor = card.dataset.productColor;
-    const productPrice = card.dataset.productPrice;
-    const productImage = card.dataset.productImage;
-    const productLink = card.dataset.productLink;
-
-    // 가격 포맷팅
-    function formatPrice(price) {
-      if (!price || price === '0') return 'N/A';
-      return parseInt(price).toLocaleString('ko-KR') + '원';
-    }
-
-    productDetails.innerHTML = `
-      <div class="product-detail-content">
-        <div class="product-image">
-          <img src="${productImage}" alt="${productName}">
-        </div>
-        <div class="product-info">
-          <h4>${productName}</h4>
-          <div class="product-details">
-            <p><strong>브랜드:</strong> ${productBrand || 'N/A'}</p>
-            <p><strong>카테고리:</strong> ${productCategory || 'N/A'} > ${productSubcategory || 'N/A'}</p>
-            <p><strong>색상:</strong> ${productColor || 'N/A'}</p>
-            <p><strong>가격:</strong> <span class="price">${formatPrice(productPrice)}</span></p>
-          </div>
-          <div class="product-actions">
-            <a href="${productLink}" target="_blank" class="btn btn-primary">🔗 링크로 이동</a>
-            <button onclick="addToJjim('${productId}')" class="btn btn-secondary">❤️ 찜목록에 추가</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // 제품 카드 클릭 이벤트
-  document.addEventListener('click', function(e) {
-    const card = e.target.closest('.product-card');
-    if (card) {
-      loadProductDetails(card);
-      openModal();
-    }
-  });
-
-  // 모달 닫기 이벤트
-  closeBtn.addEventListener('click', closeModal);
-  modal.addEventListener('click', function(e) {
-    if (e.target === modal) closeModal();
-  });
-
-  // 찜목록 추가 함수
-  window.addToJjim = async function(productId) {
-    if (!productId) {
-      alert('상품 ID를 찾을 수 없습니다.');
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('product_id', productId);
-
-      const response = await fetch('/preference/jjim', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.ok) {
-        alert('찜목록에 추가되었습니다!');
-      } else {
-        const result = await response.json();
-        if (result.message === '사용자 없음') {
-          alert('로그인이 필요합니다.');
-        } else {
-          alert(`찜목록 추가에 실패했습니다: ${result.message || '알 수 없는 오류'}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error adding to jjim:', error);
-      alert('찜목록 추가 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 필터 기능 (기본적인 것만)
-  document.getElementById('apply-filters').addEventListener('click', function() {
-    // 필터 로직은 나중에 구현
-    console.log('필터 적용');
-  });
-
-  document.getElementById('clear-filters').addEventListener('click', function() {
-    // 모든 체크박스 해제
-    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-    // 가격 입력 필드 초기화
-    document.getElementById('min-price').value = '';
-    document.getElementById('max-price').value = '';
-    // 정렬 초기화
-    document.getElementById('sort-select').value = 'default';
-  });
-});
-</script>
+<script src="/static/js/filters.js"></script>
 {% endblock %}

@@ -13,6 +13,7 @@ from crud.user_crud import (
     list_jjim_product_ids,
     remove_jjim,
     remove_jjim_bulk,
+    delete_user_and_related_data,
 )
 from crud.recommendation_crud import get_user_recommendations
 from crud.chat_crud import get_user_chat_sessions, get_session_messages
@@ -151,3 +152,21 @@ async def update_my_profile(
     )
 
     return {"success": True, "message": "프로필이 업데이트되었습니다."}
+
+@router.post("/delete_account", response_class=JSONResponse, dependencies=[Depends(login_required)])
+async def delete_account(request: Request, db: Session = Depends(get_db)):
+    username = request.session.get("user_name")
+    user = get_user_by_username(db, username)
+    if not user:
+        return JSONResponse(status_code=404, content={"success": False, "message": "사용자를 찾을 수 없습니다."})
+
+    # For security, you might want to re-authenticate the user here (e.g., ask for password)
+    # For now, we proceed with deletion directly after user confirmation on frontend.
+
+    success = delete_user_and_related_data(db, user.id)
+    
+    if success:
+        request.session.clear() # Clear session after successful deletion
+        return JSONResponse(status_code=200, content={"success": True, "message": "계정이 성공적으로 삭제되었습니다."})
+    else:
+        return JSONResponse(status_code=500, content={"success": False, "message": "계정 삭제 중 오류가 발생했습니다."})

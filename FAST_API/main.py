@@ -29,7 +29,6 @@ from routers.router_mypage import router as mypage_router
 from routers.router_products import router as products_router
 from routers.router_survey import router as survey_router
 from routers.router_chatbot import router as chatbot_router
-from routers.router_chatbot_new import router as chatbot_new_router
 from routers.router_cache_admin import router as cache_admin_router
 
 app = FastAPI()
@@ -69,7 +68,6 @@ app.include_router(mypage_router, prefix="/mypage", tags=["Mypage"])
 app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(survey_router, prefix="/survey", tags=["Survey"])
 app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
-app.include_router(chatbot_new_router, prefix="/chat-new", tags=["Chatbot New"])
 app.include_router(cache_admin_router, prefix="/admin", tags=["Cache Admin"])
 
 # 404 에러 핸들러
@@ -96,7 +94,7 @@ async def startup_event():
     print("🚀 애플리케이션 시작: S3 데이터 로드를 시작합니다...")
     loaded_data = get_product_data_from_s3(s3_file_key)
     if loaded_data:
-        clothing_data.update(loaded_data)
+        clothing_data.extend(loaded_data)
         print(f"✅ S3 데이터 로드 완료: {len(clothing_data)}개 상품")
         
         # 데이터 사전 처리 및 캐싱
@@ -111,12 +109,4 @@ async def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
-    import os
-    
-    ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
-    ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")
-    
-    if ssl_cert_file and ssl_key_file and os.path.exists(ssl_cert_file) and os.path.exists(ssl_key_file):
-        uvicorn.run(app, host="0.0.0.0", port=443, ssl_certfile=ssl_cert_file, ssl_keyfile=ssl_key_file)
-    else:
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

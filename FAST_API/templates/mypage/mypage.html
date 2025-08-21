@@ -24,6 +24,7 @@
           <div class="profile-actions">
             <button class="edit-profile-btn" id="openEditProfile">프로필 수정</button>
             <a href="/auth/logout" class="logout-btn">로그아웃</a>
+            <button class="delete-account-btn" id="deleteAccountBtn">회원탈퇴</button>
           </div>
         </div>
       </div>
@@ -504,6 +505,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     closeChatBtn.addEventListener('click', closeChatModal);
     chatModal.addEventListener('click', (e) => { if (e.target === chatModal) closeChatModal(); });
+
+    // 회원탈퇴 기능
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    deleteAccountBtn?.addEventListener('click', async () => {
+        if (confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            try {
+                const res = await fetch('/mypage/delete_account', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert('계정이 성공적으로 삭제되었습니다.');
+                    window.location.href = '/auth/login'; // 로그인 페이지로 리다이렉트
+                } else {
+                    alert(data.message || '계정 삭제 중 오류가 발생했습니다.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('계정 삭제 중 네트워크 오류가 발생했습니다.');
+            }
+        }
+    });
 });
 </script>
 {% endblock %}

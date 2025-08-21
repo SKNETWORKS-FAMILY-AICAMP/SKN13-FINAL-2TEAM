@@ -1,7 +1,7 @@
-from typing import List, Dict
+from typing import List, Dict, Any
 
 # S3에서 로드된 원본 제품 데이터 - 챗봇과 제품 페이지에서 공통 사용
-clothing_data: List[Dict] = []
+clothing_data: Dict[str, Dict[str, Any]] = {}
 
 # 제품 페이지 전용 가공된 데이터 캐시 (필터링, 정렬 최적화용)
 processed_clothing_data: List[Dict] = []

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/mypage.css') }}">
 <style>
   /* GSAP 애니메이션을 위한 초기 상태 설정 */
   .profile-card, .section-title, .product-card {
@@ -11,129 +12,131 @@
 {% endblock %}
 
 {% block content %}
-<div class="mypage-dashboard">
-  <!-- 내 정보 섹션 -->
-  <section class="profile-section">
-    <div class="profile-card">
-      <img src="https://i.namu.wiki/i/63SUjoeSkbefiyy1x19TThehoFExxifYSYHERHsI6YVWv2yCg1e4TnR7cqKmOUFDyeqsuW27d8gK6gyrJ3LPTQ.webp" alt="Profile Picture" class="profile-picture">
-      <div class="profile-info">
-        <h1 class="username">{{ request.session.get('user_name', 'GUEST') }}</h1>
-        <p class="userid">@{{ request.session.get('user_id', 'guest_user') }}</p>
-        <div class="profile-actions">
-          <button class="edit-profile-btn" id="openEditProfile">프로필 수정</button>
-          <a href="/auth/logout" class="logout-btn">로그아웃</a>
+<div class="mypage-wrapper">
+  <div class="mypage-dashboard">
+    <!-- 내 정보 섹션 -->
+    <section class="profile-section">
+      <div class="profile-card">
+        <img src="https://i.namu.wiki/i/63SUjoeSkbefiyy1x19TThehoFExxifYSYHERHsI6YVWv2yCg1e4TnR7cqKmOUFDyeqsuW27d8gK6gyrJ3LPTQ.webp" alt="Profile Picture" class="profile-picture">
+        <div class="profile-info">
+          <h1 class="username">{{ request.session.get('user_name', 'GUEST') }}</h1>
+          <p class="userid">@{{ request.session.get('user_id', 'guest_user') }}</p>
+          <div class="profile-actions">
+            <button class="edit-profile-btn" id="openEditProfile">프로필 수정</button>
+            <a href="/auth/logout" class="logout-btn">로그아웃</a>
+          </div>
         </div>
       </div>
+    </section>
+
+    <!-- 활동 기록 섹션 -->
+    <div class="activity-grid">
+      <!-- 최근 추천받은 상품 -->
+      <section class="activity-section">
+        <h2 class="section-title">최근 추천받은 상품</h2>
+        {% if recommended_products %}
+        <div class="scroll-container">
+          <div class="scroll-arrow left">❮</div>
+          <div class="row-posters" id="recommendation-grid">
+            {% for rec in recommended_products %}
+            <div class="product-card recommendation-card" 
+                 data-product-id="{{ rec.product.get('상품코드') }}" 
+                 data-product-name="{{ rec.product.get('제품이름') }}"
+                 data-product-brand="{{ rec.product.get('브랜드') or rec.product.get('한글브랜드명') }}"
+                 data-product-category="{{ rec.product.get('대분류') }}"
+                 data-product-subcategory="{{ rec.product.get('소분류') }}"
+                 data-product-color="{{ rec.product.get('색상') }}"
+                 data-product-price="{{ rec.product.get('원가') }}"
+                 data-product-image="{{ rec.product.get('사진') }}"
+                 data-product-link="{{ rec.product.get('상품링크') }}"
+                 data-query="{{ rec.query }}" 
+                 data-reason="{{ rec.reason }}" 
+                 style="cursor: pointer;">
+              <img src="{{ rec.product.get('사진') or rec.product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ rec.product.get('제품이름') }}">
+              <p class="product-name">{{ rec.product.get('제품이름') }}</p>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="scroll-arrow right">❯</div>
+        </div>
+        {% else %}
+        <p class="no-records-message">아직 추천받은 상품이 없습니다.</p>
+        {% endif %}
+      </section>
+
+      <!-- 찜한 상품 -->
+      <section class="activity-section">
+        <h2 class="section-title">내가 찜한 상품</h2>
+        {% if jjim_products %}
+        <form id="mypageJjimForm" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+          <button type="button" id="mypageBulkDeleteBtn">선택 삭제</button>
+          <label><input type="checkbox" id="mypageSelectAll"> 전체 선택</label>
+        </form>
+        <div class="scroll-container">
+          <div class="scroll-arrow left">❮</div>
+          <div class="row-posters" id="jjim-grid">
+            {% for product in jjim_products %}
+            <div class="product-card" 
+                 data-product-id="{{ product.get('상품코드') }}" 
+                 data-product-name="{{ product.get('제품이름') }}"
+                 data-product-brand="{{ product.get('브랜드') or product.get('한글브랜드명') }}"
+                 data-product-category="{{ product.get('대분류') }}"
+                 data-product-subcategory="{{ product.get('소분류') }}"
+                 data-product-color="{{ product.get('색상') }}"
+                 data-product-price="{{ product.get('원가') }}"
+                 data-product-image="{{ product.get('사진') }}"
+                 data-product-link="{{ product.get('상품링크') }}"
+                 style="position:relative; cursor: pointer;">
+              <label style="position:absolute; top:6px; left:6px; background:#fff; padding:2px 4px; border-radius:4px; z-index:10;">
+                <input type="checkbox" class="mypage-select-item">
+              </label>
+              <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
+              <p class="product-name">{{ product.get('제품이름') }}</p>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="scroll-arrow right">❯</div>
+        </div>
+        {% else %}
+        <p class="no-records-message">찜한 상품이 없습니다.</p>
+        {% endif %}
+      </section>
+
+      <!-- 대화 내역 -->
+      <section class="activity-section">
+        <h2 class="section-title">대화 내역</h2>
+        {% if chat_history %}
+        <div class="chat-history-grid">
+          {% for chat in chat_history %}
+          <div class="chat-card">
+            <div class="chat-header">
+              <h3 class="chat-title">{{ chat.session_name }}</h3>
+              <span class="chat-date">{{ chat.created_at.strftime('%m월 %d일 %H:%M') }}</span>
+            </div>
+            <div class="chat-content">
+              <div class="chat-message-preview">
+                <span class="message-label">나:</span>
+                <span class="message-text">{{ chat.first_message }}</span>
+              </div>
+              {% if chat.last_response %}
+              <div class="chat-response-preview">
+                <span class="message-label">챗봇:</span>
+                <span class="message-text">{{ chat.last_response }}</span>
+              </div>
+              {% endif %}
+            </div>
+            <div class="chat-footer">
+              <span class="message-count">{{ chat.message_count }}개의 메시지</span>
+              <button class="view-chat-btn" data-session-id="{{ chat.session_id }}">대화 보기</button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-records-message">아직 대화 내역이 없습니다.</p>
+        {% endif %}
+      </section>
     </div>
-  </section>
-
-  <!-- 활동 기록 섹션 -->
-  <div class="activity-grid">
-    <!-- 최근 추천받은 상품 -->
-    <section class="activity-section">
-      <h2 class="section-title">최근 추천받은 상품</h2>
-      {% if recommended_products %}
-      <div class="scroll-container">
-        <div class="scroll-arrow left">❮</div>
-        <div class="row-posters" id="recommendation-grid">
-          {% for rec in recommended_products %}
-          <div class="product-card recommendation-card" 
-               data-product-id="{{ rec.product.get('상품코드') }}" 
-               data-product-name="{{ rec.product.get('제품이름') }}"
-               data-product-brand="{{ rec.product.get('브랜드') or rec.product.get('한글브랜드명') }}"
-               data-product-category="{{ rec.product.get('대분류') }}"
-               data-product-subcategory="{{ rec.product.get('소분류') }}"
-               data-product-color="{{ rec.product.get('색상') }}"
-               data-product-price="{{ rec.product.get('원가') }}"
-               data-product-image="{{ rec.product.get('사진') }}"
-               data-product-link="{{ rec.product.get('상품링크') }}"
-               data-query="{{ rec.query }}" 
-               data-reason="{{ rec.reason }}" 
-               style="cursor: pointer;">
-            <img src="{{ rec.product.get('사진') or rec.product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ rec.product.get('제품이름') }}">
-            <p class="product-name">{{ rec.product.get('제품이름') }}</p>
-          </div>
-          {% endfor %}
-        </div>
-        <div class="scroll-arrow right">❯</div>
-      </div>
-      {% else %}
-      <p class="no-records-message">아직 추천받은 상품이 없습니다.</p>
-      {% endif %}
-    </section>
-
-    <!-- 찜한 상품 -->
-    <section class="activity-section">
-      <h2 class="section-title">내가 찜한 상품</h2>
-      {% if jjim_products %}
-      <form id="mypageJjimForm" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-        <button type="button" id="mypageBulkDeleteBtn">선택 삭제</button>
-        <label><input type="checkbox" id="mypageSelectAll"> 전체 선택</label>
-      </form>
-      <div class="scroll-container">
-        <div class="scroll-arrow left">❮</div>
-        <div class="row-posters" id="jjim-grid">
-          {% for product in jjim_products %}
-          <div class="product-card" 
-               data-product-id="{{ product.get('상품코드') }}" 
-               data-product-name="{{ product.get('제품이름') }}"
-               data-product-brand="{{ product.get('브랜드') or product.get('한글브랜드명') }}"
-               data-product-category="{{ product.get('대분류') }}"
-               data-product-subcategory="{{ product.get('소분류') }}"
-               data-product-color="{{ product.get('색상') }}"
-               data-product-price="{{ product.get('원가') }}"
-               data-product-image="{{ product.get('사진') }}"
-               data-product-link="{{ product.get('상품링크') }}"
-               style="position:relative; cursor: pointer;">
-            <label style="position:absolute; top:6px; left:6px; background:#fff; padding:2px 4px; border-radius:4px; z-index:10;">
-              <input type="checkbox" class="mypage-select-item">
-            </label>
-            <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
-            <p class="product-name">{{ product.get('제품이름') }}</p>
-          </div>
-          {% endfor %}
-        </div>
-        <div class="scroll-arrow right">❯</div>
-      </div>
-      {% else %}
-      <p class="no-records-message">찜한 상품이 없습니다.</p>
-      {% endif %}
-    </section>
-
-    <!-- 대화 내역 -->
-    <section class="activity-section">
-      <h2 class="section-title">대화 내역</h2>
-      {% if chat_history %}
-      <div class="chat-history-grid">
-        {% for chat in chat_history %}
-        <div class="chat-card">
-          <div class="chat-header">
-            <h3 class="chat-title">{{ chat.session_name }}</h3>
-            <span class="chat-date">{{ chat.created_at.strftime('%m월 %d일 %H:%M') }}</span>
-          </div>
-          <div class="chat-content">
-            <div class="chat-message-preview">
-              <span class="message-label">나:</span>
-              <span class="message-text">{{ chat.first_message }}</span>
-            </div>
-            {% if chat.last_response %}
-            <div class="chat-response-preview">
-              <span class="message-label">챗봇:</span>
-              <span class="message-text">{{ chat.last_response }}</span>
-            </div>
-            {% endif %}
-          </div>
-          <div class="chat-footer">
-            <span class="message-count">{{ chat.message_count }}개의 메시지</span>
-            <button class="view-chat-btn" data-session-id="{{ chat.session_id }}">대화 보기</button>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <p class="no-records-message">아직 대화 내역이 없습니다.</p>
-      {% endif %}
-    </section>
   </div>
 </div>
 
@@ -151,20 +154,18 @@
 </div>
 
 <script>
-// 전역 변수로 clothing_data 추가
-const clothing_data = {{ clothing_data | tojson | safe }};
 
 document.addEventListener("DOMContentLoaded", () => {
     // --- 전체 타임라인 설정 ---
     const masterTimeline = gsap.timeline({
-        defaults: { ease: "power3.out", duration: 0.8 }
+        defaults: { ease: "power2.out", duration: 0.3 }
     });
 
     // 1. 프로필 섹션 등장
     masterTimeline.to(".profile-card", {
         opacity: 1,
         y: 0,
-        duration: 1
+        duration: 0.5
     });
 
     // 2. 각 활동 섹션 순차적 등장
@@ -174,13 +175,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const productCards = section.querySelectorAll(".product-card");
 
         masterTimeline
-            .to(sectionTitle, { opacity: 1, y: 0, duration: 0.7 }, "-=.6")
+            .to(sectionTitle, { opacity: 1, y: 0, duration: 0.3 }, "-=.2")
             .to(productCards, {
                 opacity: 1,
                 y: 0,
-                stagger: 0.08,
-                duration: 0.5
-            }, "-=0.5");
+                stagger: 0.02,
+                duration: 0.3
+            }, "-=0.1");
     });
 
     // --- 카드 호버 효과 ---
@@ -466,26 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            // 마우스 휠로 수평 스크롤 (GSAP 애니메이션 적용)
-            posters.addEventListener('wheel', (e) => {
-                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-                    e.preventDefault();
-                    
-                    // GSAP로 부드러운 휠 스크롤
-                    if (typeof gsap !== 'undefined' && gsap.to) {
-                        const scrollAmount = e.deltaY * 2; // 휠 감도 조정
-                        gsap.to(posters, {
-                            scrollTo: {x: "+=" + scrollAmount}, 
-                            duration: 0.5, 
-                            ease: "power2.out"
-                        });
-                    } else {
-                        // 폴백: 기본 방식
-                        posters.scrollBy({ left: e.deltaY * 2, behavior: 'smooth' });
-                    }
-                }
-            }, { passive: false });
-        }
+            }
     });
 
     // 대화 보기 기능

@@ -23,7 +23,7 @@ async def read_home(request: Request, db: Session = Depends(get_db)):
     else:
         # 표시할 데이터 수를 100개 또는 전체 데이터 수 중 작은 값으로 제한
         count = min(100, len(clothing_data))
-        sampled_data = random.sample(clothing_data, count)
+        sampled_data = random.sample(list(clothing_data.values()), count)
 
     # 사용자 ID 가져오기
     user_id = request.session.get('user_id')
@@ -36,7 +36,7 @@ async def read_home(request: Request, db: Session = Depends(get_db)):
     
     # 사용자 맞춤형 추천 상품 정보 가져오기
     personalized_products = []
-    for product in clothing_data:
+    for product in clothing_data.values():
         if product.get('상품코드') in personalized_product_ids:
             # 찜 횟수 정보 추가
             jjim_count = next((item['jjim_count'] for item in personalized_products_data 
@@ -61,7 +61,7 @@ async def read_home(request: Request, db: Session = Depends(get_db)):
     
     # 트렌딩 상품 정보 가져오기
     trending_products = []
-    for product in clothing_data:
+    for product in clothing_data.values():
         if product.get('상품코드') in trending_product_ids:
             # 찜 횟수 정보 추가
             jjim_count = next((item['jjim_count'] for item in trending_products_data 

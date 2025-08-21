@@ -33,7 +33,7 @@ async def mypage(request: Request, db: Session = Depends(get_db)):
     recommended_products = []
     for rec in recent_recommendations:
         # clothing_data에서 해당 상품 찾기
-        product = next((p for p in clothing_data if str(p.get('상품코드')) == str(rec.item_id)), None)
+        product = clothing_data.get(str(rec.item_id))
         if product:
             recommended_products.append({
                 'product': product,
@@ -44,7 +44,7 @@ async def mypage(request: Request, db: Session = Depends(get_db)):
     # 2. 찜한 상품
     jjim_ids = list_jjim_product_ids(db, user.id)
     id_set = set(str(pid) for pid in jjim_ids)
-    jjim_products = [p for p in clothing_data if str(p.get('상품코드')) in id_set]
+    jjim_products = [clothing_data.get(pid) for pid in id_set if clothing_data.get(pid)]
     
     # 3. 대화 내역 (최근 3개)
     chat_sessions = get_user_chat_sessions(db, user.id, limit=3)
@@ -70,8 +70,7 @@ async def mypage(request: Request, db: Session = Depends(get_db)):
         "request": request,
         "recommended_products": recommended_products,
         "jjim_products": jjim_products,
-        "chat_history": chat_history,
-        "clothing_data": clothing_data
+        "chat_history": chat_history
     })
 
 

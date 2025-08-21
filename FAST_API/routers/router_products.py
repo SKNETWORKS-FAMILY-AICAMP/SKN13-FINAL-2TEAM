@@ -15,19 +15,19 @@ def process_product_data(products):
     """상품 데이터를 필터링에 필요한 형태로 가공합니다."""
     processed_products = []
     
-    for product in products:
-        processed_product = product.copy()
+    for product_id, product_data in products.items():
+        processed_product = product_data.copy()
         # S3 데이터 호환: 대표이미지URL 필드 보장
         if '대표이미지URL' not in processed_product:
             processed_product['대표이미지URL'] = processed_product.get('이미지URL', processed_product.get('사진', ''))
         
         # 가격 정보 처리 - 원가만 사용
-        price_value = product.get('가격', 0)
+        price_value = product_data.get('가격', 0)
         if isinstance(price_value, (int, float)):
             processed_product['processed_price'] = int(price_value)
         else:
             # 원가만 사용
-            original_price = product.get('원가', 0)
+            original_price = product_data.get('원가', 0)
             
             if isinstance(original_price, (int, float)):
                 processed_product['processed_price'] = int(original_price)
@@ -35,8 +35,8 @@ def process_product_data(products):
                 processed_product['processed_price'] = 0
         
         # 성별 판단 (상품명과 브랜드 기반) - 새로운 컬럼명 사용
-        product_name = safe_lower(product.get('상품명', ''))
-        brand = safe_lower(product.get('한글브랜드명', product.get('브랜드', '')))
+        product_name = safe_lower(product_data.get('상품명', ''))
+        brand = safe_lower(product_data.get('한글브랜드명', product_data.get('브랜드', '')))
         
         if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
             processed_product['성별'] = '여성'
@@ -94,7 +94,7 @@ def process_product_data(products):
             processed_product['소분류'] = '기타'
         
         # 평점 처리 - 실제 평점이 있으면 사용, 없으면 None
-        original_rating = product.get('평점', product.get('rating', None))
+        original_rating = product_data.get('평점', product_data.get('rating', None))
         if original_rating and isinstance(original_rating, (int, float)) and 0 <= original_rating <= 5:
             processed_product['평점'] = round(float(original_rating), 1)
         else:

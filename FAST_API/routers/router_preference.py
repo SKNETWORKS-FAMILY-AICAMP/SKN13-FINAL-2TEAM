@@ -14,13 +14,13 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/api/items", response_class=JSONResponse, dependencies=[Depends(login_required)])
 async def get_preference_items(request: Request):
     import random
-    items = random.sample(clothing_data, min(20, len(clothing_data))) if clothing_data else []
+    items = random.sample(list(clothing_data.values()), min(20, len(clothing_data))) if clothing_data else []
     return items
 
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def preference(request: Request):
     import random
-    items = random.sample(clothing_data, min(20, len(clothing_data))) if clothing_data else []
+    items = random.sample(list(clothing_data.values()), min(20, len(clothing_data))) if clothing_data else []
     return templates.TemplateResponse(
         "preference/preference.html", 
         {"request": request, "recommended_items": items}

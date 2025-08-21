@@ -503,7 +503,7 @@ async def chat_recommend(
             llm_response: LLMResponse = await llm_service.analyze_intent_and_call_tool(
                 user_input=user_input,
                 chat_history=chat_history_for_llm,
-                available_products=clothing_data if clothing_data else [],
+                available_products=list(clothing_data.values()) if clothing_data else [],
                 db=db,
                 user_id=user.id,
                 latitude=latitude,

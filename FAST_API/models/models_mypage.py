@@ -3,6 +3,18 @@ from sqlalchemy.orm import relationship
 from db import Base
 
 
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    full_name = Column(String(100), nullable=True)
+    phone_number = Column(String(20), nullable=True)
+    address = Column(String(255), nullable=True)
+
+    user = relationship("models.models_auth.User", back_populates="profile")
+
+
 class UserPreference(Base):
     __tablename__ = "user_preferences"
 

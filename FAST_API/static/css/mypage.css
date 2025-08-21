@@ -1,28 +1,30 @@
-body {
+/* === MyPage General Layout === */
+.mypage-wrapper {
     background-color: #f4f6f8;
     color: #333;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 40px 20px;
+    min-height: calc(100vh - 120px);
+    box-sizing: border-box;
 }
 
 .mypage-dashboard {
     max-width: 1200px;
-    margin: 30px auto;
-    padding: 20px 30px;
-    box-sizing: border-box;
+    width: 100%;
+    margin: 0 auto;
 }
 
-/* 프로필 섹션 */
+/* === Profile Section === */
 .profile-section {
-    margin-bottom: 40px;
+    margin-bottom: 50px;
 }
 
 .profile-card {
-    background-color: #fff;
-    border-radius: 15px;
-    padding: 30px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 40px;
     display: flex;
     align-items: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
 }
 
 .profile-picture {
@@ -31,180 +33,156 @@ body {
     border-radius: 50%;
     margin-right: 30px;
     object-fit: cover;
-    border: 4px solid #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 4px solid #e0e0e0;
 }
 
 .profile-info .username {
-    font-size: 2.2em;
+    font-size: 2.5em;
     font-weight: 700;
     margin: 0;
     color: #2c3e50;
 }
 
 .profile-info .userid {
-    font-size: 1.1em;
+    font-size: 1.2em;
     color: #7f8c8d;
-    margin: 5px 0 15px;
+    margin: 5px 0 20px;
 }
 
 .profile-actions {
     display: flex;
-    gap: 10px; /* 버튼 사이 간격 */
-    margin-top: 15px; /* 프로필 정보와의 간격 */
+    gap: 15px;
+    margin-top: 15px;
 }
 
 .edit-profile-btn,
 .logout-btn {
-    font-size: 0.9em; /* 글자 크기 통일 */
+    font-size: 0.95em;
     font-weight: 600;
-    padding: 10px 20px;
+    padding: 12px 25px;
     border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-    text-decoration: none; /* <a> 태그 스타일 */
-    display: inline-block; /* <a> 태그 스타일 */
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
     text-align: center;
+    border: 2px solid transparent;
 }
 
 .edit-profile-btn {
     background-color: #3498db;
     color: #fff;
-    border: none;
+    border-color: #3498db;
 }
 
 .edit-profile-btn:hover {
     background-color: #2980b9;
+    border-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .logout-btn {
     background-color: transparent;
-    color: #3498db;
-    border: 2px solid #3498db;
+    color: #7f8c8d;
+    border-color: #e0e0e0;
 }
 
 .logout-btn:hover {
-    background-color: #3498db;
+    background-color: #7f8c8d;
     color: #fff;
+    border-color: #7f8c8d;
+    transform: translateY(-2px);
 }
 
-/* 활동 기록 섹션 */
+/* === Activity Sections (Shared Styles) === */
 .activity-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 50px;
+}
+
+.activity-section {
+    overflow: hidden;
 }
 
 .activity-section .section-title {
-    font-size: 1.8em;
+    font-size: 2em;
     font-weight: 600;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
     color: #34495e;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+/* === Horizontal Scroll (Netflix Style) === */
+.scroll-container {
+  position: relative;
+  padding: 0 60px;
+  box-sizing: border-box;
 }
 
-/* 추천 상품 카드도 동일한 크기 적용 */
-.product-grid .product-card {
-    min-width: 200px;
-    width: 200px;
-    height: 300px;
+.row-posters {
+  display: flex;
+  overflow-x: scroll;
+  padding: 10px 0;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+.row-posters::-webkit-scrollbar { 
+  display: none; 
 }
 
-.product-card {
-    background-color: #fff;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    transition: transform 0.2s, box-shadow 0.2s;
-    display: block;
+.row-posters .product-card {
+  width: 220px;
+  height: 330px;
+  margin-right: 12px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background-color: #fff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  border: 1px solid #e0e0e0;
+  padding: 0;
+  display: block;
+  transition: all 0.3s ease;
 }
 
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+.row-posters .product-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.12);
 }
 
-.product-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 5px;
-    transition: transform 0.2s ease-in-out;
-    cursor: pointer;
+.row-posters .product-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
 }
 
-.product-card img:hover {
-    transform: scale(1.05);
-}
 
-.product-card .product-name {
-    display: none;
-}
 
-.no-records-message {
-    text-align: center;
-    color: #7f8c8d;
-    font-size: 1.1em;
-    padding: 20px;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
-    margin-top: 20px;
-}
-
-/* 추천 상품 카드 스타일 */
-.recommendation-card {
-    position: relative;
-    overflow: hidden;
-}
-
-.recommendation-card .product-info {
-    padding: 15px;
-}
-
-.recommendation-query {
-    font-size: 0.85em;
-    color: #3498db;
-    font-style: italic;
-    margin: 5px 0;
-    background: #f8f9fa;
-    padding: 5px 8px;
-    border-radius: 4px;
-    border-left: 3px solid #3498db;
-}
-
-.recommendation-reason {
-    font-size: 0.8em;
-    color: #7f8c8d;
-    margin: 5px 0 0 0;
-    line-height: 1.4;
-}
-
-/* 대화 내역 스타일 */
+/* === Chat History Section === */
 .chat-history-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 20px;
 }
 
 .chat-card {
-    background-color: #fff;
+    background: #fff;
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
 }
 
 .chat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
 }
 
 .chat-header {
@@ -213,36 +191,26 @@ body {
     align-items: center;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .chat-title {
     font-size: 1.1em;
     font-weight: 600;
     color: #2c3e50;
-    margin: 0;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .chat-date {
     font-size: 0.85em;
     color: #7f8c8d;
-    margin-left: 10px;
-}
-
-.chat-content {
-    margin-bottom: 15px;
 }
 
 .chat-message-preview, .chat-response-preview {
-    margin: 8px 0;
-    padding: 8px 12px;
+    margin: 10px 0;
+    padding: 10px 12px;
     border-radius: 6px;
     background: #f8f9fa;
-    border-left: 3px solid #e9ecef;
+    border-left: 4px solid #e0e0e0;
 }
 
 .chat-message-preview {
@@ -255,23 +223,24 @@ body {
 
 .message-label {
     font-weight: 600;
-    color: #2c3e50;
+    color: #34495e;
     font-size: 0.9em;
     margin-right: 8px;
 }
 
 .message-text {
-    color: #34495e;
-    font-size: 0.9em;
-    line-height: 1.4;
+    color: #555;
+    font-size: 0.95em;
+    line-height: 1.5;
 }
 
 .chat-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 10px;
-    border-top: 1px solid #e9ecef;
+    padding-top: 15px;
+    margin-top: 15px;
+    border-top: 1px solid #e0e0e0;
 }
 
 .message-count {
@@ -283,7 +252,7 @@ body {
     background-color: #3498db;
     color: #fff;
     border: none;
-    padding: 6px 12px;
+    padding: 8px 15px;
     border-radius: 6px;
     font-size: 0.85em;
     cursor: pointer;
@@ -294,131 +263,23 @@ body {
     background-color: #2980b9;
 }
 
-/* 추천 상품 카드 호버 효과 */
-.recommendation-card {
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.recommendation-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-}
-
-/* --- MyPage: Netflix-like horizontal row (메인페이지와 동일한 스타일) --- */
-/* 메인페이지처럼 전체 화면 폭 사용 */
-.mypage-dashboard .scroll-container{
-  position: relative;
-  /* 메인페이지와 동일하게 전체 화면 폭 사용 */
-  width: 100vw;
-  margin-left: calc(-50vw + 50%);
-  margin-right: calc(-50vw + 50%);
-}
-
-/* 추천받은 상품과 찜한 상품 모두 동일한 컨테이너 스타일 */
-.mypage-dashboard .activity-section .scroll-container{
-  position: relative;
-  width: 100vw;
-  margin-left: calc(-50vw + 50%);
-  margin-right: calc(-50vw + 50%);
-}
-.mypage-dashboard .scroll-container .row-posters{
-  display: flex;
-  overflow-x: scroll; /* 홈페이지와 동일 */
-  padding: 10px 20px; /* h2 제목과 맞춘 좌우 패딩 */
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  scroll-behavior: smooth;
-  /* 하드웨어 가속으로 더 부드러운 스크롤 */
-  will-change: scroll-position;
-  transform: translateZ(0);
-}
-.mypage-dashboard .scroll-container .row-posters::-webkit-scrollbar{ 
-  display: none; 
-}
-
-.mypage-dashboard .row-posters .product-card{
-  width: 200px; /* 홈페이지와 동일 */
-  height: 300px;
-  margin-right: 10px; /* 홈페이지와 동일 */
-  border-radius: 5px;
-  flex-shrink: 0; /* 줄어들지 않도록 */
-  /* 기본 product-card 스타일 오버라이드 */
-  background-color: transparent;
-  box-shadow: none;
-  border: none;
-  padding: 0;
-  display: block; /* flex가 아닌 block */
-}
-
-.mypage-dashboard .row-posters .product-card img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 5px;
-  transition: transform 0.2s ease-in-out;
-  cursor: pointer;
-}
-
-.mypage-dashboard .row-posters .product-card img:hover{
-  transform: scale(1.05);
-}
-
-/* 상품명 숨기기 (홈페이지와 동일) */
-.mypage-dashboard .row-posters .product-card .product-name{
-  display: none;
-}
-
-/* 화살표: 홈페이지와 완전히 동일한 스타일 */
-.mypage-dashboard .scroll-container .scroll-arrow{
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: none;
-  padding: 20px 10px;
-  cursor: pointer;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  font-size: 2em;
-}
-.mypage-dashboard .scroll-container:hover .scroll-arrow{
-  opacity: 1;
-}
-.mypage-dashboard .scroll-container .scroll-arrow.left{
-  left: 0;
-  border-radius: 0 5px 5px 0;
-}
-.mypage-dashboard .scroll-container .scroll-arrow.right{
-  right: 0;
-  border-radius: 5px 0 0 5px;
-}
-
-/* 마이페이지에서는 수평 스크롤을 허용하되, 전체 페이지 스크롤은 제한 */
-body { overflow-x: visible; }
-.mypage-dashboard { overflow-x: visible; }
-
-/* 반응형 디자인 개선 */
+/* === Responsive Design === */
 @media (max-width: 768px) {
+    .profile-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    .profile-picture {
+        margin-right: 0;
+        margin-bottom: 20px;
+    }
+    .profile-actions {
+        justify-content: center;
+    }
     .chat-history-grid {
         grid-template-columns: 1fr;
     }
-    
-    .chat-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-    
-    .chat-footer {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-    }
-    
     .scroll-arrow {
-        padding: 15px 8px;
-        font-size: 1.5em;
+        display: none; /* ����Ͽ����� ȭ��ǥ ���� */
     }
 }

@@ -490,6 +490,8 @@ async def chat_recommend(
                 session_id=chat_session.id,
                 user_id=user.id,
                 available_products=clothing_data if clothing_data else [],
+                chat_history=chat_history_for_llm,
+                available_products=list(clothing_data.values()) if clothing_data else [],
                 db=db,
                 latitude=latitude,
                 longitude=longitude

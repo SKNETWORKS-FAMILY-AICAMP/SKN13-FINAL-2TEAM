@@ -5,8 +5,15 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from utils.safe_utils import safe_lower
+import ssl
 
 load_dotenv()
+
+# SSL 검증 비활성화
+ssl._create_default_https_context = ssl._create_unverified_context
+os.environ["SSL_CERT_FILE"] = ""
+os.environ["SSL_KEY_FILE"] = ""
+os.environ["PYTHONHTTPSVERIFY"] = "0"
 
 @dataclass
 class ChatMessage:
@@ -22,6 +29,13 @@ class IntentResult:
 
 class IntentAnalyzer:
     def __init__(self):
+        # SSL 검증 비활성화
+
+        import ssl
+        ssl._create_default_https_context = ssl._create_unverified_context
+        os.environ["CURL_CA_BUNDLE"] = ""
+        os.environ["REQUESTS_CA_BUNDLE"] = ""
+
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o-mini"
         
@@ -72,6 +86,12 @@ class IntentAnalyzer:
         ]
         
         try:
+            # OpenAI API 호출 전 상세 로깅 추가
+            print("OpenAI API 호출 시작...")
+            print(f"API 키: {os.getenv('OPENAI_API_KEY')[:20]}...")
+            print(f"모델: {self.model}")
+            print(f"메시지 수: {len(messages)}")
+            
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -90,7 +110,12 @@ class IntentAnalyzer:
             )
             
         except Exception as e:
-            print(f"의도 분류 오류: {e}")
+            # print(f"의도 분류 오류: {e}")
+            # 더 자세한 오류 정보 출력
+            print(f"의도 분류 상세 오류: {type(e).__name__}: {e}")
+            import traceback
+            print(f"상세 오류: {traceback.format_exc()}")
+
             # 기본값 반환
             return IntentResult(
                 intent="search",

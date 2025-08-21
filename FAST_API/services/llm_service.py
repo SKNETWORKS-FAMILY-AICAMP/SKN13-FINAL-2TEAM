@@ -48,7 +48,12 @@ class LLMService:
             elif intent_result.intent == "search":
                 tool_result = self.search_products(intent_result, available_products)
             elif intent_result.intent == "conversation":
-                tool_result = self.recommendation_engine.conversation_recommendation(intent_result, available_products, db, user_id)
+                # Check if conversation query is actually about weather
+                if any(word in intent_result.original_query.lower() for word in ["날씨", "weather", "비", "맑음", "흐림", "기온", "온도"]):
+                    print("Weather detected in conversation intent - calling weather service")
+                    tool_result = await self.handle_weather_intent(intent_result, latitude, longitude)
+                else:
+                    tool_result = self.recommendation_engine.conversation_recommendation(intent_result, available_products, db, user_id)
             else:  # general
                 tool_result = self._handle_general_conversation(intent_result)
         except Exception as e:

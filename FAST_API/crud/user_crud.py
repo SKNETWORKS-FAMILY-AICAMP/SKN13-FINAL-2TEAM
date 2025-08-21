@@ -328,7 +328,7 @@ def filter_products_by_color(products: list[dict], preferred_color: str) -> list
         
         '빨강': ['빨강', '레드', 'red', '적색', '빨간', '적', 'crimson', '크림슨', 'scarlet', '스칼렛', 'cherry', '체리', 'rose', '로즈', 'wine', '와인', 'burgundy', '버건디', 'maroon', '마룬', 'brick', '브릭', 'rust', '러스트', 'cardinal', '카디널', 'fire', '파이어', 'blood', '블러드', 'tomato', '토마토', 'strawberry', '딸기', 'ruby', '루비'],
         
-        '파랑': ['파랑', '블루', 'blue', '네이비', 'navy', '청색', '남색', '하늘색', 'sky', 'skyblue', 'lightblue', 'darkblue', 'royal', 'royalblue', 'cobalt', 'azure', 'cyan', 'teal', 'turquoise', 'aqua', 'steel', 'steelblue', 'powder', 'powderblue', 'cornflower', 'midnight', 'midnightblue', 'slate', 'slateblue', 'dodger', 'dodgerblue', 'deep', 'deepblue', 'electric', 'electricblue', 'sapphire', '인디고', '아쿠아', '시안', '틸', '터키석', '사파이어', '코발트', '하늘', '스카이', '로얄', '미드나잇', '슬레이트', '파우더', '스틸'],
+        '파랑': ['파랑', '블루', 'blue', '네이비', 'navy', '청색', '남색', '하늘색', 'sky', 'skyblue', 'lightblue', 'darkblue', 'royal', 'royalblue', 'cobalt', 'azure', 'cyan', 'teal', 'turquoise', 'aqua', 'steel', 'steelblue', 'powder', 'powderblue', 'cornflower', 'midnight', 'midnightblue', 'slate', 'slateblue', 'dodger', 'dodgerblue', 'deep', 'deepblue', 'electric', 'electricblue', 'sapphire', 'indigo', '인디고', '아쿠아', '시안', '틸', '터키석', '사파이어', '코발트', '하늘', '스카이', '로얄', '미드나잇', '슬레이트', '파우더', '스틸'],
         
         '노랑': ['노랑', '옐로우', 'yellow', '황색', '노란', '황', 'gold', '골드', 'lemon', '레몬', 'banana', '바나나', 'corn', '옥수수', 'mustard', '머스타드', 'amber', '앰버', 'honey', '꿀', 'butter', '버터', 'cream', '크림', 'sand', '모래', 'wheat', '밀', 'champagne', '샴페인', 'canary', '카나리아', 'sunshine', '햇빛', 'dandelion', '민들레'],
         
@@ -388,41 +388,3 @@ def filter_products_by_color(products: list[dict], preferred_color: str) -> list
     return filtered_products if filtered_products else products
 
 
-def delete_user(db: Session, user_id: int) -> bool:
-    """
-    Deletes a user record from the database.
-    """
-    user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
-    if user:
-        db.delete(user)
-        db.commit()
-        return True
-    return False
-
-def delete_user_data(db: Session, user_id: int) -> bool:
-    """
-    Deletes user-related data (preferences, jjim items) from the database.
-    More related data (e.g., chat sessions, recommendations) might need to be added here.
-    """
-    # Delete user preferences
-    db.execute(delete(UserPreference).where(UserPreference.user_id == user_id))
-    # Delete jjim items
-    db.execute(delete(Jjim).where(Jjim.user_id == user_id))
-    db.commit()
-    return True
-
-def delete_user_and_related_data(db: Session, user_id: int) -> bool:
-    """
-    Deletes a user and all associated data.
-    This function orchestrates the deletion of various user-related records.
-    """
-    try:
-        # Delete user-specific data first
-        delete_user_data(db, user_id)
-        # Then delete the user record itself
-        delete_user(db, user_id)
-        return True
-    except Exception as e:
-        db.rollback()
-        print(f"Error deleting user and related data: {e}")
-        return False

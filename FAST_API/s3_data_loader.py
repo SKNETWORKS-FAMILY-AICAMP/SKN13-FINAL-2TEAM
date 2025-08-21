@@ -103,7 +103,7 @@ class S3DataLoader:
 
             raw_data = df.to_dict("records")
             
-            processed_clothing_data_dict = {}
+            clothing_data = []
             import hashlib
             for item in raw_data:
                 # 가격 처리 - 할인가 우선, 없으면 원가 사용
@@ -214,15 +214,15 @@ class S3DataLoader:
                     "의류타입": clothing_type,
                     "평점": round(rating, 1),
                 }
-                processed_clothing_data_dict[str(product_id)] = mapped_item
+                clothing_data.append(mapped_item)
             
-            print(f"✅ 제품 데이터 가공 완료: {len(processed_clothing_data_dict)}개 상품")
+            print(f"✅ 제품 데이터 가공 완료: {len(clothing_data)}개 상품")
             
-            if use_cache and processed_clothing_data_dict:
-                cache_manager.set(cache_identifier, processed_clothing_data_dict)
+            if use_cache and clothing_data:
+                cache_manager.set(cache_identifier, clothing_data)
                 print(f"💾 가공된 데이터를 캐시에 저장했습니다: '{cache_identifier}'")
             
-            return processed_clothing_data_dict
+            return clothing_data
             
         except Exception as e:
             print(f"❌ 제품 데이터 처리 중 심각한 오류 발생: {e}")

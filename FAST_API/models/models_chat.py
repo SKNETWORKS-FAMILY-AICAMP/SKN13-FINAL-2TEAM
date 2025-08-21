@@ -25,6 +25,7 @@ class ChatMessage(Base):
     session_id = Column(Integer, ForeignKey("chat_session.id", ondelete="CASCADE"), nullable=False, index=True)
     message_type = Column(String(20), nullable=False)  # 'user' 또는 'bot'
     text = Column(Text, nullable=False)
+    summary = Column(Text, nullable=True)  # Q/A 쌍별 요약 저장
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # 체크 제약 조건 추가

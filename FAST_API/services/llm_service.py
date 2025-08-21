@@ -1,298 +1,491 @@
 import os
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from openai import OpenAI
 from dotenv import load_dotenv
 import asyncio
 
-# 분리된 서비스들 import
-from services.intent_analyzer import IntentAnalyzer, IntentResult, ChatMessage
-from services.product_filter import exact_match_filter, situation_filter
-from services.recommendation_engine import RecommendationEngine, ToolResult
-from services.weather_service import WeatherService
-from services.location_service import LocationService
+# Agent imports
+from services.agents.search_agent import SearchAgent, SearchAgentResult
+from services.agents.conversation_agent import ConversationAgent, ConversationAgentResult
+from services.agents.weather_agent import WeatherAgent, WeatherAgentResult
+from services.agents.general_agent import GeneralAgent, GeneralAgentResult
+from services.agents.unified_summary_agent import UnifiedSummaryAgent, UnifiedSummaryResult
+from services.agents.followup_agent import FollowUpAgent, FollowUpAgentResult
+
+# Legacy imports for compatibility
+# Legacy IntentAnalyzer 제거됨 - 현재 MainAnalyzer만 사용
+from services.clothing_recommender import recommend_clothing_by_weather
+# Legacy imports 완전 제거됨 - 모든 기능이 에이전트로 통합됨
+from crud.chat_crud import (get_recent_qa_summaries, get_qa_pair_for_summary, 
+                           update_message_summary, get_chat_history_for_llm)
 from utils.safe_utils import safe_lower
 
 load_dotenv()
 
+# IntentResult 클래스 정의 (기존 intent_analyzer에서 이동)
+@dataclass
+class IntentResult:
+    intent: str  # 'search', 'conversation', 'followup', 'weather', 'general'
+    confidence: float
+    extracted_info: Dict
+    original_query: str
+
+@dataclass
+class LangGraphState:
+    """LangGraph 상태 관리"""
+    user_input: str
+    session_id: int
+    user_id: int
+    intent: str = ""
+    extracted_info: Dict = None
+    context_summaries: List[str] = None
+    agent_result: Any = None
+    final_message: str = ""
+    products: List[Dict] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    
+    def __post_init__(self):
+        if self.extracted_info is None:
+            self.extracted_info = {}
+        if self.context_summaries is None:
+            self.context_summaries = []
+        if self.products is None:
+            self.products = []
+
 @dataclass
 class LLMResponse:
-    intent_result: IntentResult
-    tool_result: Optional[ToolResult]
+    """LLM 응답 구조"""
     final_message: str
     products: List[Dict]
+    analysis_result: Any  # IntentResult 또는 MainAnalysisResult
+    summary_result: Optional[UnifiedSummaryResult] = None
+    metadata: Dict = None
+    
+    def __post_init__(self):
+        if self.metadata is None:
+            self.metadata = {}
 
-class LLMService:
+
+
+class MainAnalyzer:
+    """새로운 프롬프트 기반 메인 분석기 (컨텍스트 포함 의도 분석용)"""
+    
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o-mini"
-        self.intent_analyzer = IntentAnalyzer()
-        self.recommendation_engine = RecommendationEngine()
-        self.weather_service = WeatherService()
-        self.location_service = LocationService()
-
-    async def analyze_intent_and_call_tool(self, user_input: str, chat_history: List[ChatMessage], available_products: List[Dict], db=None, user_id=None, latitude: Optional[float] = None, longitude: Optional[float] = None) -> LLMResponse:
-        """사용자 입력을 분석하고 적절한 도구를 호출합니다."""
-
-        # 1. 의도 분석
-        intent_result = self.intent_analyzer.classify_intent(user_input, chat_history)
-
-        print(f"의도 분류 결과: {intent_result.intent} (신뢰도: {intent_result.confidence})")
-
-        # 2. 의도에 따른 도구 호출
-        tool_result = None # tool_result 초기화
-        try:
-            if intent_result.intent == "weather":
-                tool_result = await self.handle_weather_intent(intent_result, latitude, longitude)
-            elif intent_result.intent == "search":
-                tool_result = self.search_products(intent_result, available_products)
-            elif intent_result.intent == "conversation":
-                tool_result = self.recommendation_engine.conversation_recommendation(intent_result, available_products, db, user_id)
-            else:  # general
-                tool_result = self._handle_general_conversation(intent_result)
-        except Exception as e:
-            print(f"ERROR: Exception during tool call for intent {intent_result.intent}: {e}")
-            # Return an LLMResponse indicating failure
-            return LLMResponse(
-                intent_result=intent_result,
-                tool_result=ToolResult(success=False, message=f"도구 호출 중 오류가 발생했습니다: {e}", products=[], metadata={"error_during_tool_call": str(e)}),
-                final_message=f"죄송합니다. 요청을 처리하는 중 오류가 발생했습니다: {e}",
-                products=[]
-            )
-
-        # 3. 최종 응답 구성
-        final_message = tool_result.message if tool_result else "죄송합니다. 요청을 처리할 수 없습니다."
-        products = tool_result.products if tool_result else []
-
-        return LLMResponse(
-            intent_result=intent_result,
-            tool_result=tool_result,
-            final_message=final_message,
-            products=products
-        )
-
-    async def handle_weather_intent(self, intent_result: IntentResult, latitude: Optional[float], longitude: Optional[float]) -> ToolResult:
-        """날씨 관련 의도를 처리합니다."""
-        locations = intent_result.extracted_info.get("locations", [])
-        city_name = locations[0] if locations else None
-
-        coords = None
-        location_display_name = "현재 위치"
-
-        # 1. 지역명이 명시적으로 추출된 경우 (가장 높은 우선순위)
-        if city_name:
-            location_display_name = f"'{city_name}'"
-            coords = await self.location_service.get_coords_from_city_name(city_name)
-            if not coords:
-                return ToolResult(success=False, message=f"'{city_name}'의 위치를 찾을 수 없어요. 😥 지역명을 다시 확인해주시겠어요?", products=[], metadata={"error": "geocoding_failed"})
-
-        # 2. 지역명은 없지만, 프론트에서 좌표를 준 경우 (현재 위치)
-        elif latitude and longitude:
-            city_name_from_coords = await self.location_service.get_city_name_from_coords(latitude, longitude)
-            if city_name_from_coords:
-                location_display_name = f"'{city_name_from_coords}'"
-            else:
-                location_display_name = "현재 위치"
-            coords = {"latitude": latitude, "longitude": longitude}
-
-        # 3. 좌표도, 지역명도 없는 경우
-        else:
-            return ToolResult(success=False, message="어느 지역의 날씨를 알려드릴까요? 🤔 도시 이름을 알려주시거나, 현재 위치의 날씨를 물어보세요!", products=[], metadata={"error": "no_location_provided"})
-
-        # 날씨 정보 조회
-        weather_data = await self.weather_service.get_current_weather(coords["latitude"], coords["longitude"])
-
-        if "error" in weather_data:
-            return ToolResult(success=False, message=f"죄송합니다. 날씨 정보를 가져오는 데 실패했습니다. ({weather_data['error']})", products=[], metadata={"error": "weather_api_failed"})
-
-        temp = weather_data.get('temperature')
-        sky = weather_data.get('sky_status')
-        precip_type = weather_data.get('precipitation_type')
-        precip_amount = weather_data.get('precipitation_amount')
-
-        message = f"{location_display_name}의 날씨를 알려드릴게요! ☀️\n\n"
-        if temp is not None:
-            try:
-                temp_float = float(temp)
-                message += f"🌡️ **기온**: {temp}°C\n"
-                # LLM을 사용하여 기온에 따른 날씨 상황 설명 추가
-                weather_description = self._get_llm_weather_description(temp_float)
-                message += f"✨ **날씨 상황**: {weather_description}\n"
-            except ValueError:
-                message += f"🌡️ **기온**: {temp}°C (온도 정보 처리 중 오류 발생)\n"
-        if sky:
-            message += f"☁️ **하늘**: {sky}\n"
-        if precip_type and precip_type != "강수 없음":
-            message += f"💧 **강수 형태**: {precip_type}\n"
-
-        # 강수량이 있고, 0mm가 아닐 때만 표시
-        if precip_amount and float(precip_amount) > 0:
-            message += f"☔ **시간당 강수량**: {precip_amount}mm\n"
-
+    
+    def analyze_with_prompt(self, user_input: str, context: str = "", session_summary: str = "") -> Dict:
+        """프롬프트 기반으로 종합적인 분석 수행"""
         
+        system_prompt = """당신은 의류 추천 시스템의 메인 분석기입니다.
+사용자의 입력을 종합적으로 분석하여 다음을 수행해주세요:
 
-        return ToolResult(success=True, message=message, products=[], metadata={"weather_data": weather_data})
+1. Intent 분류: search, conversation, weather, general
+2. 필터링 조건 추출
+3. 분석 요약 생성
 
-    def search_products(self, intent_result: IntentResult, available_products: List[Dict]) -> ToolResult:
-        """상품 검색을 수행합니다."""
+컨텍스트 정보:
+- 이전 대화 내용: {context}
+- 세션 요약: {session_summary}
 
-        print(f"=== 상품 검색 시작 ===")
-        print(f"검색 쿼리: {intent_result.original_query}")
+다음 JSON 형식으로 응답:
+{{
+    "intent": "search|conversation|followup|weather|general",
+    "confidence": 0.0-1.0,
+    "filtering_conditions": {{
+        "colors": ["추출된 색상들"],
+        "categories": ["추출된 카테고리들"],
+        "situations": ["추출된 상황들"],
+        "styles": ["추출된 스타일들"],
+        "keywords": ["기타 키워드들"],
+        "locations": ["지역명들"]
+    }},
+    "analysis_summary": "분석 결과 요약"
+}}
 
-        # 정확 매칭 필터링 사용
-        matched_products = exact_match_filter(intent_result.original_query, available_products)
+Intent 분류 기준:
+- search: 구체적인 상품 검색 ("파란색 셔츠", "청바지 추천")
+- conversation: 상황별 추천 ("데이트룩", "면접복", "파티룩")  
+- followup: 이전 추천에 대한 후속 질문 ("이것들중에 제일 싼거", "더 비싼 것도 있어?", "첫 번째가 좋을까?")
+- weather: 날씨 관련 ("오늘 날씨", "서울 날씨")
+- general: 일반 대화 ("안녕", "고마워")
 
-        if not matched_products:
-            return ToolResult(
-                success=False,
-                message=f"'{intent_result.original_query}'에 맞는 상품을 찾지 못했습니다. 다른 조건으로 검색해보세요.",
-                products=[],
-                metadata={"error": "no_matched_products"}
-            )
-
-        # 검색 결과 메시지 생성
-        message = f"'{intent_result.original_query}' 검색 결과입니다! 🔍\n\n"
-
-        # 상의/하의 분류
-        top_products = []
-        bottom_products = []
-
-        for product in matched_products:
-            if product.get("is_top", False):
-                top_products.append(product)
-            elif product.get("is_bottom", False):
-                bottom_products.append(product)
-
-        # 상의 섹션
-        if top_products:
-            message += "👕 **상의**\n"
-            for i, product in enumerate(top_products[:3], 1):
-                product_name = product.get('상품명', '상품명 없음')
-                brand = product.get('한글브랜드명', '브랜드 없음')
-                # 원가 우선 사용
-                price = product.get('원가', 0)
-
-                message += f"**{i}. {product_name}**\n"
-                message += f"   📍 브랜드: {brand}\n"
-                if price:
-                    message += f"   💰 가격: {price:,}원\n"
-                message += "\n"
-
-        # 하의 섹션
-        if bottom_products:
-            message += "👖 **하의**\n"
-            for i, product in enumerate(bottom_products[:3], 1):
-                product_name = product.get('상품명', '상품명 없음')
-                brand = product.get('한글브랜드명', '브랜드 없음')
-                # 원가 우선 사용
-                price = product.get('원가', 0)
-
-                message += f"**{i}. {product_name}**\n"
-                message += f"   📍 브랜드: {brand}\n"
-                if price:
-                    message += f"   💰 가격: {price:,}원\n"
-                message += "\n"
-
-        return ToolResult(
-            success=True,
-            message=message,
-            products=matched_products,
-            metadata={"search_query": intent_result.original_query}
-        )
-
-    def _handle_general_conversation(self, intent_result: IntentResult) -> ToolResult:
-        """일반적인 대화를 처리합니다."""
-
-        general_responses = {
-            "안녕": "안녕하세요! 👋 의류 추천을 도와드릴게요. 어떤 옷을 찾고 계신가요?",
-            "도움말": "저는 의류 추천 챗봇입니다! 🛍️\n\n• 구체적인 검색: '파란색 셔츠 추천해줘'\n• 상황별 추천: '데이트룩 추천해줘'\n• 일반 대화도 가능해요!",
-            "감사": "천만에요! 😊 더 필요한 것이 있으시면 언제든 말씀해주세요.",
-            "고마워": "천만에요! 😊 더 필요한 것이 있으시면 언제든 말씀해주세요."
-        }
-
-        user_input_lower = safe_lower(intent_result.original_query)
-
-        # 키워드 매칭 시도
-        for keyword, response in general_responses.items():
-            if keyword in user_input_lower:
-                return ToolResult(
-                    success=True,
-                    message=response,
-                    products=[],
-                    metadata={"conversation_type": "general"}
-                )
-
-        # 의류와 관련 없는 질문인지 확인
-        clothing_keywords = ["옷", "의류", "패션", "스타일", "셔츠", "바지", "치마", "드레스", "코트", "재킷", "니트", "후드", "티셔츠", "청바지", "운동복", "정장", "데이트", "면접", "파티", "결혼식", "졸업식"]
-
-        has_clothing_context = any(keyword in user_input_lower for keyword in clothing_keywords)
-
-        if not has_clothing_context:
-            # 의류와 관련 없는 질문에 대한 응답
-            return ToolResult(
-                success=True,
-                message="저는 의류 추천 전문 챗봇이에요! 👗\n\n의류나 패션에 관한 질문을 해주시면 도움을 드릴 수 있어요.\n\n예시:\n• '파란색 셔츠 추천해줘'\n• '데이트룩 추천해줘'\n• '면접복 추천해줘'",
-                products=[],
-                metadata={"conversation_type": "general", "non_clothing_question": True}
-            )
-
-        # 기본 응답 (의류 관련이지만 구체적이지 않은 경우)
-        return ToolResult(
-            success=True,
-            message="안녕하세요! 의류 추천을 도와드릴게요. 어떤 옷을 찾고 계신가요? 👕\n\n구체적으로 말씀해주시면 더 정확한 추천을 드릴 수 있어요!",
-            products=[],
-            metadata={"conversation_type": "general"}
-        )
-
-    def _get_llm_weather_description(self, temperature: float) -> str:
-        """기온에 따라 날씨 상황을 설명합니다. 규칙 기반을 우선 사용하고, 필요시 LLM을 호출합니다."""
-        
-        # 규칙 기반 날씨 설명
-        if temperature >= 35:
-            return "폭염, 숨 막히는 더위"
-        if temperature >= 30:
-            return "한여름, 매우 더운 날씨"
-        if temperature >= 28:
-            return "본격적인 여름 날씨"
-        if temperature >= 25:
-            return "초여름 날씨"
-        if temperature >= 20:
-            return "따뜻한 봄 날씨"
-        if temperature >= 15:
-            return "선선한 가을 날씨"
-        if temperature >= 10:
-            return "쌀쌀한 가을 날씨"
-        if temperature >= 5:
-            return "쌀쌀한 초겨울 날씨"
-        if temperature < 5:
-            return "추운 겨울 날씨"
-
-        # 규칙에 해당하지 않는 경우에만 LLM 호출 (현재 로직 상 모든 경우를 커버하므로 이 부분은 예비용)
-        system_prompt = """당신은 날씨 전문가입니다.
-        섭씨 온도가 주어지면, 해당 기온에 따른 날씨 상황을 간결하고 자연스러운 한국어 문구로 설명해주세요.
-        예시:
-        - 23도:過ごしやすい春の終わり
-        - 18도:過ごしやすい秋の日
-        """
-        user_prompt = f"현재 기온: {temperature}°C"
+**중요**: 컨텍스트에서 이전에 상품 추천이 있었다면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요."""
 
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
+            {"role": "system", "content": system_prompt.format(
+                context=context,
+                session_summary=session_summary
+            )},
+            {"role": "user", "content": f"사용자 입력: {user_input}"}
         ]
-
+        
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.7,
-                max_tokens=50
+                temperature=0.2,
+                max_tokens=800
             )
-            raw_llm_desc_content = response.choices[0].message.content.strip()
-            print(f"DEBUG: Raw LLM weather description content: {raw_llm_desc_content}")
-            return raw_llm_desc_content
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+            
         except Exception as e:
-            print(f"LLM 날씨 설명 요청 오류: {e}")
-            # 오류 발생 시 가장 안전한 기본값 반환
-            return "날씨 정보를 확인 중입니다"
+            print(f"메인 분석 오류: {e}")
+            # 오류 시 기본값 반환
+            return {
+                "intent": "general",
+                "confidence": 0.0,
+                "filtering_conditions": {"keywords": [user_input]},
+                "analysis_summary": "분석 중 오류 발생"
+            }
+
+
+
+class LLMService:
+    """LangGraph 기반 LLM 서비스"""
+    
+    def __init__(self):
+        # Core analyzers (메모리 분석기 제거, 메인 분석기만 사용)
+        self.main_analyzer = MainAnalyzer()
+        
+        # Specialized agents
+        self.search_agent = SearchAgent()
+        self.conversation_agent = ConversationAgent()
+        self.weather_agent = WeatherAgent()
+        self.general_agent = GeneralAgent()
+        self.unified_summary_agent = UnifiedSummaryAgent()
+        self.followup_agent = FollowUpAgent()
+        print("✅ FollowUpAgent 초기화 완료")
+        
+        # 기존 IntentAnalyzer 제거 - 항상 MainAnalyzer 사용
+    
+    async def process_user_input(self, user_input: str, session_id: int, user_id: int, 
+                                available_products: List[Dict], db=None, 
+                                latitude: Optional[float] = None, 
+                                longitude: Optional[float] = None) -> LLMResponse:
+        """LangGraph 스타일로 사용자 입력 처리"""
+        
+
+        
+        # 초기 상태 생성
+        state = LangGraphState(
+            user_input=user_input,
+            session_id=session_id,
+            user_id=user_id,
+            latitude=latitude,
+            longitude=longitude
+        )
+        
+        # LangGraph 스타일 처리 플로우
+        state = await self._memory_analysis_node(state, db)
+        state = await self._intent_analysis_node(state, db)
+        state = await self._agent_execution_node(state, available_products, db)
+        state = await self._summary_update_node(state, db)
+        
+        # 분석 결과 구성 (항상 IntentResult로 통일)
+        
+        # 항상 IntentResult로 통일
+        analysis_result = IntentResult(
+            intent=state.intent,
+            confidence=1.0,
+            extracted_info=state.extracted_info if hasattr(state, 'extracted_info') else {},
+            original_query=state.user_input
+        )
+
+        # 최종 응답 구성
+        return LLMResponse(
+            final_message=state.final_message,
+            products=state.products,
+            analysis_result=analysis_result,
+            summary_result=state.summary_result if hasattr(state, 'summary_result') else None,
+            metadata={
+                "intent": state.intent,
+                "always_uses_context": True,
+                "agent_type": getattr(analysis_result, 'metadata', {}).get('agent_type', state.intent),
+                "context_summaries_count": len(state.context_summaries)
+            }
+        )
+    
+    async def _memory_analysis_node(self, state: LangGraphState, db) -> LangGraphState:
+        """메모리 로드 노드 - 항상 컨텍스트 로드"""
+        if db:
+            state.context_summaries = get_recent_qa_summaries(db, state.session_id, limit=3)
+        else:
+            state.context_summaries = []
+        
+        return state
+    
+    async def _intent_analysis_node(self, state: LangGraphState, db) -> LangGraphState:
+        """의도 분석 노드 - 항상 메모리 기반 분석 사용"""
+        context_str = " | ".join(state.context_summaries) if state.context_summaries else "이전 대화 없음"
+        
+        analysis_result = self.main_analyzer.analyze_with_prompt(
+            state.user_input, context_str, ""
+        )
+        
+        state.intent = analysis_result.get("intent", "general")
+        state.extracted_info = analysis_result.get("filtering_conditions", {})
+        
+        return state
+    
+    async def _agent_execution_node(self, state: LangGraphState, available_products: List[Dict], db) -> LangGraphState:
+        """Agent 실행 노드 - 의도에 따라 적절한 Agent 호출"""
+        try:
+            if state.intent == "followup":
+                result = self.followup_agent.process_follow_up_question(
+                    state.user_input, 
+                    db, 
+                    state.user_id,
+                    state.session_id
+                )
+                
+                state.agent_result = result
+                state.final_message = result.message
+                state.products = result.products
+                
+            elif state.intent == "search":
+                # Search Agent 실행
+                result = self.search_agent.process_search_request(
+                    state.user_input, 
+                    state.extracted_info, 
+                    available_products,
+                    context_info={"previous_summaries": state.context_summaries} if state.context_summaries else None,
+                    db=db,
+                    user_id=state.user_id
+                )
+                state.agent_result = result
+                state.final_message = result.message
+                state.products = result.products
+                
+            elif state.intent == "conversation":
+                # Conversation Agent 실행 (순수 상황별 추천만)
+                result = self.conversation_agent.process_conversation_request(
+                    state.user_input,
+                    state.extracted_info,
+                    available_products,
+                    context_summaries=state.context_summaries,
+                    db=db,
+                    user_id=state.user_id
+                )
+                state.agent_result = result
+                state.final_message = result.message
+                state.products = result.products
+                
+            elif state.intent == "weather":
+                # Weather Agent 실행
+                result = await self.weather_agent.process_weather_request(
+                    state.user_input,
+                    state.extracted_info,
+                    latitude=state.latitude,
+                    longitude=state.longitude
+                )
+                state.agent_result = result
+                state.final_message = result.message
+                state.products = result.products
+                
+                # 날씨 응답에 의류 추천 추가
+                if result.success:
+                    state = await self._enhance_weather_with_clothing(state, db)
+                
+            else:  # general
+                # General Agent 실행
+                result = self.general_agent.process_general_request(
+                    state.user_input,
+                    state.extracted_info,
+                    context_summaries=state.context_summaries
+                )
+                state.agent_result = result
+                state.final_message = result.message
+                state.products = result.products
+                
+        except Exception as e:
+            # 오류 발생 시 일반 에이전트로 fallback
+            try:
+                result = self.general_agent.process_general_request(
+                    state.user_input,
+                    state.extracted_info if hasattr(state, 'extracted_info') else {},
+                    context_summaries=state.context_summaries
+                )
+                state.agent_result = result
+                state.final_message = result.message
+                state.products = result.products
+            except Exception:
+                state.final_message = "죄송합니다. 요청을 처리하는 중 오류가 발생했습니다."
+                state.products = []
+        
+        return state
+    
+    async def _summary_update_node(self, state: LangGraphState, db) -> LangGraphState:
+        """통합 요약 업데이트 노드 - LLM 최종 답변까지 포함한 완전한 요약"""
+        if not db:
+            return state
+        
+        try:
+            # 기존 요약 조회
+            existing_summary = None
+            try:
+                from crud.chat_crud import get_recent_qa_summaries
+                recent_summaries = get_recent_qa_summaries(db, state.session_id, limit=1)
+                if recent_summaries:
+                    existing_summary = recent_summaries[0]
+            except Exception:
+                pass
+            
+            # 통합 서머리 에이전트로 완전한 Q/A 요약 생성
+            summary_result = self.unified_summary_agent.process_complete_qa_summary(
+                user_input=state.user_input,
+                llm_final_response=state.final_message,
+                existing_summary=existing_summary
+            )
+            
+            # 상태에 요약 정보 저장
+            state.summary_to_save = summary_result.summary_text
+            state.summary_result = summary_result
+            
+        except Exception:
+            # 오류 시 간단한 fallback 요약 생성
+            fallback_summary = f"Q: {state.user_input[:30]}... → A: {state.final_message[:50]}..."
+            state.summary_to_save = fallback_summary
+        
+        return state
+    
+    async def _enhance_weather_with_clothing(self, state: LangGraphState, db) -> LangGraphState:
+        """날씨 응답에 실제 상품 추천 추가 (CommonSearch 사용)"""
+        try:
+            # 날씨 정보에서 기온 추출
+            weather_info = self.weather_agent.extract_weather_info_from_message(state.final_message)
+            
+            if weather_info and weather_info.get("temperature") is not None:
+                # 사용자 성별 정보 가져오기 (임시로 "남성" 사용)
+                user_gender = "남성"  # TODO: 실제 사용자 정보에서 가져오기
+                
+                # 의류 카테고리 추천 생성
+                recommended_clothing = recommend_clothing_by_weather(
+                    weather_info["weather_description"], 
+                    user_gender
+                )
+                
+                # CommonSearch를 사용해 실제 상품 검색
+                if recommended_clothing and any(recommended_clothing.values()):
+                    weather_products = await self._search_weather_products(
+                        recommended_clothing, state, db
+                    )
+                    
+                    if weather_products:
+                        # 기존 상품 목록에 추가
+                        state.products.extend(weather_products[:3])  # 최대 3개 추가
+                        
+                        # 날씨 기반 추천도 recommendation 테이블에 저장
+                        self._save_weather_recommendations(db, state.user_id, weather_info["weather_description"], weather_products[:3])
+                        
+                        # 추천 메시지에 실제 상품 정보 추가
+                        clothing_message = f"\n\n🎯 **오늘 날씨 맞춤 상품**\n"
+                        for i, product in enumerate(weather_products[:3], 1):
+                            product_name = product.get('상품명', '상품명 없음')
+                            brand = product.get('한글브랜드명', '브랜드 없음')
+                            price = product.get('원가', 0)
+                            
+                            clothing_message += f"**{i}. {product_name}**\n"
+                            clothing_message += f"   📍 브랜드: {brand}\n"
+                            if price:
+                                clothing_message += f"   💰 가격: {price:,}원\n"
+                            clothing_message += "\n"
+                        
+                        state.final_message += clothing_message
+                    else:
+                        # 실제 상품이 없으면 기존 카테고리 추천만 표시
+                        clothing_parts = []
+                        for category, items in recommended_clothing.items():
+                            if items:
+                                clothing_parts.append(f"{category}: {', '.join(items)}")
+                        
+                        if clothing_parts:
+                            clothing_message = f"\n\n🎯 **오늘 날씨 추천**\n{', '.join(clothing_parts)}을(를) 추천해 드려요!"
+                            state.final_message += clothing_message
+                        
+        except Exception as e:
+            print(f"날씨 의류 추천 오류: {e}")
+        
+        return state
+    
+    async def _search_weather_products(self, recommended_clothing: Dict, state: LangGraphState, db) -> List[Dict]:
+        """날씨 기반 추천 의류의 실제 상품 검색"""
+        try:
+            from services.common_search import CommonSearchModule, SearchQuery
+            from data_store import clothing_data
+            
+            search_module = CommonSearchModule()
+            all_products = []
+            
+            # 각 카테고리별로 검색
+            for category, items in recommended_clothing.items():
+                if not items:
+                    continue
+                    
+                # 검색 쿼리 구성
+                search_query = SearchQuery(
+                    categories=[category],
+                    keywords=items,
+                    colors=[],  # 색상 제한 없음
+                    situations=["날씨"],
+                    styles=[]
+                )
+                
+                # 상품 검색
+                if clothing_data:
+                    search_result = search_module.search_products(
+                        query=search_query,
+                        available_products=clothing_data
+                    )
+                    
+                    if search_result.products:
+                        all_products.extend(search_result.products[:2])  # 카테고리당 최대 2개
+            
+            # 중복 제거
+            seen_ids = set()
+            unique_products = []
+            for product in all_products:
+                product_id = product.get("상품코드", "")
+                if product_id and product_id not in seen_ids:
+                    seen_ids.add(product_id)
+                    unique_products.append(product)
+            
+            print(f"날씨 기반 상품 검색 결과: {len(unique_products)}개")
+            return unique_products[:4]  # 최대 4개 반환
+            
+        except Exception as e:
+            print(f"날씨 상품 검색 오류: {e}")
+            return []
+    
+    def _save_weather_recommendations(self, db, user_id: int, weather_desc: str, products: List[Dict]):
+        """날씨 기반 추천을 recommendation 테이블에 저장"""
+        try:
+            from crud.recommendation_crud import create_multiple_recommendations
+            
+            recommendations_data = []
+            for product in products:
+                item_id = product.get("상품코드", 0)
+                if item_id:
+                    recommendations_data.append({
+                        "item_id": item_id,
+                        "query": f"날씨 기반 추천 ({weather_desc})",
+                        "reason": f"{weather_desc}에 적합한 의류"
+                    })
+            
+            if recommendations_data:
+                create_multiple_recommendations(db, user_id, recommendations_data)
+                print(f"✅ 날씨 기반 추천 {len(recommendations_data)}개를 recommendation 테이블에 저장했습니다.")
+            else:
+                print("⚠️ 저장할 날씨 추천이 없습니다.")
+                
+        except Exception as e:
+            print(f"❌ 날씨 추천 저장 중 오류: {e}")
+            # 저장 실패해도 추천은 계속 진행
+    
+    # Legacy methods 완전 제거됨 - LangGraph 에이전트 시스템으로 대체
+    # 모든 처리가 _agent_execution_node에서 통합 처리됨

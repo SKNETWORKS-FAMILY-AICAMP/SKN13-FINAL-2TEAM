@@ -23,9 +23,7 @@ from crud.chat_crud import (
     get_chat_history_for_llm
 )
 from services.llm_service import LLMService, LLMResponse
-from services.intent_analyzer import ChatMessage, IntentResult, analyze_user_intent, analyze_user_intent_with_context
-from services.recommendation_engine import ToolResult
-from services.product_filter import exact_match_filter, situation_filter
+# 기존 imports 완전 제거됨 - LangGraph 시스템으로 통일
 from services.clothing_recommender import recommend_clothing_by_weather
 from utils.safe_utils import safe_lower, safe_str
 
@@ -38,9 +36,11 @@ llm_service = LLMService()
 
 # initialize_chatbot_data 함수 제거됨 - main.py에서 통합 관리
 
-# analyze_user_intent 함수는 services/intent_analyzer.py에서 import하여 사용
+# 기존 analyze_user_intent 함수 제거됨 - LangGraph MainAnalyzer 사용
 
-def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
+# LEGACY: 기존 필터링 함수들 (현재 사용하지 않음 - LangGraph 에이전트가 대체)
+# Legacy 필터링 함수들 - 사용되지 않음, 정리 예정
+def exact_match_filter_legacy(user_input: str, products: List[Dict]) -> List[Dict]:
     """정확 매칭 필터링 - DB 대분류 기반 + 정확한 카테고리 매칭"""
     # None 값 안전 처리 - safe_lower 사용
     user_input_lower = safe_lower(user_input)
@@ -308,7 +308,7 @@ def exact_match_filter(user_input: str, products: List[Dict]) -> List[Dict]:
     
     return result
 
-def get_situation_style(situation: str) -> dict:
+def get_situation_style_legacy(situation: str) -> dict:
     """상황별 스타일 정보"""
     styles = {
         "졸업식": {
@@ -339,9 +339,9 @@ def get_situation_style(situation: str) -> dict:
     
     return styles.get(situation, styles["외출"])
 
-def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
+def situation_filter_legacy(situation: str, products: List[Dict]) -> List[Dict]:
     """상황별 필터링"""
-    style_info = get_situation_style(situation)
+    style_info = get_situation_style_legacy(situation)
     matched_products = []
     
     print(f"=== {situation} 상황별 필터링 ===")
@@ -369,7 +369,7 @@ def situation_filter(situation: str, products: List[Dict]) -> List[Dict]:
     
     return result
 
-def analyze_user_intent_with_context(user_input: str, conversation_context: str = "") -> dict:
+def analyze_user_intent_with_context_legacy(user_input: str, conversation_context: str = "") -> dict:
     """사용자 의도 분석 (대화 컨텍스트 고려)"""
     # None 값 안전 처리 - safe_lower 사용
     user_input_lower = safe_lower(user_input)
@@ -455,67 +455,52 @@ async def chat_recommend(
 ):
     """챗봇 추천 API - LLM Agent 기반"""
     try:
-        print(f"챗봇 요청: {user_input}, 세션: {session_id}, 사용자: {user_name}")
-        
         # 사용자 정보 가져오기
         user = get_user_by_username(db, user_name)
         if not user:
-            print(f"사용자를 찾을 수 없음: {user_name}")
             return JSONResponse(content={
                 "message": "사용자 정보를 찾을 수 없습니다.",
                 "products": []
             })
-        
-        print(f"사용자 ID: {user.id}")
         
         # 세션 처리
         if session_id:
             # 기존 세션 사용
             chat_session = get_chat_session_by_id(db, session_id, user.id)
             if not chat_session:
-                print(f"세션을 찾을 수 없음: {session_id}")
                 return JSONResponse(content={
                     "message": "세션을 찾을 수 없습니다.",
                     "products": []
                 })
         else:
-            # 항상 새로운 세션 생성 (기존 세션 재사용하지 않음)
+            # 항상 새로운 세션 생성
             session_name = f"{user_input[:20]}{'...' if len(user_input) > 20 else ''}"
             chat_session = create_chat_session(db, user.id, session_name)
-            print(f"새 세션 생성: {chat_session.id} - {session_name}")
         
         # 사용자 메시지 저장
         user_message = create_chat_message(db, chat_session.id, "user", user_input)
-        print(f"사용자 메시지 저장: {user_message.id}")
         
-        # 대화 컨텍스트 가져오기 (최근 3쌍)
+        # 대화 컨텍스트 가져오기
         conversation_context = get_conversation_context(db, chat_session.id, max_messages=6)
-        print(f"대화 컨텍스트: {conversation_context}")
         
-        # LLM Agent를 통해 의도 분석 및 응답 생성 (분리된 서비스 사용)
+        # LLM Agent를 통해 의도 분석 및 응답 생성 (LangGraph 기반)
         try:
-            # ChatMessage 리스트로 변환
-            chat_history_for_llm = []
-            if conversation_context:
-                # 간단한 형태로 변환 (실제로는 더 복잡한 파싱이 필요할 수 있음)
-                chat_history_for_llm = [ChatMessage(role="user", content=conversation_context)]
-            
-            llm_response: LLMResponse = await llm_service.analyze_intent_and_call_tool(
+            llm_response: LLMResponse = await llm_service.process_user_input(
                 user_input=user_input,
-                chat_history=chat_history_for_llm,
+                session_id=chat_session.id,
+                user_id=user.id,
                 available_products=clothing_data if clothing_data else [],
                 db=db,
-                user_id=user.id,
                 latitude=latitude,
                 longitude=longitude
             )
             
             message = llm_response.final_message
             products = llm_response.products
-            print(f"DEBUG: llm_response.final_message: {llm_response.final_message}") # NEW PRINT
 
             # 날씨 의도 처리 및 의류 추천 통합
-            if llm_response.intent_result.intent == "weather":
+            intent = getattr(llm_response.analysis_result, 'intent', 'unknown')
+            if intent == "weather":
                 import re
                 temperature = None
                 weather_description = None
@@ -616,28 +601,24 @@ async def chat_recommend(
             else:
                 message = llm_response.final_message
             
-            print(f"LLM 응답 - 의도: {llm_response.intent_result.intent}, 제품 수: {len(products)}")
+
             
-            # 상품 링크 디버깅
-            if products:
-                print("=== 상품 링크 디버깅 ===")
-                for i, product in enumerate(products[:3]):  # 처음 3개만 확인
-                    print(f"상품 {i+1}: {product.get('상품명', 'N/A')}")
-                    print(f"  - 상품링크: '{product.get('상품링크', 'N/A')}'")
-                    print(f"  - 링크: '{product.get('링크', 'N/A')}'")
-                    print(f"  - URL: '{product.get('URL', 'N/A')}'")
-                    print(f"  - 모든 키: {list(product.keys())}")
-                    print("---")
-            
-        except Exception as e:
-            print(f"LLM 처리 오류: {e}")
+        except Exception:
             # LLM 오류 시 기본 응답
             message = f"'{user_input}'에 대한 의류를 찾아보겠습니다! 🔍"
             products = []
         
-        # 챗봇 응답 저장
-        bot_message = create_chat_message(db, chat_session.id, "bot", message)
-        print(f"봇 메시지 저장: {bot_message.id}")
+        # 챗봇 응답 저장 (서머리 포함)
+        try:
+            # LLM 응답에서 서머리 결과 추출
+            summary_text = None
+            if hasattr(llm_response, 'summary_result') and llm_response.summary_result and llm_response.summary_result.success:
+                summary_text = llm_response.summary_result.summary_text
+            
+            bot_message = create_chat_message(db, chat_session.id, "bot", message, summary_text)
+        except Exception:
+            # 오류 시 서머리 없이 저장
+            bot_message = create_chat_message(db, chat_session.id, "bot", message)
         
         return JSONResponse(content={
             "message": message,
@@ -646,10 +627,7 @@ async def chat_recommend(
             "session_name": chat_session.session_name
         })
         
-    except Exception as e:
-        print(f"챗봇 오류: {e}")
-        import traceback
-        traceback.print_exc()
+    except Exception:
         return JSONResponse(content={
             "message": "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.",
             "products": []

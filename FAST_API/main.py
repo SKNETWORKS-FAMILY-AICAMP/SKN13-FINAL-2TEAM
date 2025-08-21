@@ -29,6 +29,7 @@ from routers.router_mypage import router as mypage_router
 from routers.router_products import router as products_router
 from routers.router_survey import router as survey_router
 from routers.router_chatbot import router as chatbot_router
+from routers.router_chatbot_new import router as chatbot_new_router
 from routers.router_cache_admin import router as cache_admin_router
 
 app = FastAPI()
@@ -68,6 +69,7 @@ app.include_router(mypage_router, prefix="/mypage", tags=["Mypage"])
 app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(survey_router, prefix="/survey", tags=["Survey"])
 app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
+app.include_router(chatbot_new_router, prefix="/chat-new", tags=["Chatbot New"])
 app.include_router(cache_admin_router, prefix="/admin", tags=["Cache Admin"])
 
 # 404 에러 핸들러

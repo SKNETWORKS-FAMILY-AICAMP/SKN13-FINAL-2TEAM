@@ -147,6 +147,25 @@ def _migrate_chat_tables() -> None:
         except Exception as e:
             print(f"챗봇 테이블 마이그레이션 중 오류 (테이블이 없을 수 있음): {e}")
 
+        # chat_messages 테이블 컬럼 조회 및 수정
+        try:
+            message_cols = conn.execute(
+                text("""
+                    SELECT column_name, is_nullable 
+                    FROM information_schema.columns
+                    WHERE table_name = 'chat_messages' AND table_schema = 'public'
+                """)
+            ).fetchall()
+            message_cols_dict = {col[0]: col[1] for col in message_cols}
+
+            # summary 컬럼이 존재하고 NOT NULL이면 NULL 허용으로 변경
+            if 'summary' in message_cols_dict and message_cols_dict['summary'] == 'NO':
+                conn.execute(text("ALTER TABLE public.chat_messages ALTER COLUMN summary DROP NOT NULL"))
+                print("✅ chat_messages 테이블의 summary 컬럼을 NULL 허용으로 변경 완료")
+
+        except Exception as e:
+            print(f"chat_messages 컬럼 수정 중 오류: {e}")
+
         # chat_messages 테이블 제약 조건 확인 및 추가
         try:
             # 기존 제약 조건 확인 (올바른 뷰 조합 사용)

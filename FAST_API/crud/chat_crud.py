@@ -61,6 +61,9 @@ def update_session_name(db: Session, session_id: int, user_id: int, new_name: st
     return False
 
 
+
+
+
 def delete_chat_session(db: Session, session_id: int, user_id: int) -> bool:
     """챗봇 세션을 삭제합니다."""
     session = get_chat_session_by_id(db, session_id, user_id)
@@ -71,24 +74,98 @@ def delete_chat_session(db: Session, session_id: int, user_id: int) -> bool:
     return False
 
 
-def create_chat_message(db: Session, session_id: int, message_type: str, text: str) -> ChatMessage:
+def create_chat_message(db: Session, session_id: int, message_type: str, text: str, summary: Optional[str] = None) -> ChatMessage:
     """챗봇 메시지를 생성합니다."""
-    message = ChatMessage(
-        session_id=session_id,
-        message_type=message_type,
-        text=text
-    )
-    db.add(message)
-    db.commit()
-    db.refresh(message)
-    
-    # 세션의 updated_at 업데이트
-    session = db.get(ChatSession, session_id)
-    if session:
-        session.updated_at = datetime.utcnow()
+    try:
+        message = ChatMessage(
+            session_id=session_id,
+            message_type=message_type,
+            text=text,
+            summary=summary
+        )
+        db.add(message)
         db.commit()
+        db.refresh(message)
+        
+        # 세션의 updated_at 업데이트
+        session = db.get(ChatSession, session_id)
+        if session:
+            session.updated_at = datetime.utcnow()
+            db.commit()
+        
+        return message
+    except Exception as e:
+        db.rollback()
+        # summary가 None일 때 문제가 발생하면 빈 문자열로 재시도
+        if summary is None and "null value" in str(e).lower():
+            print(f"Warning: summary 컬럼에 NULL 허용되지 않음. 빈 문자열로 재시도: {e}")
+            message = ChatMessage(
+                session_id=session_id,
+                message_type=message_type,
+                text=text,
+                summary=""
+            )
+            db.add(message)
+            db.commit()
+            db.refresh(message)
+            
+            # 세션의 updated_at 업데이트
+            session = db.get(ChatSession, session_id)
+            if session:
+                session.updated_at = datetime.utcnow()
+                db.commit()
+            
+            return message
+        else:
+            raise
+
+
+def update_message_summary(db: Session, message_id: int, summary: str) -> bool:
+    """메시지의 요약을 업데이트합니다."""
+    message = db.get(ChatMessage, message_id)
+    if message:
+        message.summary = summary
+        db.commit()
+        return True
+    return False
+
+
+def get_recent_qa_summaries(db: Session, session_id: int, limit: int = 5) -> List[str]:
+    """최근 Q/A 쌍의 요약들을 가져옵니다."""
+    stmt = select(ChatMessage).where(
+        ChatMessage.session_id == session_id,
+        ChatMessage.summary.isnot(None)
+    ).order_by(desc(ChatMessage.created_at)).limit(limit)
     
-    return message
+    messages = db.execute(stmt).scalars().all()
+    return [msg.summary for msg in messages if msg.summary]
+
+
+def get_qa_pair_for_summary(db: Session, session_id: int, user_message_id: int) -> Optional[Dict]:
+    """Q/A 쌍을 가져와서 요약 생성용 데이터로 반환합니다."""
+    # 사용자 메시지 가져오기
+    user_message = db.get(ChatMessage, user_message_id)
+    if not user_message or user_message.message_type != "user":
+        return None
+    
+    # 해당 사용자 메시지 이후의 첫 번째 bot 메시지 찾기
+    stmt = select(ChatMessage).where(
+        ChatMessage.session_id == session_id,
+        ChatMessage.message_type == "bot",
+        ChatMessage.created_at > user_message.created_at
+    ).order_by(ChatMessage.created_at).limit(1)
+    
+    bot_message = db.execute(stmt).scalar_one_or_none()
+    
+    if bot_message:
+        return {
+            "user_message": user_message.text,
+            "bot_message": bot_message.text,
+            "user_message_id": user_message.id,
+            "bot_message_id": bot_message.id
+        }
+    
+    return None
 
 
 def get_chat_messages(db: Session, session_id: int, limit: int = 10) -> List[ChatMessage]:

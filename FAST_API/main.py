@@ -94,7 +94,7 @@ async def startup_event():
     print("🚀 애플리케이션 시작: S3 데이터 로드를 시작합니다...")
     loaded_data = get_product_data_from_s3(s3_file_key)
     if loaded_data:
-        clothing_data.extend(loaded_data)
+        clothing_data.update(loaded_data)
         print(f"✅ S3 데이터 로드 완료: {len(clothing_data)}개 상품")
         
         # 데이터 사전 처리 및 캐싱

@@ -1,0 +1,75 @@
+[33m40916f1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mKyungJae[m[33m, [m[1;31morigin/KyungJae[m[33m)[m [성의] bug fix
+[33m8773109[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m033d343[m [성의] chatbot_fix
+[33mb806319[m Merge branch 'KyungJae' of github.com:SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33md203341[m feat: [민경재] SSL 설정 및 OpenAI 연결 복구 완료
+[33m33683e0[m feat: [김지민] UserData 삭제기능 업데이트 !
+[33m7259969[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m717a332[m fix: [김지민] 데이터 불러오는 방식 변경 & UI/UX 변경
+[33m6d7ab10[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33md08b953[m [성의] home_page fix
+[33m54d593f[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33mad74de2[m [성의] UI fix
+[33ma65ec3d[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m85a55c3[m feat: [김지민] 좋아요 싫어요 업데이트
+[33m1a20a1a[m feat :[김지민] 날씨 관련 업데이트 !
+[33m101bd16[m [성의] UI fix
+[33m6a16a45[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m72cc078[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m7d0f227[m [성의]UI fix
+[33mbb39db4[m feat :[김지민] 챗봇 날씨 API 연동 및 지도 API 연동
+[33m4dc95a6[m [성의]home_page func add
+[33m7d5eb33[m [성의]mypage add
+[33m5b8df40[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m08e1daa[m [성의]chatbot func add
+[33mea89fe5[m fix :[김지민] UI/UX 수정 !
+[33m1e1b7b3[m fix:[민경재] amended docker compose
+[33m6810fe7[m [성의]chatting func add
+[33m0dc99ff[m feat: [민경재] docker config
+[33m04a5182[m fix: [김지민] 웹 오류 수정 및 이쁘게 꾸몄습니다.
+[33mc62b661[m url 규격 통합
+[33m1585272[m feat: [김지민 홈화면 히어로섹션 이미지 캐러셀 적용
+[33m430f56a[m login 수정
+[33m2b7a123[m rds 연동
+[33m39c85f1[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m5797ffe[m db 연동
+[33m08145f1[m feat :[김지민] 몇개의 웹(앱) 이쁘게 수정했습니다.
+[33m3b85218[m feat: [김지민] css & html Update
+[33mcfba6d0[m fix :[김지민] 찜 비교 목록 css 및 html 수정
+[33mfc2b7e2[m feat: [홍성의] FASTAPI Update
+[33m86f9216[m feat: [김지민] FASTAPI Upgrade
+[33mf8a4705[m [성의]S3연동
+[33m8554288[m feat: [김지민] Legend 기능 추가
+[33m132240c[m feat: [김지민] 로그인 필수기능 추가
+[33me79c106[m .
+[33m646b36c[m Merge branch and update chatbot filtering logic with accurate category matching
+[33m627374a[m [성의]chat function
+[33m9c6b6b4[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33mcbf3139[m fix: [민경재] amended category filters
+[33me075707[m fix: [김지민] Update
+[33ma15ca8a[m fix: [민경재] amended product page
+[33m2b42251[m fix: [김지민] Change file structure
+[33m023a86a[m fix: [김지민] Change file structure
+[33md363ca5[m feat: [김지민] FAST_API_BASETOOL Upgrade
+[33mb0d1df7[m feat: [김지민] FAST_API_BASETOOL Upgrade
+[33m74330d2[m fix: [민경재] amended requirements.txt
+[33mfe5fcf5[m fix: [민경재] added mypage
+[33m3beba78[m fix: [민경재] amended file structure
+[33md203385[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m70f8c4d[m fix: [민경재] amended file structure
+[33m9c06757[m fix: [박수빈] auth.py 삭제
+[33m6a848e8[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m97d1dcb[m fix: [박수빈] social login add
+[33m8f5c787[m fix: [민경재] ammend review
+[33ma24123e[m fix: [김지민] FAST_API_TOOL upgrade
+[33m35896ff[m fix: [김지민] Netflix Style Update
+[33mcbb980b[m feat: [김지민] Page base tools upload
+[33m5a76a32[m feat: [민경재] fastapi 초기 설정
+[33m66f3cf5[m Merge branch 'KyungJae' of https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN13-FINAL-2TEAM into KyungJae
+[33m5d08891[m Include .gitignore before rebase
+[33mabd34e7[m Remove tracked pycache files
+[33m519af76[m feat: [김지민] add a  .gitignore
+[33m917768c[m feat:[민경재] created main, recommendation, cart, review
+[33m340f479[m feat:[민경재] django initial configurations
+[33m9ad8442[m Create LICENSE
+[33mf3f95df[m Initial commit

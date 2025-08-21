@@ -109,4 +109,12 @@ async def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    
+    ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
+    ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")
+    
+    if ssl_cert_file and ssl_key_file and os.path.exists(ssl_cert_file) and os.path.exists(ssl_key_file):
+        uvicorn.run(app, host="0.0.0.0", port=443, ssl_certfile=ssl_cert_file, ssl_keyfile=ssl_key_file)
+    else:
+        uvicorn.run(app, host="0.0.0.0", port=8000)

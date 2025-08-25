@@ -4,14 +4,24 @@ services:
   fastapi-app:
     build: .
     ports:
-      - "8000:8000"
+      - "443:443"
     environment:
+      # FASTAPI용 SSL 인증서는 유지
+      - FASTAPI_SSL_CERT_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/fullchain.pem
+      - FASTAPI_SSL_KEY_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/privkey.pem
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
+      - CURL_CA_BUNDLE=""
+      - REQUESTS_CA_BUNDLE=""
+      - PYTHONHTTPSVERIFY=0
+      # OpenAI용으로는 SSL 인증서 비활성화
+      - OPENAI_SSL_CERT_FILE=""
+      - OPENAI_SSL_KEY_FILE=""
     env_file:
       - .env
     volumes:
       - ./cache:/app/cache
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]

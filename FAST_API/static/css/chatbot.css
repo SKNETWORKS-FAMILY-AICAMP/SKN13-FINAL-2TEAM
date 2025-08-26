@@ -130,60 +130,12 @@
     to { transform: translateY(-5px); }
 }
 
-/* 추천 상품 스타일 추가 */
+/* 추천 상품 스타일 - 새로운 디자인 */
 .recommendations-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     margin-top: 10px;
-}
-
-.product-card {
-    background: #2a2a2a;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: transform 0.3s ease;
-    cursor: pointer;
-    border: 1px solid #444;
-}
-
-.product-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    border-color: #667eea; /* 호버시 보라색 테두리 */
-}
-
-.product-card img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-}
-
-.product-info {
-    padding: 10px;
-}
-
-.product-info h4 {
-    margin: 0 0 5px 0;
-    font-size: 0.9em;
-    color: white;
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.product-info .brand {
-    margin: 0 0 3px 0;
-    font-size: 0.8em;
-    color: #667eea; /* 브랜드명 보라색 */
-    font-weight: bold;
-}
-
-.product-info .price {
-    margin: 0;
-    font-size: 0.8em;
-    color: #ccc;
 }
 
 /* 플로팅 챗봇 위젯 */
@@ -269,247 +221,6 @@
 
 .widget-close-btn:hover {
     background: rgba(255, 255, 255, 0.2);
-}
-
-/* 세션 관리 버튼 */
-.widget-session-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 20px;
-    min-width: 80px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s ease;
-    margin-right: 8px;
-    white-space: nowrap;
-    word-break: keep-all;
-    overflow: hidden;
-    font-weight: 500;
-}
-
-.widget-session-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-/* 세션 사이드바 */
-.widget-session-sidebar {
-    position: absolute;
-    top: 0;
-    left: -350px;
-    width: 350px;
-    height: 100%;
-    background: white;
-    border-right: 1px solid #e9ecef;
-    transition: left 0.3s ease;
-    z-index: 1002;
-    display: flex;
-    flex-direction: column;
-}
-
-.widget-session-sidebar.active {
-    left: 0;
-}
-
-.session-sidebar-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.session-sidebar-header h4 {
-    margin: 0;
-    font-size: 1rem;
-}
-
-.session-sidebar-close {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s ease;
-}
-
-.session-sidebar-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.session-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 15px;
-}
-
-.session-item {
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid #e9ecef;
-    background: #f8f9fa;
-}
-
-.session-item:hover {
-    background: #e9ecef;
-    border-color: #667eea;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-}
-
-.session-item.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-color: #764ba2;
-    box-shadow: 0 2px 8px rgba(118, 75, 162, 0.3);
-}
-
-.session-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-}
-
-.session-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-    flex: 1;
-    margin-right: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.session-icon {
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-
-.session-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    color: #000000; /* 검은색으로 변경 */
-}
-
-.session-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.session-action-btn {
-    background: none;
-    border: none;
-    font-size: 12px;
-    cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 3px;
-    transition: background-color 0.3s ease;
-}
-
-.session-item.active .session-action-btn {
-    color: white;
-}
-
-.session-action-btn:hover {
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.session-item.active .session-action-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.session-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.75rem;
-    color: #6c757d;
-    margin-top: 4px;
-}
-
-.session-item.active .session-info {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.session-date {
-    font-weight: 500;
-}
-
-.session-message-count {
-    background: rgba(102, 126, 234, 0.2);
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 0.7rem;
-    font-weight: 500;
-}
-
-.session-item.active .session-message-count {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-}
-
-/* 새 세션 버튼 */
-.new-session-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 15px;
-    border-radius: 10px;
-    margin: 15px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-shadow: 0 2px 8px rgba(118, 75, 162, 0.2);
-}
-
-.new-session-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(118, 75, 162, 0.4);
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
-.new-session-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(118, 75, 162, 0.2);
-}
-
-/* 세션 이름 편집 */
-.session-name-edit {
-    display: none;
-    width: 100%;
-    padding: 5px;
-    border: 1px solid #667eea;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    outline: none;
-}
-
-.session-name-edit.active {
-    display: block;
 }
 
 /* 위젯 내용 */
@@ -658,18 +369,214 @@
     to { transform: translateX(0); }
 }
 
-/* 세션 오버레이 */
-.session-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1001;
-    display: none;
+/* 피드백 관련 애니메이션 */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
-.session-overlay.active {
-    display: block;
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* 챗봇 전용 상품 카드 스타일 */
+.chatbot-product-card {
+    display: flex;
+    gap: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    cursor: default;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 12px;
+    min-height: 80px;
+}
+
+
+
+.chatbot-product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #667eea;
+}
+
+.chatbot-product-card img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+
+.chatbot-product-card:hover img {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.chatbot-product-card img[src*="placeholder"] {
+    opacity: 0.7;
+}
+
+/* 챗봇 전용 찜하기 버튼 스타일 */
+.chatbot-jjim-btn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 36px;
+}
+
+.chatbot-jjim-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(231,76,60,0.4);
+    background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+}
+
+.chatbot-jjim-btn:active {
+    transform: scale(0.95);
+}
+
+/* 챗봇 전용 상품 보기 버튼 스타일 */
+.chatbot-view-btn {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    min-height: 36px;
+}
+
+.chatbot-view-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52,152,219,0.4);
+    background: linear-gradient(135deg, #5dade2, #3498db);
+}
+
+/* 피드백 모달 스타일 */
+.feedback-modal {
+    backdrop-filter: blur(5px);
+}
+
+.feedback-modal .modal-content {
+    animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* 피드백 버튼 활성화 상태 */
+.feedback-btn.active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* 상품 이미지 로딩 애니메이션 */
+.product-card img {
+    transition: opacity 0.3s ease;
+}
+
+.product-card img[src*="placeholder"] {
+    opacity: 0.7;
+}
+
+/* 챗봇 반응형 디자인 개선 */
+@media (max-width: 768px) {
+    .chatbot-product-card {
+        padding: 20px;
+        gap: 15px;
+        min-height: 100px;
+    }
+    
+    .chatbot-product-card img {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .chatbot-jjim-btn,
+    .chatbot-view-btn {
+        padding: 10px 16px;
+        font-size: 0.8rem;
+        min-height: 40px;
+    }
+    
+    .chatbot-product-card h4 {
+        font-size: 1rem !important;
+    }
+    
+    .chatbot-product-card p {
+        font-size: 0.8rem !important;
+    }
+    
+    .chatbot-product-card p:last-of-type {
+        font-size: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .chatbot-product-card {
+        padding: 16px;
+        gap: 12px;
+    }
+    
+    .chatbot-product-card img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .chatbot-jjim-btn,
+    .chatbot-view-btn {
+        padding: 8px 12px;
+        font-size: 0.75rem;
+        min-height: 36px;
+    }
 }

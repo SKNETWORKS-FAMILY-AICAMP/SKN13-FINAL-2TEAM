@@ -56,7 +56,7 @@ class FollowUpAgent:
             print("후속 질문 판정: True (키워드 기반)")
             return True
     
-    def process_follow_up_question(self, user_input: str, db, user_id: int, session_id: int = None) -> FollowUpAgentResult:
+    def process_follow_up_question(self, user_input: str, db, user_id: int, session_id: str = None) -> FollowUpAgentResult:
         """
         후속 질문 처리 (간소화 버전)
         
@@ -123,7 +123,7 @@ class FollowUpAgent:
                 metadata={"error": str(e), "agent_type": "followup"}
             )
     
-    def _get_recent_qa_data(self, db, user_id: int, session_id: int = None) -> List[Dict]:
+    def _get_recent_qa_data(self, db, user_id: int, session_id: str = None) -> List[Dict]:
         """특정 세션의 최근 Q/A 데이터 불러오기"""
         try:
             print(f"📥 Q/A 데이터 로드 시작 - 세션ID: {session_id}, 사용자ID: {user_id}")

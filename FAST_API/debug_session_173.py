@@ -17,7 +17,7 @@ def debug_session_173():
     from db import SessionLocal
     from crud.chat_crud import get_session_messages, get_chat_session_by_id
     
-    session_id = 173
+    session_id = "test-uuid-session-id"  # UUID 형식으로 변경
     user_id = 2
     
     db = SessionLocal()

@@ -50,7 +50,7 @@ async def mypage(request: Request, db: Session = Depends(get_db)):
     chat_sessions = get_user_chat_sessions(db, user.id, limit=3)
     chat_history = []
     for session in chat_sessions:
-        messages = get_session_messages(db, session.id, user.id)
+        messages = get_session_messages(db, str(session.id), user.id)
         if messages:
             # 딕셔너리 형태로 반환되므로 ['text']로 접근
             first_message = messages[0]['text'] if messages else ""
@@ -58,7 +58,7 @@ async def mypage(request: Request, db: Session = Depends(get_db)):
             # 시간을 +9시간으로 조정
             adjusted_time = session.created_at + timedelta(hours=9)
             chat_history.append({
-                'session_id': session.id,
+                'session_id': str(session.id),  # UUID를 문자열로 변환
                 'session_name': session.session_name,
                 'created_at': adjusted_time,
                 'first_message': first_message[:50] + "..." if len(first_message) > 50 else first_message,

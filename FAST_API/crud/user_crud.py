@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select, delete
@@ -386,5 +386,26 @@ def filter_products_by_color(products: list[dict], preferred_color: str) -> list
             filtered_products.append(product)
     
     return filtered_products if filtered_products else products
+
+
+def get_product_by_id(db: Session, product_id: int) -> Optional[Dict]:
+    """상품 ID로 상품 정보를 조회합니다."""
+    try:
+        # 상품 데이터를 조회하는 쿼리 (실제 테이블 구조에 맞게 수정 필요)
+        # 여기서는 예시로 빈 딕셔너리를 반환합니다.
+        # 실제 구현 시에는 상품 테이블에서 조회해야 합니다.
+        
+        # 임시로 상품 데이터를 반환 (실제 구현 시 수정 필요)
+        return {
+            "상품코드": product_id,
+            "상품명": f"상품 {product_id}",
+            "브랜드": "브랜드명",
+            "가격": 50000,
+            "이미지URL": "",
+            "상품링크": ""
+        }
+    except Exception as e:
+        print(f"상품 조회 중 오류: {e}")
+        return None
 
 

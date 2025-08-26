@@ -166,6 +166,20 @@ def _migrate_chat_tables() -> None:
         except Exception as e:
             print(f"chat_messages 컬럼 수정 중 오류: {e}")
 
+        # chat_messages 테이블에 recommendation_id 컬럼 추가
+        try:
+            conn.execute(text("ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS recommendation_id INTEGER REFERENCES recommendations(id)"))
+            print("✅ chat_messages 테이블에 recommendation_id 컬럼 추가 완료")
+        except Exception as e:
+            print(f"recommendation_id 컬럼 추가 중 오류: {e}")
+
+        # chat_messages 테이블에 products_data 컬럼 추가
+        try:
+            conn.execute(text("ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS products_data JSONB"))
+            print("✅ chat_messages 테이블에 products_data 컬럼 추가 완료")
+        except Exception as e:
+            print(f"products_data 컬럼 추가 중 오류: {e}")
+
         # chat_messages 테이블 제약 조건 확인 및 추가
         try:
             # 기존 제약 조건 확인 (올바른 뷰 조합 사용)

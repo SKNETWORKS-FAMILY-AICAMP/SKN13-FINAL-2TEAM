@@ -50,20 +50,20 @@ class CommonSearchModule:
         # 카테고리 키워드 매핑 (기존 로직에서 가져옴)
         self.category_keywords = {
             # 상의 카테고리
-            "후드티": ["후드", "후드티", "후드티셔츠", "hood", "hoodie"],
-            "셔츠블라우스": ["셔츠", "블라우스", "shirt", "blouse"],
+            "후드티": ["후드티", "후드", "후드티셔츠", "hood", "hoodie"],
+            "셔츠블라우스": ["셔츠", "블라우스", "와이셔츠", "드레스셔츠", "shirt", "blouse", "dress shirt"],
             "긴소매": ["긴소매", "긴팔", "long sleeve", "longsleeve"],
-            "반소매": ["반소매", "반팔", "티셔츠", "tshirt", "t-shirt", "tee"],
-            "피케카라": ["피케", "카라", "polo", "pique", "collar"],
-            "니트스웨터": ["니트", "스웨터", "knit", "sweater", "cardigan"],
+            "반소매": ["반소매", "반팔", "티셔츠", "반팔티", "tshirt", "t-shirt", "tee"],
+            "피케카라": ["피케", "카라", "폴로", "polo", "pique", "collar"],
+            "니트스웨터": ["니트", "스웨터", "가디건", "knit", "sweater", "cardigan"],
             "슬리브리스": ["슬리브리스", "민소매", "나시", "tank", "sleeveless"],
             "애슬레저": ["애슬레저", "운동복", "스포츠", "athleisure", "activewear"],
             
-            # 하의 카테고리
-            "데님팬츠": ["데님", "청바지", "jeans", "jean", "denim"],
-            "트레이닝조거팬츠": ["트레이닝", "조거", "운동복", "training", "jogger", "track"],
-            "코튼팬츠": ["코튼", "면바지", "cotton", "chino"],
-            "슈트팬츠슬랙스": ["슈트", "슬랙스", "정장", "suit", "slacks", "dress pants"],
+            # 하의 카테고리  
+            "데님팬츠": ["데님", "청바지", "진", "jeans", "jean", "denim"],
+            "트레이닝조거팬츠": ["트레이닝", "조거", "운동복", "스웻팬츠", "training", "jogger", "track", "sweatpants"],
+            "코튼팬츠": ["코튼", "면바지", "치노", "cotton", "chino"],
+            "슈트팬츠슬랙스": ["슈트", "슬랙스", "정장바지", "정장", "suit", "slacks", "dress pants"],
             "숏팬츠": ["숏팬츠", "반바지", "shorts", "short"],
             "레깅스": ["레깅스", "leggings"]
         }
@@ -172,8 +172,18 @@ class CommonSearchModule:
                 
                 for category in query.categories:
                     category_variants = self.category_keywords.get(category, [category])
-                    if any(safe_lower(variant) in 대분류 or safe_lower(variant) in 소분류 or safe_lower(variant) in 상품명
-                          for variant in category_variants):
+                    product_matched = False
+                    
+                    for variant in category_variants:
+                        variant_lower = safe_lower(variant)
+                        # 정확한 매칭을 위해 단어 경계 고려
+                        if (self._is_word_match(variant_lower, 대분류) or 
+                            self._is_word_match(variant_lower, 소분류) or 
+                            self._is_word_match(variant_lower, 상품명)):
+                            product_matched = True
+                            break
+                    
+                    if product_matched:
                         category_filtered.append(product)
                         break
             filtered = category_filtered
@@ -244,6 +254,32 @@ class CommonSearchModule:
             print(f"키워드 필터링 적용: {query.keywords} -> {len(filtered)}개 (점수 기반)")
         
         return filtered
+    
+    def _is_word_match(self, keyword: str, text: str) -> bool:
+        """
+        정확한 단어 매칭을 위한 헬퍼 함수
+        부분 문자열 매칭 문제를 해결하면서도 유연성 유지
+        """
+        if not keyword or not text:
+            return False
+        
+        # 기본 포함 검사
+        if keyword in text:
+            # 문제가 되는 케이스들을 명시적으로 제외
+            problematic_cases = [
+                ("셔츠", "티셔츠"),  # "셔츠"가 "티셔츠"와 매칭되는 것 방지
+                ("바지", "가방"),   # 혹시 모를 경우
+            ]
+            
+            for problem_keyword, problem_text in problematic_cases:
+                if (keyword == problem_keyword and 
+                    problem_text in text and 
+                    text.endswith(problem_text)):
+                    return False
+            
+            return True
+        
+        return False
     
     def _apply_context_filters(self, products: List[Dict], context_filters: Dict) -> List[Dict]:
         """컨텍스트 기반 추가 필터링"""

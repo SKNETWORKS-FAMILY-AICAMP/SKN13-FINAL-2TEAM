@@ -3,17 +3,17 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 80px); /* Adjust for header */
-    background-color: #141414; /* Dark background */
+    min-height: calc(100vh - 80px);
+    background-color: #141414;
     padding: 20px;
 }
 
 .signup-form {
-    background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent dark background */
+    background-color: rgba(0, 0, 0, 0.75);
     padding: 60px 68px 40px;
     border-radius: 4px;
     width: 100%;
-    max-width: 450px;
+    max-width: 600px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
@@ -28,12 +28,12 @@
     margin-bottom: 16px;
 }
 
-.signup-form .input-group input {
+.signup-form .input-group input:not([type="range"]):not(.value-input) {
     width: 100%;
     padding: 16px 20px;
     border: none;
     border-radius: 4px;
-    background-color: #333; /* Dark input background */
+    background-color: #333;
     color: #fff;
     font-size: 1em;
     box-sizing: border-box;
@@ -43,7 +43,7 @@
 .signup-button {
     width: 100%;
     padding: 16px;
-    background-color: #e50914; /* Netflix red */
+    background-color: #e50914;
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -74,4 +74,171 @@
 
 .login-link a:hover {
     text-decoration: underline;
+}
+
+/* Gender Selection Styles */
+.gender-options {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+}
+
+.gender-options input[type="radio"] {
+    display: none;
+}
+
+.gender-options label {
+    flex: 1;
+    text-align: center;
+    padding: 16px 10px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #333;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+    height: 50px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1em;
+}
+
+.gender-options input[type="radio"]:checked + label {
+    background-color: #e50914;
+    border-color: #e50914;
+    font-weight: bold;
+}
+
+.gender-options label:hover {
+    background-color: #444;
+}
+
+/* Color Selection Styles */
+.color-selection .color-label {
+    color: #8c8c8c;
+    margin-bottom: 12px;
+    display: block;
+    font-size: 1em;
+}
+
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 40px);
+    gap: 12px;
+    justify-content: center;
+}
+
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    box-shadow: 0 0 0 2px transparent;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+}
+
+.color-selection input[type="checkbox"] {
+    display: none;
+}
+
+.color-selection input[type="checkbox"]:checked + .color-swatch {
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px #e50914;
+    transform: scale(1.1);
+}
+
+/* Slider Group Styles */
+.slider-group {
+    margin-bottom: 24px;
+}
+
+.slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #8c8c8c;
+    font-size: 1em;
+    margin-bottom: 12px;
+}
+
+.value-display {
+    min-width: 70px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.value-text {
+    color: #fff;
+    font-weight: bold;
+    background-color: #1f1f1f;
+    padding: 4px 10px;
+    border-radius: 5px;
+}
+
+.value-input {
+    width: 75px;
+    padding: 4px 8px !important;
+    height: auto !important;
+    background-color: #fff !important;
+    color: #000 !important;
+    border: 1px solid #e50914 !important;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 1em !important;
+}
+
+.value-input::-webkit-outer-spin-button,
+.value-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.value-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Range Slider Styles */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #444;
+    border-radius: 5px;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .2s;
+    padding: 0 !important; /* Override general input styles */
+}
+
+input[type="range"]:hover {
+    opacity: 1;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 4px;
+    height: 24px;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 3px;
+    margin-top: -8px;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 4px;
+    height: 24px;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 3px;
+    border: none;
 }

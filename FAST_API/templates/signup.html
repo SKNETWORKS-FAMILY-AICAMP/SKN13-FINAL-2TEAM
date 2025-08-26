@@ -16,27 +16,130 @@
             <div class="input-group">
                 <input type="email" name="email" placeholder="이메일" required>
             </div>
-            <div class="input-group">
-                <select name="gender">
-                    <option value="">성별(선택)</option>
-                    <option value="male">남성</option>
-                    <option value="female">여성</option>
-                    <option value="unisex">기타/선택안함</option>
-                </select>
+            <div class="input-group gender-selection">
+                <div class="gender-options">
+                    <input type="radio" id="male" name="gender" value="male">
+                    <label for="male">남성</label>
+                    <input type="radio" id="female" name="gender" value="female">
+                    <label for="female">여성</label>
+                    <input type="radio" id="unisex" name="gender" value="unisex" checked>
+                    <label for="unisex">선택안함</label>
+                </div>
             </div>
-            <div class="input-group">
-                <input type="number" name="height" placeholder="키(cm)" min="0">
+            
+            <!-- Height Slider -->
+            <div class="input-group slider-group">
+                <label for="height" class="slider-label">
+                    <span>키:</span>
+                    <span class="value-display" id="height-value-display">
+                        <span class="value-text">170 cm</span>
+                        <input type="number" class="value-input" id="height-input" style="display: none;" min="140" max="200">
+                    </span>
+                </label>
+                <input type="range" id="height" name="height" min="140" max="200" value="170">
             </div>
-            <div class="input-group">
-                <input type="number" name="weight" placeholder="체중(kg)" min="0">
+
+            <!-- Weight Slider -->
+            <div class="input-group slider-group">
+                <label for="weight" class="slider-label">
+                    <span>몸무게:</span>
+                    <span class="value-display" id="weight-value-display">
+                        <span class="value-text">80 kg</span>
+                        <input type="number" class="value-input" id="weight-input" style="display: none;" min="40" max="120">
+                    </span>
+                </label>
+                <input type="range" id="weight" name="weight" min="40" max="120" value="80">
             </div>
-            <div class="input-group">
-                <input type="text" name="preferred_color" placeholder="선호 색상(예: black, blue)">
+
+            <!-- Color Selection -->
+            <div class="input-group color-selection">
+                <span class="color-label">선호 색상(중복선택 가능)</span>
+                <div class="color-grid">
+                    <input type="checkbox" id="red" name="preferred_color" value="red">
+                    <label for="red" class="color-swatch" style="background-color: #e74c3c;" title="빨강"></label>
+                    <input type="checkbox" id="orange" name="preferred_color" value="orange">
+                    <label for="orange" class="color-swatch" style="background-color: #e67e22;" title="주황"></label>
+                    <input type="checkbox" id="yellow" name="preferred_color" value="yellow">
+                    <label for="yellow" class="color-swatch" style="background-color: #f1c40f;" title="노랑"></label>
+                    <input type="checkbox" id="green" name="preferred_color" value="green">
+                    <label for="green" class="color-swatch" style="background-color: #2ecc71;" title="초록"></label>
+                    <input type="checkbox" id="blue" name="preferred_color" value="blue">
+                    <label for="blue" class="color-swatch" style="background-color: #3498db;" title="파랑"></label>
+                    <input type="checkbox" id="indigo" name="preferred_color" value="indigo">
+                    <label for="indigo" class="color-swatch" style="background-color: #34495e;" title="남색"></label>
+                    <input type="checkbox" id="violet" name="preferred_color" value="violet">
+                    <label for="violet" class="color-swatch" style="background-color: #9b59b6;" title="보라"></label>
+                    <input type="checkbox" id="black" name="preferred_color" value="black">
+                    <label for="black" class="color-swatch" style="background-color: #000000; border: 1px solid #fff;" title="검정"></label>
+                    <input type="checkbox" id="white" name="preferred_color" value="white">
+                    <label for="white" class="color-swatch" style="background-color: #ffffff; border: 1px solid #ddd;" title="흰색"></label>
+                </div>
             </div>
+
             <button type="submit" class="signup-button">회원가입</button>
             <div class="login-link">
                 <p>이미 회원이신가요? <a href="/auth/login">로그인</a></p>
             </div>
         </form>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function setupSlider(sliderId, displayId, inputId, unit) {
+        const slider = document.getElementById(sliderId);
+        const displayContainer = document.getElementById(displayId);
+        const valueText = displayContainer.querySelector('.value-text');
+        const valueInput = document.getElementById(inputId);
+
+        function updateText() {
+            valueText.textContent = slider.value + ' ' + unit;
+        }
+
+        function showInput() {
+            valueText.style.display = 'none';
+            valueInput.style.display = 'inline-block';
+            valueInput.value = slider.value;
+            valueInput.focus();
+            valueInput.select();
+        }
+
+        function hideInput() {
+            valueText.style.display = 'inline-block';
+            valueInput.style.display = 'none';
+        }
+
+        function updateSliderFromInput() {
+            let value = parseInt(valueInput.value, 10);
+            const min = parseInt(slider.min, 10);
+            const max = parseInt(slider.max, 10);
+
+            if (isNaN(value) || value < min) {
+                value = min;
+            } else if (value > max) {
+                value = max;
+            }
+            
+            slider.value = value;
+            updateText();
+            hideInput();
+        }
+
+        slider.addEventListener('input', updateText);
+        displayContainer.addEventListener('click', showInput);
+        valueInput.addEventListener('blur', updateSliderFromInput);
+        valueInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                updateSliderFromInput();
+            } else if (e.key === 'Escape') {
+                hideInput();
+            }
+        });
+
+        updateText();
+    }
+
+    setupSlider('height', 'height-value-display', 'height-input', 'cm');
+    setupSlider('weight', 'weight-value-display', 'weight-input', 'kg');
+});
+</script>
 {% endblock %}

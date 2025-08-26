@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -56,7 +58,7 @@ async def signup_post(
     gender: str = Form(None),
     height: int = Form(None),
     weight: int = Form(None),
-    preferred_color: str = Form(None),
+    preferred_color: Optional[List[str]] = Form(None),
     db: Session = Depends(get_db),
 ):
     # 비밀번호 정책 검사 (최소 8자, 대문자/소문자/숫자 포함)
@@ -80,19 +82,15 @@ async def signup_post(
     db.commit()
     db.refresh(user)
 
-    # 선호정보 저장
+    # 선호정보 저장 (색상 리스트를 문자열로 변환)
+    preferred_color_str = ",".join(preferred_color) if preferred_color else None
     upsert_user_preference(
         db,
         user_id=user.id,
         height=height,
         weight=weight,
-        preferred_color=preferred_color,
+        preferred_color=preferred_color_str,
         preferred_style=None,
     )
 
-    return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
-
-@router.get("/logout", response_class=HTMLResponse)
-async def logout(request: Request):
-    request.session.clear()
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)

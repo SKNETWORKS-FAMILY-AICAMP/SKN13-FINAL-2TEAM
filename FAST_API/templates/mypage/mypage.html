@@ -23,6 +23,7 @@
           <p class="userid">@{{ request.session.get('user_id', 'guest_user') }}</p>
           <div class="profile-actions">
             <button class="edit-profile-btn" id="openEditProfile">프로필 수정</button>
+            <a href="/survey/" class="retake-survey-btn">설문조사 다시하기</a>
             <a href="/auth/logout" class="logout-btn">로그아웃</a>
             <button class="delete-account-btn" id="deleteAccountBtn">회원탈퇴</button>
           </div>

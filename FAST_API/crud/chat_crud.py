@@ -1,7 +1,8 @@
 from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, delete
 from datetime import datetime, timedelta
+import uuid
 
 from models.models_chat import ChatSession, ChatMessage
 from models.models_auth import User
@@ -41,16 +42,21 @@ def get_user_chat_sessions(db: Session, user_id: int, limit: int = 20) -> List[C
     return list(db.execute(stmt).scalars().all())
 
 
-def get_chat_session_by_id(db: Session, session_id: int, user_id: int) -> Optional[ChatSession]:
+def get_chat_session_by_id(db: Session, session_id: str, user_id: int) -> Optional[ChatSession]:
     """특정 세션을 가져옵니다 (사용자 권한 확인)."""
+    try:
+        session_uuid = uuid.UUID(session_id)
+    except ValueError:
+        return None
+    
     stmt = select(ChatSession).where(
-        ChatSession.id == session_id,
+        ChatSession.id == session_uuid,
         ChatSession.sender_id == user_id
     )
     return db.execute(stmt).scalar_one_or_none()
 
 
-def update_session_name(db: Session, session_id: int, user_id: int, new_name: str) -> bool:
+def update_session_name(db: Session, session_id: str, user_id: int, new_name: str) -> bool:
     """세션 이름을 업데이트합니다."""
     session = get_chat_session_by_id(db, session_id, user_id)
     if session:
@@ -61,10 +67,7 @@ def update_session_name(db: Session, session_id: int, user_id: int, new_name: st
     return False
 
 
-
-
-
-def delete_chat_session(db: Session, session_id: int, user_id: int) -> bool:
+def delete_chat_session(db: Session, session_id: str, user_id: int) -> bool:
     """챗봇 세션을 삭제합니다."""
     session = get_chat_session_by_id(db, session_id, user_id)
     if session:
@@ -74,21 +77,88 @@ def delete_chat_session(db: Session, session_id: int, user_id: int) -> bool:
     return False
 
 
-def create_chat_message(db: Session, session_id: int, message_type: str, text: str, summary: Optional[str] = None) -> ChatMessage:
+def cleanup_expired_sessions(db: Session, days: int = 30) -> int:
+    """만료된 세션들을 자동으로 삭제합니다."""
+    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    
+    # 만료된 세션들 삭제
+    stmt = delete(ChatSession).where(
+        ChatSession.updated_at < cutoff_date
+    )
+    
+    result = db.execute(stmt)
+    db.commit()
+    
+    return result.rowcount
+
+
+def cleanup_user_expired_sessions(db: Session, user_id: int, days: int = 30) -> int:
+    """특정 사용자의 만료된 세션들을 삭제합니다."""
+    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    
+    # 해당 사용자의 만료된 세션들 삭제
+    stmt = delete(ChatSession).where(
+        ChatSession.sender_id == user_id,
+        ChatSession.updated_at < cutoff_date
+    )
+    
+    result = db.execute(stmt)
+    db.commit()
+    
+    return result.rowcount
+
+
+def get_user_session_count(db: Session, user_id: int) -> int:
+    """사용자의 총 세션 수를 반환합니다."""
+    stmt = select(ChatSession).where(
+        ChatSession.sender_id == user_id
+    )
+    return len(list(db.execute(stmt).scalars().all()))
+
+
+def cleanup_old_sessions_if_needed(db: Session, user_id: int, max_sessions: int = 50) -> int:
+    """사용자의 세션이 너무 많으면 오래된 것들을 삭제합니다."""
+    current_count = get_user_session_count(db, user_id)
+    
+    if current_count > max_sessions:
+        # 가장 오래된 세션들부터 삭제
+        stmt = select(ChatSession).where(
+            ChatSession.sender_id == user_id
+        ).order_by(ChatSession.updated_at).limit(current_count - max_sessions)
+        
+        sessions_to_delete = list(db.execute(stmt).scalars().all())
+        
+        for session in sessions_to_delete:
+            db.delete(session)
+        
+        db.commit()
+        return len(sessions_to_delete)
+    
+    return 0
+
+
+def create_chat_message(db: Session, session_id: str, message_type: str, text: str, summary: Optional[str] = None, recommendation_id: Optional[int] = None, products_data: Optional[List[Dict]] = None) -> ChatMessage:
     """챗봇 메시지를 생성합니다."""
     try:
+        session_uuid = uuid.UUID(session_id)
+    except ValueError:
+        raise ValueError("Invalid session ID format")
+    
+    try:
         message = ChatMessage(
-            session_id=session_id,
+            session_id=session_uuid,
             message_type=message_type,
             text=text,
-            summary=summary
+            summary=summary,
+            recommendation_id=recommendation_id,
+            products_data=products_data
         )
         db.add(message)
         db.commit()
         db.refresh(message)
         
         # 세션의 updated_at 업데이트
-        session = db.get(ChatSession, session_id)
+        session = db.get(ChatSession, session_uuid)
         if session:
             session.updated_at = datetime.utcnow()
             db.commit()
@@ -99,23 +169,30 @@ def create_chat_message(db: Session, session_id: int, message_type: str, text: s
         # summary가 None일 때 문제가 발생하면 빈 문자열로 재시도
         if summary is None and "null value" in str(e).lower():
             print(f"Warning: summary 컬럼에 NULL 허용되지 않음. 빈 문자열로 재시도: {e}")
-            message = ChatMessage(
-                session_id=session_id,
-                message_type=message_type,
-                text=text,
-                summary=""
-            )
-            db.add(message)
-            db.commit()
-            db.refresh(message)
-            
-            # 세션의 updated_at 업데이트
-            session = db.get(ChatSession, session_id)
-            if session:
-                session.updated_at = datetime.utcnow()
+            try:
+                message = ChatMessage(
+                    session_id=session_uuid,
+                    message_type=message_type,
+                    text=text,
+                    summary="",
+                    recommendation_id=recommendation_id,
+                    products_data=products_data
+                )
+                db.add(message)
                 db.commit()
-            
-            return message
+                db.refresh(message)
+                
+                # 세션의 updated_at 업데이트
+                session = db.get(ChatSession, session_uuid)
+                if session:
+                    session.updated_at = datetime.utcnow()
+                    db.commit()
+                
+                return message
+            except Exception as e2:
+                db.rollback()
+                print(f"재시도 후에도 실패: {e2}")
+                raise
         else:
             raise
 
@@ -130,10 +207,15 @@ def update_message_summary(db: Session, message_id: int, summary: str) -> bool:
     return False
 
 
-def get_recent_qa_summaries(db: Session, session_id: int, limit: int = 5) -> List[str]:
+def get_recent_qa_summaries(db: Session, session_id: str, limit: int = 5) -> List[str]:
     """최근 Q/A 쌍의 요약들을 가져옵니다."""
+    try:
+        session_uuid = uuid.UUID(session_id)
+    except ValueError:
+        return []
+    
     stmt = select(ChatMessage).where(
-        ChatMessage.session_id == session_id,
+        ChatMessage.session_id == session_uuid,
         ChatMessage.summary.isnot(None)
     ).order_by(desc(ChatMessage.created_at)).limit(limit)
     
@@ -141,8 +223,13 @@ def get_recent_qa_summaries(db: Session, session_id: int, limit: int = 5) -> Lis
     return [msg.summary for msg in messages if msg.summary]
 
 
-def get_qa_pair_for_summary(db: Session, session_id: int, user_message_id: int) -> Optional[Dict]:
+def get_qa_pair_for_summary(db: Session, session_id: str, user_message_id: int) -> Optional[Dict]:
     """Q/A 쌍을 가져와서 요약 생성용 데이터로 반환합니다."""
+    try:
+        session_uuid = uuid.UUID(session_id)
+    except ValueError:
+        return None
+    
     # 사용자 메시지 가져오기
     user_message = db.get(ChatMessage, user_message_id)
     if not user_message or user_message.message_type != "user":
@@ -150,7 +237,7 @@ def get_qa_pair_for_summary(db: Session, session_id: int, user_message_id: int) 
     
     # 해당 사용자 메시지 이후의 첫 번째 bot 메시지 찾기
     stmt = select(ChatMessage).where(
-        ChatMessage.session_id == session_id,
+        ChatMessage.session_id == session_uuid,
         ChatMessage.message_type == "bot",
         ChatMessage.created_at > user_message.created_at
     ).order_by(ChatMessage.created_at).limit(1)
@@ -168,10 +255,15 @@ def get_qa_pair_for_summary(db: Session, session_id: int, user_message_id: int) 
     return None
 
 
-def get_chat_messages(db: Session, session_id: int, limit: int = 10) -> List[ChatMessage]:
+def get_chat_messages(db: Session, session_id: str, limit: int = 10) -> List[ChatMessage]:
     """특정 세션의 메시지들을 가져옵니다."""
+    try:
+        session_uuid = uuid.UUID(session_id)
+    except ValueError:
+        return []
+    
     stmt = select(ChatMessage).where(
-        ChatMessage.session_id == session_id
+        ChatMessage.session_id == session_uuid
     ).order_by(ChatMessage.created_at).limit(limit)
     
     return list(db.execute(stmt).scalars().all())
@@ -204,7 +296,7 @@ def get_conversation_context(db: Session, user_id: int, max_messages: int = 5) -
     return "\n".join(context)
 
 
-def get_session_messages(db: Session, session_id: int, user_id: int) -> List[dict]:
+def get_session_messages(db: Session, session_id: str, user_id: int) -> List[dict]:
     """특정 세션의 메시지들을 가져옵니다 (사용자 권한 확인)."""
     session = get_chat_session_by_id(db, session_id, user_id)
     if not session:
@@ -224,7 +316,7 @@ def get_session_messages(db: Session, session_id: int, user_id: int) -> List[dic
     return result
 
 
-def get_chat_history_for_llm(db: Session, session_id: int, user_id: int, limit: int = 6) -> List[Dict]:
+def get_chat_history_for_llm(db: Session, session_id: str, user_id: int, limit: int = 6) -> List[Dict]:
     """LLM용 대화 기록을 가져옵니다 (최근 3쌍)."""
     session = get_chat_session_by_id(db, session_id, user_id)
     if not session:
@@ -238,5 +330,50 @@ def get_chat_history_for_llm(db: Session, session_id: int, user_id: int, limit: 
             "role": "user" if msg.message_type == "user" else "assistant",
             "content": msg.text
         })
+    
+    return result
+
+
+def get_chat_message_with_recommendations(db: Session, session_id: str, user_id: int) -> List[Dict]:
+    """챗봇 세션의 메시지와 추천 결과를 함께 가져옵니다."""
+    try:
+        session_uuid = uuid.UUID(session_id)
+    except ValueError:
+        return []
+    
+    # 세션 확인
+    session = db.get(ChatSession, session_uuid)
+    if not session or session.sender_id != user_id:
+        return []
+    
+    # 메시지와 추천 결과 조회
+    messages = db.query(ChatMessage).filter(
+        ChatMessage.session_id == session_uuid
+    ).order_by(ChatMessage.created_at).all()
+    
+    result = []
+    for msg in messages:
+        message_data = {
+            "id": msg.id,
+            "type": msg.message_type,
+            "text": msg.text,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None
+        }
+        
+        # products_data가 있으면 상품 데이터 추가
+        if msg.products_data and len(msg.products_data) > 0:
+            message_data["products"] = msg.products_data
+        # 추천 결과가 있으면 상품 데이터 추가 (기존 방식 유지)
+        elif msg.recommendation_id:
+            from crud.recommendation_crud import get_recommendation_by_id
+            recommendation = get_recommendation_by_id(db, msg.recommendation_id)
+            if recommendation:
+                # 추천된 상품들의 상품코드로 상품 정보 조회
+                from crud.user_crud import get_product_by_id
+                product = get_product_by_id(db, recommendation.item_id)
+                if product:
+                    message_data["products"] = [product]
+        
+        result.append(message_data)
     
     return result

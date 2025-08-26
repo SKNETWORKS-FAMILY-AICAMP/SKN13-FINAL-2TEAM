@@ -36,7 +36,7 @@ class IntentResult:
 class LangGraphState:
     """LangGraph 상태 관리"""
     user_input: str
-    session_id: int
+    session_id: str  # UUID를 문자열로 처리
     user_id: int
     intent: str = ""
     extracted_info: Dict = None
@@ -113,7 +113,7 @@ Intent 분류 기준:
 - weather: 날씨 관련 ("오늘 날씨", "서울 날씨")
 - general: 일반 대화 ("안녕", "고마워")
 
-**중요**: 컨텍스트에서 이전에 상품 추천이 있었다면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요."""
+**중요**: 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요."""
 
         messages = [
             {"role": "system", "content": system_prompt.format(
@@ -164,7 +164,7 @@ class LLMService:
         
         # 기존 IntentAnalyzer 제거 - 항상 MainAnalyzer 사용
     
-    async def process_user_input(self, user_input: str, session_id: int, user_id: int, 
+    async def process_user_input(self, user_input: str, session_id: str, user_id: int, 
                                 available_products: List[Dict], db=None, 
                                 latitude: Optional[float] = None, 
                                 longitude: Optional[float] = None) -> LLMResponse:

@@ -12,7 +12,7 @@ load_dotenv()
 from db import SessionLocal
 from crud.chat_crud import get_session_messages
 
-def test_session_qa(session_id: int, user_id: int):
+def test_session_qa(session_id: str, user_id: int):
     """특정 세션의 Q/A 데이터 확인"""
     
     print(f"=== 세션 {session_id} Q/A 데이터 확인 ===")
@@ -96,7 +96,7 @@ def test_session_qa(session_id: int, user_id: int):
 
 if __name__ == "__main__":
     # 실제 테스트 데이터
-    session_id = 173
+    session_id = "test-uuid-session-id"  # UUID 형식으로 변경
     user_id = 2
     
     test_session_qa(session_id, user_id)

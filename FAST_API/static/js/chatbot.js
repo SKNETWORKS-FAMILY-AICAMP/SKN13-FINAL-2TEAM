@@ -7,10 +7,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const widgetForm = document.getElementById("widget-form");
     const widgetInput = document.getElementById("widget-input");
 
-    // 세션 관리 변수들
-    let currentSessionId = null;
-    let currentSessionName = null;
-    let sessions = [];
+    // 세션 관리 변수들 (저장용으로만 사용)
+    let currentSessionId = localStorage.getItem('chatbot_session_id') || null;
+    
+    // UUID 마이그레이션 후 기존 정수 세션 ID 초기화
+    if (currentSessionId && !isValidUUID(currentSessionId)) {
+        console.log('기존 정수 세션 ID를 초기화합니다:', currentSessionId);
+        localStorage.removeItem('chatbot_session_id');
+        currentSessionId = null;
+    }
+
+    // UUID 유효성 검사 함수
+    function isValidUUID(uuid) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid);
+    }
 
     // 플로팅 위젯 초기화
     if (floatingWidget && toggleBtn && closeBtn) {
@@ -18,24 +29,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function initializeFloatingWidget() {
-        // 위젯 헤더에 세션 관리 버튼 추가
-        addSessionManagementUI();
-
         // 토글 버튼 클릭 이벤트
         toggleBtn.addEventListener("click", () => {
             floatingWidget.classList.add("active");
             toggleBtn.classList.add("hidden");
             widgetInput.focus();
             
-            // 세션 목록 로드
-            loadSessions();
+            // 세션이 있으면 이전 대화 내용 로드
+            if (currentSessionId && isValidUUID(currentSessionId)) {
+                loadPreviousMessages();
+            }
         });
 
         // 닫기 버튼 클릭 이벤트
         closeBtn.addEventListener("click", () => {
             floatingWidget.classList.remove("active");
             toggleBtn.classList.remove("hidden");
-            closeSessionSidebar();
         });
 
         // 위젯 폼 제출 이벤트
@@ -59,328 +68,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 500);
     }
 
-    function addSessionManagementUI() {
-        const widgetHeader = document.querySelector(".widget-header");
-        if (widgetHeader) {
-            // 세션 관리 버튼 추가
-            const sessionBtn = document.createElement("button");
-            sessionBtn.className = "widget-session-btn";
-            sessionBtn.innerHTML = "📋 대화 내역";
-            sessionBtn.title = "세션 관리";
-            sessionBtn.addEventListener("click", toggleSessionSidebar);
-            
-            // 헤더에 버튼 삽입 (닫기 버튼 앞에)
-            widgetHeader.insertBefore(sessionBtn, closeBtn);
-
-            // 세션 사이드바 추가
-            addSessionSidebar();
-        }
-    }
-
-    function addSessionSidebar() {
-        const sidebarHTML = `
-            <div class="widget-session-sidebar" id="session-sidebar">
-                <div class="session-sidebar-header">
-                    <h4>대화 세션</h4>
-                    <button class="session-sidebar-close" id="session-sidebar-close">×</button>
-                </div>
-                <button class="new-session-btn" id="new-session-btn">🚀 새 대화 시작</button>
-                <div class="session-list" id="session-list">
-                    <!-- 세션 목록이 여기에 동적으로 추가됩니다 -->
-                </div>
-            </div>
-        `;
+    // 이전 대화 내용 로드
+    async function loadPreviousMessages() {
+        if (!currentSessionId || !isValidUUID(currentSessionId)) return;
         
-        floatingWidget.insertAdjacentHTML('beforeend', sidebarHTML);
-
-        // 사이드바 이벤트 리스너
-        document.getElementById("session-sidebar-close").addEventListener("click", closeSessionSidebar);
-        document.getElementById("new-session-btn").addEventListener("click", createNewSession);
-    }
-
-    function toggleSessionSidebar() {
-        const sidebar = document.getElementById("session-sidebar");
-        sidebar.classList.toggle("active");
-        
-        if (sidebar.classList.contains("active")) {
-            loadSessions();
-        }
-    }
-
-    function closeSessionSidebar() {
-        const sidebar = document.getElementById("session-sidebar");
-        sidebar.classList.remove("active");
-    }
-
-    async function loadSessions() {
         try {
-            const response = await fetch('/chat/sessions');
-            const data = await response.json();
-            
-            if (data.success && data.sessions) {
-                sessions = data.sessions;
-                renderSessionList();
-            }
-        } catch (error) {
-            console.error('세션 목록 로드 오류:', error);
-        }
-    }
-
-    function renderSessionList() {
-        const sessionList = document.getElementById("session-list");
-        if (!sessionList) return;
-
-        sessionList.innerHTML = '';
-
-        if (sessions.length === 0) {
-            sessionList.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">대화 세션이 없습니다.</div>';
-            return;
-        }
-
-        sessions.forEach(session => {
-            const sessionItem = createSessionItem(session);
-            sessionList.appendChild(sessionItem);
-        });
-    }
-
-    function createSessionItem(session) {
-        const sessionItem = document.createElement("div");
-        sessionItem.className = "session-item";
-        sessionItem.setAttribute("data-session-id", session.id);
-        
-        if (session.id === currentSessionId) {
-            sessionItem.classList.add("active");
-        }
-
-        const createdDate = new Date(session.created_at);
-        
-        // 세션 이름을 더 직관적으로 표시
-        let displayName = session.name;
-        if (displayName.startsWith("대화 ")) {
-            displayName = displayName.replace("대화 ", "");
-            if (displayName.length > 20) {
-                displayName = displayName.substring(0, 20) + "...";
-            }
-        }
-        
-        // 메시지 수에 따른 아이콘 선택
-        let messageIcon = "💬";
-        if (session.message_count > 10) {
-            messageIcon = "🔥";
-        } else if (session.message_count > 5) {
-            messageIcon = "✨";
-        }
-        
-        sessionItem.innerHTML = `
-            <div class="session-item-header">
-                <div class="session-name" data-session-id="${session.id}">
-                    <span class="session-icon">${messageIcon}</span>
-                    <span class="session-title">${displayName}</span>
-                </div>
-                <div class="session-actions">
-                    <button class="session-action-btn edit-btn" title="이름 편집">✏️</button>
-                    <button class="session-action-btn delete-btn" title="삭제">🗑️</button>
-                </div>
-            </div>
-            <div class="session-info">
-                <span class="session-date">${formatDate(createdDate)}</span>
-                <span class="session-message-count">${session.message_count}개 메시지</span>
-            </div>
-            <input type="text" class="session-name-edit" value="${session.name}" data-session-id="${session.id}">
-        `;
-
-        // 세션 클릭 이벤트
-        sessionItem.addEventListener("click", (e) => {
-            if (!e.target.classList.contains('session-action-btn') && !e.target.classList.contains('session-name-edit')) {
-                switchToSession(session.id);
-            }
-        });
-
-        // 편집 버튼 이벤트
-        const editBtn = sessionItem.querySelector('.edit-btn');
-        editBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            toggleSessionNameEdit(session.id);
-        });
-
-        // 삭제 버튼 이벤트
-        const deleteBtn = sessionItem.querySelector('.delete-btn');
-        deleteBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            deleteSession(session.id);
-        });
-
-        // 이름 편집 이벤트
-        const nameEdit = sessionItem.querySelector('.session-name-edit');
-        nameEdit.addEventListener("blur", () => {
-            saveSessionName(session.id, nameEdit.value);
-        });
-        nameEdit.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                nameEdit.blur();
-            }
-        });
-
-        return sessionItem;
-    }
-
-    function formatDate(date) {
-        const now = new Date();
-        const diffTime = Math.abs(now - date);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 1) {
-            return "오늘";
-        } else if (diffDays === 2) {
-            return "어제";
-        } else if (diffDays <= 7) {
-            return `${diffDays - 1}일 전`;
-        } else {
-            return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-        }
-    }
-
-    function toggleSessionNameEdit(sessionId) {
-        const sessionItem = document.querySelector(`[data-session-id="${sessionId}"]`).closest('.session-item');
-        const nameElement = sessionItem.querySelector('.session-name');
-        const nameEdit = sessionItem.querySelector('.session-name-edit');
-        
-        nameElement.style.display = 'none';
-        nameEdit.classList.add('active');
-        nameEdit.focus();
-        nameEdit.select();
-    }
-
-    async function saveSessionName(sessionId, newName) {
-        try {
-            const formData = new FormData();
-            formData.append('new_name', newName);
-
-            const response = await fetch(`/chat/session/${sessionId}/name`, {
-                method: 'PUT',
-                body: formData
+            const response = await fetch(`/chat/session/${currentSessionId}/messages`, {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
             });
-
+            
             const data = await response.json();
             
-            if (data.success) {
-                // 세션 목록 새로고침
-                loadSessions();
+            if (data.success && data.messages && data.messages.length > 0) {
+                // 기존 메시지들 제거
+                widgetMessages.innerHTML = '';
                 
-                // 현재 세션이면 이름 업데이트
-                if (sessionId === currentSessionId) {
-                    currentSessionName = newName;
-                    updateSessionNameDisplay();
-                }
+                // 이전 메시지들 추가
+                data.messages.forEach(msg => {
+                    addMessage(msg.text, msg.type);
+                    
+                    // 추천 결과가 있으면 상품 카드도 추가
+                    if (msg.products && msg.products.length > 0) {
+                        addRecommendations(msg.products);
+                    }
+                });
             }
         } catch (error) {
-            console.error('세션 이름 저장 오류:', error);
-        }
-    }
-
-    async function deleteSession(sessionId) {
-        if (!confirm('이 대화 세션을 삭제하시겠습니까?')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/chat/session/${sessionId}`, {
-                method: 'DELETE'
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                // 현재 세션이 삭제된 경우 새 세션으로 전환
-                if (sessionId === currentSessionId) {
-                    currentSessionId = null;
-                    currentSessionName = null;
-                    clearMessages();
-                    addMessage("새로운 대화를 시작합니다. 무엇을 도와드릴까요? 😊", "bot");
-                }
-                
-                // 세션 목록 새로고침
-                loadSessions();
-            }
-        } catch (error) {
-            console.error('세션 삭제 오류:', error);
-        }
-    }
-
-    async function switchToSession(sessionId) {
-        try {
-            console.log('세션 전환 시도:', sessionId);
-            
-            const response = await fetch(`/chat/session/${sessionId}`);
-            const data = await response.json();
-            
-            console.log('세션 메시지 응답:', data);
-            
-            if (data.success) {
-                currentSessionId = sessionId;
-                const session = sessions.find(s => s.id === sessionId);
-                currentSessionName = session ? session.name : null;
-                
-                // 메시지 목록 새로고침
-                clearMessages();
-                
-                if (data.messages && data.messages.length > 0) {
-                    console.log('로드된 메시지 수:', data.messages.length);
-                    data.messages.forEach(msg => {
-                        console.log('메시지 추가:', msg.type, msg.text);
-                        addMessage(msg.text, msg.type);
-                    });
-                } else {
-                    console.log('메시지가 없음, 환영 메시지 추가');
-                    addMessage("이 대화 세션을 시작합니다. 무엇을 도와드릴까요? 😊", "bot");
-                }
-                
-                // 세션 목록 UI 업데이트
-                updateSessionListUI();
-                updateSessionNameDisplay();
-                
-                // 사이드바 닫기
-                closeSessionSidebar();
-            } else {
-                console.error('세션 메시지 로드 실패:', data.message);
-            }
-        } catch (error) {
-            console.error('세션 전환 오류:', error);
-        }
-    }
-
-    function createNewSession() {
-        currentSessionId = null;
-        currentSessionName = null;
-        clearMessages();
-        addMessage("새로운 대화를 시작합니다. 무엇을 도와드릴까요? 😊", "bot");
-        closeSessionSidebar();
-    }
-
-    function clearMessages() {
-        widgetMessages.innerHTML = '';
-    }
-
-    function updateSessionListUI() {
-        // 모든 세션 아이템에서 active 클래스 제거
-        document.querySelectorAll('.session-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // 현재 세션에 active 클래스 추가
-        if (currentSessionId) {
-            const currentItem = document.querySelector(`[data-session-id="${currentSessionId}"]`);
-            if (currentItem) {
-                currentItem.closest('.session-item').classList.add('active');
-            }
-        }
-    }
-
-    function updateSessionNameDisplay() {
-        // 헤더에 현재 세션 이름 표시 (선택사항)
-        const header = document.querySelector('.widget-header h3');
-        if (header && currentSessionName) {
-            header.textContent = currentSessionName;
+            console.error('이전 대화 내용 로드 오류:', error);
+            // 오류 발생 시 세션 ID 초기화
+            localStorage.removeItem('chatbot_session_id');
+            currentSessionId = null;
         }
     }
 
@@ -417,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const formData = new FormData();
             formData.append('user_input', message);
-            if (currentSessionId) {
+            if (currentSessionId && isValidUUID(currentSessionId)) {
                 formData.append('session_id', currentSessionId);
             }
             if (latitude && longitude) {
@@ -449,9 +168,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 if (data.session_id && data.session_id !== currentSessionId) {
                     currentSessionId = data.session_id;
-                    currentSessionName = data.session_name;
-                    updateSessionNameDisplay();
-                    loadSessions();
+                    // UUID 유효성 검사 후 저장
+                    if (isValidUUID(currentSessionId)) {
+                        localStorage.setItem('chatbot_session_id', currentSessionId);
+                    }
                 }
             } else {
                 addMessage("죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.", "bot");
@@ -493,13 +213,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const recommendationsContent = document.createElement("div");
         recommendationsContent.classList.add("widget-message-content");
         
-        let recommendationsHTML = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+        let recommendationsHTML = '<div style="display: flex; flex-direction: column; gap: 6px;">';
         recommendations.forEach((product, index) => {
             const productName = product.상품명 || product.제품이름 || '상품명 없음';
             const brand = product.한글브랜드명 || product.브랜드 || '브랜드 없음';
             const imageUrl = product.이미지URL || product.사진 || product.대표이미지URL || '';
-                         // 원가 우선 사용
-             const price = product.원가 || product.가격 || product.할인가 || 0;
+            const price = product.원가 || product.가격 || product.할인가 || 0;
             const productLink = product.상품링크 || product.링크 || product.URL || '';
             
             // 디버깅: 상품 링크 정보 출력
@@ -512,50 +231,87 @@ document.addEventListener("DOMContentLoaded", () => {
             // 링크가 있는지 확인
             const hasLink = productLink && productLink.trim() !== '';
             
-            recommendationsHTML += `
-                <div class="product-card" data-product-index="${index}" style="display: flex; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef; ${hasLink ? 'cursor: pointer;' : 'cursor: default;'} transition: all 0.3s ease;" 
-                     onmouseover="${hasLink ? 'this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.15)\'' : ''}"
-                     onmouseout="${hasLink ? 'this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'none\'' : ''}">
-                    ${imageUrl && imageUrl.trim() !== '' ? 
-                        `<img src="${imageUrl}" alt="${productName}" 
-                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" 
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                         <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; display: none; align-items: center; justify-content: center; color: white; font-size: 24px;">👕</div>`
-                        :
-                        `<div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">👕</div>`
-                    }
-                    <div style="flex: 1; min-width: 0;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${productName}</h4>
-                        <p style="margin: 0 0 3px 0; font-size: 0.8rem; color: #E50914; font-weight: 600;">${brand}</p>
-                        <p style="margin: 0; font-size: 0.8rem; color: #e74c3c; font-weight: 700;">${price ? price.toLocaleString() + '원' : '가격 정보 없음'}</p>
-                    </div>
-                    <div style="display: flex; align-items: center; color: #6c757d; font-size: 12px;">
-                        <span>${hasLink ? '클릭하여 상품 보기 →' : '상품 정보'}</span>
-                    </div>
-                </div>
-            `;
+                         recommendationsHTML += `
+                 <div class="chatbot-product-card" data-product-index="${index}">
+                     
+                     <!-- 상품 이미지 -->
+                     <div style="position: relative; flex-shrink: 0;">
+                         ${imageUrl && imageUrl.trim() !== '' ? 
+                             `<img src="${imageUrl}" alt="${productName}" 
+                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                              <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: none; align-items: center; justify-content: center; color: white; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">👕</div>`
+                             :
+                             `<div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">👕</div>`
+                         }
+                     </div>
+                     
+                     <!-- 상품 정보 -->
+                     <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                         <div>
+                             <h4 style="
+                                 margin: 0 0 4px 0; 
+                                 font-size: 0.9rem; 
+                                 color: #2c3e50; 
+                                 font-weight: 700;
+                                 overflow: hidden; 
+                                 text-overflow: ellipsis; 
+                                 white-space: nowrap;
+                                 line-height: 1.2;
+                             ">${productName}</h4>
+                             <p style="
+                                 margin: 0 0 3px 0; 
+                                 font-size: 0.75rem; 
+                                 color: #E50914; 
+                                 font-weight: 600;
+                                 opacity: 0.9;
+                             ">${brand}</p>
+                             <p style="
+                                 margin: 0; 
+                                 font-size: 0.95rem; 
+                                 color: #e74c3c; 
+                                 font-weight: 700;
+                                 font-family: 'Arial', sans-serif;
+                             ">${price ? price.toLocaleString() + '원' : '가격 정보 없음'}</p>
+                         </div>
+                         
+                         <!-- 액션 버튼들 -->
+                         <div style="display: flex; gap: 6px; margin-top: 8px;">
+                             <button class="chatbot-jjim-btn" 
+                             onclick="addToJjim('${product.상품코드 || product.상품ID || index}', '${productName}', '${brand}', '${imageUrl}', '${price}', '${productLink}')">
+                                 ❤️ 찜하기
+                             </button>
+                             ${hasLink ? 
+                                 `<button class="chatbot-view-btn" 
+                                 onclick="openProductLink('${productLink}', '${productName}')">
+                                     상품 보기
+                                 </button>` 
+                                 : 
+                                 `<span style="
+                                     color: #6c757d; 
+                                     font-size: 0.7rem; 
+                                     font-style: italic;
+                                     text-align: center;
+                                     padding: 8px 12px;
+                                     background: #f8f9fa;
+                                     border-radius: 8px;
+                                     flex: 1;
+                                     display: flex;
+                                     align-items: center;
+                                     justify-content: center;
+                                     min-height: 36px;
+                                 ">상품 정보</span>`
+                             }
+                         </div>
+                     </div>
+                 </div>
+             `;
         });
         recommendationsHTML += '</div>';
         
         recommendationsContent.innerHTML = recommendationsHTML;
         recommendationsWrapper.appendChild(recommendationsContent);
         
-        // 상품 카드에 클릭 이벤트 추가
-        const productCards = recommendationsWrapper.querySelectorAll('.product-card');
-        productCards.forEach((card, index) => {
-            const product = recommendations[index];
-            const productLink = product.상품링크 || product.링크 || product.URL || '';
-            const productName = product.상품명 || product.제품이름 || '상품명 없음';
-            
-            if (productLink && productLink.trim() !== '') {
-                card.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('상품 카드 클릭됨:', productName, productLink);
-                    openProductLink(productLink, productName);
-                });
-            }
-        });
+        // 카드 클릭 이벤트 제거 - 버튼으로만 액션 수행
         
         widgetMessages.appendChild(recommendationsWrapper);
         widgetMessages.scrollTop = widgetMessages.scrollHeight;
@@ -623,4 +379,240 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 전역 함수로 등록 (HTML에서 직접 호출 가능)
     window.openProductLink = openProductLink;
+
+    // 찜하기 기능 구현
+    async function addToJjim(productId, productName, brand, imageUrl, price, productLink) {
+        try {
+            // 찜하기 API 호출
+            const response = await fetch('/jjim/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'product_id': productId,
+                    'product_name': productName,
+                    'brand': brand,
+                    'image_url': imageUrl,
+                    'price': price,
+                    'product_link': productLink
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // 찜하기 성공 시 버튼 스타일 변경
+                const jjimBtn = event.target;
+                jjimBtn.innerHTML = '❤️';
+                jjimBtn.style.background = 'rgba(231, 76, 60, 0.1)';
+                jjimBtn.style.borderColor = '#e74c3c';
+                jjimBtn.style.color = '#e74c3c';
+                
+                // 성공 메시지 표시
+                showFeedbackMessage('찜목록에 추가되었습니다! 💕', 'success');
+                
+                // 피드백 요청 (세션당 한 번만)
+                if (!sessionFeedbackState.feedbackRequested) {
+                    setTimeout(() => {
+                        showFeedbackModal(productId, productName, '찜하기');
+                    }, 1000);
+                }
+            } else {
+                showFeedbackMessage(result.message || '찜하기에 실패했습니다.', 'error');
+            }
+        } catch (error) {
+            console.error('찜하기 오류:', error);
+            showFeedbackMessage('찜하기 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    // 피드백 메시지 표시 함수
+    function showFeedbackMessage(message, type = 'info') {
+        const messageDiv = document.createElement('div');
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            ${type === 'success' ? 'background: linear-gradient(135deg, #27ae60, #2ecc71);' : 
+              type === 'error' ? 'background: linear-gradient(135deg, #e74c3c, #c0392b);' : 
+              'background: linear-gradient(135deg, #3498db, #2980b9);'}
+        `;
+        messageDiv.textContent = message;
+        
+        document.body.appendChild(messageDiv);
+        
+        // 3초 후 자동 제거
+        setTimeout(() => {
+            messageDiv.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // 피드백 모달 표시 함수
+    function showFeedbackModal(productId, productName, action) {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                padding: 24px;
+                border-radius: 12px;
+                max-width: 400px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            ">
+                <h3 style="margin: 0 0 16px 0; color: #2c3e50; font-size: 1.2rem;">
+                    이 추천이 어떠셨나요? 🎉
+                </h3>
+                <p style="margin: 0 0 20px 0; color: #7f8c8d; font-size: 0.9rem;">
+                    "${productName}"을 ${action}하셨네요!<br>
+                    앞으로 더 나은 추천을 위해 간단한 피드백을 남겨주세요.
+                </p>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <button class="feedback-btn like-btn" style="
+                        flex: 1;
+                        padding: 12px;
+                        border: 2px solid #27ae60;
+                        background: white;
+                        color: #27ae60;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='#27ae60'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#27ae60'">
+                        👍 좋아요
+                    </button>
+                    <button class="feedback-btn dislike-btn" style="
+                        flex: 1;
+                        padding: 12px;
+                        border: 2px solid #e74c3c;
+                        background: white;
+                        color: #e74c3c;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='#e74c3c'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#e74c3c'">
+                        👎 아쉬워요
+                    </button>
+                </div>
+                
+                <textarea id="feedback-reason" placeholder="이유를 간단히 알려주세요 (선택사항)" style="
+                    width: 100%;
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    resize: vertical;
+                    min-height: 80px;
+                    font-family: inherit;
+                    margin-bottom: 16px;
+                "></textarea>
+                
+                <div style="display: flex; gap: 8px;">
+                    <button id="submit-feedback" style="
+                        flex: 1;
+                        padding: 12px;
+                        background: linear-gradient(135deg, #3498db, #2980b9);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                        피드백 제출
+                    </button>
+                    <button id="skip-feedback" style="
+                        padding: 12px 20px;
+                        background: #95a5a6;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='#7f8c8d'" onmouseout="this.style.background='#95a5a6'">
+                        건너뛰기
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // 피드백 제출 이벤트
+        modal.querySelector('#submit-feedback').addEventListener('click', () => {
+            const feedbackType = modal.querySelector('.like-btn').classList.contains('active') ? 'like' : 'dislike';
+            const reason = modal.querySelector('#feedback-reason').value;
+            
+            // 피드백 데이터 저장 (실제 구현 시 API 호출)
+            console.log('피드백 제출:', { productId, productName, feedbackType, reason, action });
+            
+            // 모달 닫기
+            document.body.removeChild(modal);
+            sessionFeedbackState.feedbackRequested = true;
+            
+            showFeedbackMessage('피드백을 보내주셔서 감사합니다! 💝', 'success');
+        });
+        
+        // 건너뛰기 이벤트
+        modal.querySelector('#skip-feedback').addEventListener('click', () => {
+            document.body.removeChild(modal);
+            sessionFeedbackState.feedbackRequested = true;
+        });
+        
+        // 좋아요/아쉬워요 버튼 이벤트
+        modal.querySelectorAll('.feedback-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                modal.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                btn.style.background = btn.classList.contains('like-btn') ? '#27ae60' : '#e74c3c';
+                btn.style.color = 'white';
+            });
+        });
+        
+        // 모달 외부 클릭 시 닫기
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+                sessionFeedbackState.feedbackRequested = true;
+            }
+        });
+    }
+
+    // 세션별 피드백 상태 관리
+    const sessionFeedbackState = {
+        sessionId: null,
+        feedbackRequested: false
+    };
+
+    // 전역 함수로 등록
+    window.addToJjim = addToJjim;
+    window.showFeedbackModal = showFeedbackModal;
 });

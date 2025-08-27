@@ -110,11 +110,26 @@ async def startup_event():
 if __name__ == "__main__":
     import uvicorn
     import os
-    
+
+    workers = int(os.getenv("UVICORN_WORKERS", "2"))
+    print(f"워커 수: {workers}")
+
     ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
     ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")
-    
+
     if ssl_cert_file and ssl_key_file and os.path.exists(ssl_cert_file) and os.path.exists(ssl_key_file):
-        uvicorn.run(app, host="0.0.0.0", port=443, ssl_certfile=ssl_cert_file, ssl_keyfile=ssl_key_file)
+        uvicorn.run(
+            "main:app",  # app → "main:app"으로 변경
+            host="0.0.0.0",
+            port=443,
+            ssl_certfile=ssl_cert_file,
+            ssl_keyfile=ssl_key_file,
+            workers=workers  # 이 줄 추가
+        )
     else:
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(
+            "main:app",  # app → "main:app"으로 변경
+            host="0.0.0.0",
+            port=8000,
+            workers=workers  # 이 줄 추가
+        )

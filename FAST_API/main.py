@@ -30,6 +30,8 @@ from routers.router_products import router as products_router
 from routers.router_survey import router as survey_router
 from routers.router_chatbot import router as chatbot_router
 from routers.router_cache_admin import router as cache_admin_router
+from routers.oauth.google_oauth import router as google_oauth_router
+from routers.oauth.kakao_oauth import router as kakao_oauth_router
 
 app = FastAPI()
 
@@ -69,6 +71,8 @@ app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(survey_router, prefix="/survey", tags=["Survey"])
 app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
 app.include_router(cache_admin_router, prefix="/admin", tags=["Cache Admin"])
+app.include_router(google_oauth_router, prefix="/auth", tags=["oauth-google"])
+app.include_router(kakao_oauth_router, prefix="/auth", tags=["oauth-kakao"])
 
 # 404 에러 핸들러
 @app.exception_handler(StarletteHTTPException)

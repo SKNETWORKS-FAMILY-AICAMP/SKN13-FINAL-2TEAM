@@ -38,7 +38,9 @@
                      data-brand="{{ product.get('브랜드', '정보 없음') }}"
                      data-price="{{ product.get('가격', '정보 없음') }}"
                      data-rating="{{ product.get('평점', 0) | round(1) }}"
-                     data-material="{{ product.get('제품소재', '정보 없음') }}">
+                     data-material="{{ product.get('제품소재', '정보 없음') }}"
+                     data-description="{{ product.get('description', '설명 없음') }}"
+                     data-product-link="{{ product.get('상품링크', '#') }}"> <!-- Added productLink -->
                 </div>
             </div>
             {% endfor %}
@@ -49,7 +51,7 @@
 
 <!-- 비교 팝업 (Modal) -->
 <div class="modal-overlay">
-    <div class="comparison-modal">
+    <div class="modal-content">
         <button class="modal-close-btn">&times;</button>
         <!-- 팝업 내용은 JS로 채워집니다 -->
     </div>
@@ -63,8 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const slots = gsap.utils.toArray(".comparison-slot");
     const compareBtn = document.querySelector(".compare-button");
     const modalOverlay = document.querySelector(".modal-overlay");
-    const modalContainer = document.querySelector(".comparison-modal");
-    const modalCloseBtn = document.querySelector(".modal-close-btn");
+    const modalContainer = document.querySelector(".modal-content");
 
     // --- 상태 관리 ---
     function updateCompareButton() {
@@ -143,25 +144,42 @@ document.addEventListener("DOMContentLoaded", () => {
                 brand: details.dataset.brand,
                 price: details.dataset.price,
                 rating: details.dataset.rating,
-                material: details.dataset.material
+                material: details.dataset.material,
+                description: details.dataset.description,
+                productLink: details.dataset.productLink // Added productLink
             };
         });
 
         // 비교 테이블 HTML 생성
         const tableHtml = `
-            <button class="modal-close-btn">&times;</button>
+            <button class="close-button" aria-label="Close modal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 class="modal-title">상품 비교</h2>
             <table class="comparison-table-modal">
                 <thead>
                     <tr>
-                        <th>-</th>
-                        ${productsData.map(p => `<th><img src="${p.img}" alt="${p.name}"></th>`).join('')}
+                        <th></th> <!-- Empty cell for attribute labels -->
+                        ${productsData.map(p => `
+                            <th>
+                                <img src="${p.img}" alt="${p.name}">
+                            </th>
+                        `).join('')}
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td>상품명</td>${productsData.map(p => `<td>${p.name}</td>`).join('')}</tr>
-                    <tr><td>브랜드</td>${productsData.map(p => `<td>${p.brand}</td>`).join('')}</tr>
-                    <tr><td>가격</td>${productsData.map(p => `<td>${p.price}</td>`).join('')}</tr>
+                    <tr>
+                        <td class="attribute-label">이름</td>
+                        ${productsData.map(p => `<td>${p.name}</td>`).join('')}
+                    </tr>
+                    <tr>
+                        <td class="attribute-label">브랜드</td>
+                        ${productsData.map(p => `<td>${p.brand || '브랜드 정보 없음'}</td>`).join('')}
+                    </tr>
+                    <tr>
+                        <td class="attribute-label">가격</td>
+                        ${productsData.map(p => `<td class="price-cell">${p.price}</td>`).join('')}
+                    </tr>
                 </tbody>
             </table>
         `;
@@ -170,7 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modalOverlay.classList.add('visible');
         
         // 새로 생긴 닫기 버튼에 이벤트 리스너 다시 할당
-        modalContainer.querySelector('.modal-close-btn').addEventListener('click', hideModal);
+        modalContainer.querySelector('.close-button').addEventListener('click', hideModal);
     }
 
     function hideModal() {
@@ -178,7 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     compareBtn.addEventListener("click", showModal);
-    modalCloseBtn.addEventListener("click", hideModal);
+    
     modalOverlay.addEventListener("click", (e) => {
         if (e.target === modalOverlay) {
             hideModal();

@@ -170,6 +170,7 @@
   margin-right: 12px;
   border-radius: 8px;
   flex-shrink: 0;
+  flex-grow: 0; /* Added */
   background-color: #fff;
   box-shadow: 0 4px 15px rgba(0,0,0,0.08);
   border: 1px solid #e0e0e0;
@@ -308,6 +309,138 @@
         grid-template-columns: 1fr;
     }
     .scroll-arrow {
-        display: none; /* ����Ͽ����� ȭ��ǥ ���� */
+        display: none; /* Ͽ ȭǥ  */
     }
+}
+
+/* Styles for Jjim selection feature - Refined */
+.activity-section .section-title {
+    font-size: 2em;
+    font-weight: 600;
+    margin-bottom: 10px; /* Reduced margin */
+    padding-bottom: 10px; /* Reduced padding */
+    border-bottom: none; /* Removed border */
+    color: #34495e;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Styles for Jjim selection feature - Refined */
+#mypageJjimForm {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Ensures items are pushed to ends */
+    margin-top: 0; /* Remove top margin */
+    margin-bottom: 15px; /* Slightly reduced bottom margin */
+    padding: 0; /* Removed padding */
+    border-bottom: none; /* Removed border */
+}
+
+
+/* Custom Checkbox Base */
+.custom-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 22px; /* Slightly larger */
+    height: 22px;
+    border: 2px solid #95a5a6; /* Softer gray border */
+    border-radius: 5px; /* Slightly rounded corners */
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+    flex-shrink: 0; /* Prevent shrinking in flex container */
+}
+
+.custom-checkbox:checked {
+    background-color: #3498db; /* Primary blue for checked state */
+    border-color: #3498db;
+}
+
+.custom-checkbox:checked::before {
+    content: '\2713'; /* Checkmark */
+    display: block;
+    color: #fff;
+    font-size: 15px; /* Larger checkmark */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.custom-checkbox:hover {
+    border-color: #3498db; /* Highlight on hover */
+}
+
+/* Specific styles for 'Select All' checkbox */
+#mypageSelectAll {
+    @extend .custom-checkbox; /* Inherit base styles */
+}
+
+#mypageJjimForm label {
+    font-size: 1.05em; /* Slightly larger font */
+    color: #34495e; /* Darker text for better contrast */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space between checkbox and text */
+}
+
+/* Specific styles for individual item checkboxes */
+.mypage-select-item {
+    @extend .custom-checkbox; /* Inherit base styles */
+    width: 20px; /* Slightly smaller than select all */
+    height: 20px;
+    border-radius: 4px;
+}
+
+.mypage-select-item:checked {
+    background-color: #2ecc71; /* Green for individual checked items */
+    border-color: #2ecc71;
+}
+
+.product-card label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255,255,255,0.9); /* Slightly less transparent */
+    padding: 6px; /* Slightly more padding */
+    border-radius: 50%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; /* Slightly larger hit area */
+    height: 30px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15); /* More pronounced shadow */
+    transition: all 0.2s ease-in-out;
+}
+
+.product-card label:hover {
+    background: #fff; /* Solid white on hover */
+    transform: scale(1.1); /* Slight scale effect */
+}
+
+/* Bulk Delete Button - Redesigned */
+#mypageBulkDeleteBtn {
+    background-color: transparent; /* Transparent background */
+    color: #e74c3c; /* Red text color */
+    border: 2px solid #e74c3c; /* Red border */
+    padding: 10px 20px; /* Adjusted padding */
+    border-radius: 8px; /* Rounded corners */
+    font-size: 0.95em; /* Font size */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease; /* Smooth transitions */
+    box-shadow: none; /* No default shadow */
+    letter-spacing: 0.5px;
+}
+
+#mypageBulkDeleteBtn:hover {
+    background-color: #e74c3c; /* Solid red background on hover */
+    color: #fff; /* White text on hover */
+    transform: translateY(-2px); /* Lift effect */
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3); /* Subtle shadow on hover */
 }

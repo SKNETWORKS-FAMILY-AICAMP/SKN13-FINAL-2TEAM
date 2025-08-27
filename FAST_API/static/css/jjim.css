@@ -12,8 +12,8 @@
 .jjim-page-container {
     display: flex;
     height: calc(100vh - 80px); /* Full height minus header */
-    padding: 20px;
-    gap: 20px;
+    padding: 30px; /* Increased from 20px */
+    gap: 30px; /* Increased from 20px */
 }
 
 /* Left side: Comparison Area */
@@ -74,16 +74,23 @@
 }
 
 .comparison-slot .jjim-product-card .product-card-info {
-    height: 25%;
-    padding-top: 16px;
+    min-height: 0; /* Allow it to collapse when empty */
+    padding: 0; /* Remove default padding */
     text-align: center;
-    white-space: normal; /* Allow text to wrap */
+    white-space: normal;
+    overflow: hidden; /* Hide overflow if content is too large */
+    /* Add flexbox to center content vertically */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .comparison-slot .jjim-product-card .product-card-info h3 {
-    font-size: 1.1rem; /* Make title visible */
-    overflow: visible;
-    text-overflow: initial;
+    font-size: 1.1rem;
+    margin: 0; /* Ensure no extra margin */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Use ellipsis for long names */
 }
 
 .compare-button-container {
@@ -100,7 +107,7 @@
     border-radius: 12px;
     cursor: pointer;
     transition: transform 0.3s ease, opacity 0.3s ease;
-    transform: scale(0.8);
+    transform: scale(0.8);;
     opacity: 0;
     pointer-events: none;
 }
@@ -115,7 +122,7 @@
 .wishlist-sidebar {
     flex: 3;
     background-color: var(--surface-color);
-    padding: 20px;
+    padding: 30px; /* Increased from 20px */
     border-radius: 16px;
     border: 1px solid var(--border-color);
     overflow-y: auto;
@@ -127,7 +134,7 @@
     font-size: 1.6em;
     color: var(--text-primary);
     text-align: center;
-    font-family: 'Didot', 'Times New Roman', serif;
+    
 }
 
 /* Jjim Actions (Select All & Delete Button) */
@@ -174,7 +181,7 @@
 .product-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+    gap: 25px; /* Increased from 15px */
 }
 
 /* Card in the right sidebar */
@@ -198,6 +205,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 8px; /* Added border-radius */
 }
 
 .wishlist-sidebar .jjim-product-card .product-card-info {
@@ -235,21 +243,21 @@
 }
 
 /* === Compare Modal Styles === */
+
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    display: flex;
+    background-color: rgba(0, 0, 0, 0.8); /* Increased opacity */
+    display: flex; /* Keep flex for centering */
     justify-content: center;
     align-items: center;
-    z-index: 200;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
+    z-index: 1000;
+    opacity: 0; /* Hidden by default */
+    pointer-events: none; /* Not interactive when hidden */
+    transition: opacity 0.3s ease; /* Smooth transition */
 }
 
 .modal-overlay.visible {
@@ -257,83 +265,132 @@
     pointer-events: auto;
 }
 
-.comparison-modal {
-    position: relative;
-    width: 90%;
-    max-width: 1000px;
+.modal-overlay .modal-content {
+    width: 80%; /* Reduced width */
+    max-width: 800px; /* Reduced max-width */
+    max-height: 90vh; /* Add max-height for vertical size */
+    overflow-y: auto; /* Enable vertical scrolling if content overflows */
     background: var(--card-bg);
-    border-radius: 16px;
+    border-radius: 25px; /* More rounded corners */
     border: 1px solid var(--border-color);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    padding: 24px 32px;
-    transform: scale(0.95);
-    transition: transform 0.3s ease;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5); /* Deeper, softer shadow */
+    padding: 50px 60px; /* More padding */
+    transform: scale(1); /* Start at full scale */
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
+    color: var(--text-primary); /* Ensure all text inside is primary text color */
 }
 
-.modal-overlay.visible .comparison-modal {
-    transform: scale(1);
-}
-
-.modal-close-btn {
+.close-button {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 30px;
-    height: 30px;
+    top: 20px; /* Adjust as needed */
+    right: 20px; /* Adjust as needed */
+    background: none;
     border: none;
-    background: rgba(255,255,255,0.1);
-    color: var(--text-primary);
-    border-radius: 50%;
-    font-size: 1.2rem;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
+    color: var(--text-secondary); /* Or a lighter color for visibility */
+    font-size: 1.5rem; /* Size of the 'x' */
+    padding: 5px;
+    border-radius: 50%; /* Make it circular */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    display: flex; /* To center the SVG */
+    justify-content: center;
+    align-items: center;
+    width: 40px; /* Make it a clickable area */
+    height: 40px;
 }
 
-.modal-close-btn:hover {
-    background: rgba(255,255,255,0.2);
-    transform: rotate(90deg);
-}
-
-.modal-title {
-    font-family: 'Didot', 'Times New Roman', serif;
-    text-align: center;
-    font-size: 2rem;
-    margin-bottom: 24px;
+.close-button:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Subtle hover effect */
     color: var(--text-primary);
+}
+
+.close-button svg {
+    width: 24px;
+    height: 24px;
+}
+
+.product-image-container {
+    width: 100%;
+    height: 200px; /* Fixed height for image container */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Hide overflowing parts of the image */
+    margin-bottom: 10px;
+}
+
+.product-card img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Scale image down to fit, maintaining aspect ratio */
+    border-radius: 4px;
+    display: block; /* Remove extra space below image */
+}
+
+.product-card {
+    display: flex; /* Added for better layout control */
+    flex-direction: column; /* Arrange content in a column */
+    flex-grow: 1; /* Allow cards to grow and fill space */
 }
 
 .comparison-table-modal {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: collapse; /* Crucial for proper borders */
+    margin-top: 20px; /* Add some space from the title */
 }
 
 .comparison-table-modal th, .comparison-table-modal td {
-    padding: 12px;
-    text-align: center;
-    border-bottom: 1px solid var(--border-color);
+    padding: 20px; /* Increased padding */
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Softer border color */
     color: var(--text-secondary);
+    vertical-align: middle;
+    background-color: var(--card-bg); /* Ensure background for cells */
 }
 
 .comparison-table-modal thead th {
-    border-bottom-width: 2px;
+    border-bottom: 2px solid var(--accent); /* Accent colored bottom border */
+    color: var(--text-primary);
+    font-weight: bold;
+    background-color: var(--surface-color); /* Distinct background for header */
+    padding-bottom: 15px; /* More space below header content */
 }
 
 .comparison-table-modal thead img {
-    width: 100px;
+    width: 150px; /* Increased image size */
     height: auto;
-    border-radius: 8px;
+    border-radius: 12px; /* More rounded corners */
+    object-fit: contain;
+    margin-bottom: 10px; /* More space below image */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border around image */
 }
 
 .comparison-table-modal tbody td {
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 0.9rem; /* Reduced font size */
 }
 
 .comparison-table-modal tbody tr td:first-child {
-    font-weight: 600;
-    color: var(--text-secondary);
-        text-align: right;
-    padding-right: 20px;
+    font-weight: 700; /* Bolder font for labels */
+    color: var(--accent); /* Use accent color for labels */
+    text-align: left;
+    background-color: var(--surface-color);
+    white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.08); /* Add right border for labels */
+}
+
+.comparison-table-modal tbody td:not(.attribute-label) {
+    text-align: center;
+}
+
+.comparison-table-modal tbody tr .price-cell {
+    text-align: center !important;
+}
+
+/* Specific styling for description cells */
+.comparison-table-modal tbody tr:last-child td {
+    vertical-align: top; /* Align description to top */
+    white-space: normal; /* Allow text wrapping */
+    text-align: left; /* Align description text to left */
 }
 
 
@@ -354,7 +411,7 @@
 }
 
 .page-title {
-    font-family: 'Didot', 'Times New Roman', serif;
+    
     font-size: 2.5rem;
     color: var(--text-primary);
 }
@@ -405,14 +462,15 @@
 
 .comparison-table .product-image-cell {
     /* Set a fixed height for the image container */
-    height: 450px;
+    height: 300px; /* Reduced from 450px */
+    text-align: center; /* Center image horizontally */
 }
 
 .comparison-table .product-image-cell img {
-    width: 100%;
-    height: 100%;
-    /* Key fix: cover the container without distortion */
-    object-fit: cover;
+    width: auto; /* Allow width to adjust based on height */
+    max-width: 100%; /* Ensure it doesn't exceed cell width */
+    height: 100%; /* Fill container height */
+    object-fit: contain; /* Changed from cover to contain */
     border-radius: 12px;
     background: #000;
 }

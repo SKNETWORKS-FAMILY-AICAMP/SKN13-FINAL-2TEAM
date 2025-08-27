@@ -1,0 +1,26 @@
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  stage: test
+  script:
+    - echo "Running tests..."
+  only:
+    - KyungJae  # KyungJae 브랜치에서만 실행
+
+build:
+  stage: build
+  script:
+    - docker-compose build --no-cache
+  only:
+    - KyungJae  # KyungJae 브랜치에서만 실행
+
+deploy:
+  stage: deploy
+  script:
+    - docker-compose down
+    - docker-compose up -d
+  only:
+    - KyungJae  # KyungJae 브랜치에서만 실행

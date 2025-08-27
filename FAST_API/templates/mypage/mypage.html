@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', path='css/mypage.css') }}">
 <style>
   /* GSAP 애니메이션을 위한 초기 상태 설정 */
-  .profile-card, .section-title, .product-card {
+  .profile-card, .section-title, .product-card, .chat-card, .no-records-message {
     opacity: 0;
     transform: translateY(30px);
   }
@@ -70,9 +70,9 @@
       <section class="activity-section">
         <h2 class="section-title">내가 찜한 상품</h2>
         {% if jjim_products %}
-        <form id="mypageJjimForm" style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-          <button type="button" id="mypageBulkDeleteBtn">선택 삭제</button>
+        <form id="mypageJjimForm" style="margin-bottom:8px; display:flex; gap:8px; align-items:center; justify-content: space-between;">
           <label><input type="checkbox" id="mypageSelectAll"> 전체 선택</label>
+          <button type="button" id="mypageBulkDeleteBtn">선택 삭제</button>
         </form>
         <div class="scroll-container">
           <div class="scroll-arrow left">❮</div>
@@ -100,7 +100,7 @@
           <div class="scroll-arrow right">❯</div>
         </div>
         {% else %}
-        <p class="no-records-message">찜한 상품이 없습니다.</p>
+        <p class="no-records-message" id="noJjimMessage">찜한 상품이 없습니다.</p>
         {% endif %}
       </section>
 
@@ -174,16 +174,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const sections = document.querySelectorAll(".activity-section");
     sections.forEach(section => {
         const sectionTitle = section.querySelector(".section-title");
-        const productCards = section.querySelectorAll(".product-card");
+        masterTimeline.to(sectionTitle, { opacity: 1, y: 0, duration: 0.3 }, "-=.2");
 
-        masterTimeline
-            .to(sectionTitle, { opacity: 1, y: 0, duration: 0.3 }, "-=.2")
-            .to(productCards, {
+        const animatableElements = section.querySelectorAll(".product-card, .chat-card, .no-records-message");
+        if (animatableElements.length > 0) {
+            masterTimeline.to(animatableElements, {
                 opacity: 1,
                 y: 0,
                 stagger: 0.02,
                 duration: 0.3
             }, "-=0.1");
+        }
     });
 
     // --- 카드 호버 효과 ---
@@ -297,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 프로필 수정 모달
     const modalHtml = `
     <div id="profileModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; opacity:0; transition:opacity 0.3s ease;">
-      <div style="background:#fff; padding:25px; width:350px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); transform:scale(0.9); transition:transform 0.3s ease;">
+      <div style="background:#fff; padding:25px; width:500px; max-width:90%; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); transform:scale(0.9); transition:transform 0.3s ease;">
         <h3 style="margin:0 0 20px 0; text-align:center; color:#333; font-size:18px;">프로필 수정</h3>
         <form id="profileForm">
           <div style="display:flex; flex-direction:column; gap:12px;">
@@ -310,7 +311,38 @@ document.addEventListener("DOMContentLoaded", () => {
             </select>
             <input type="number" name="height" placeholder="키(cm)" min="0" style="padding:10px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px; transition:border-color 0.2s;" onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
             <input type="number" name="weight" placeholder="체중(kg)" min="0" style="padding:10px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px; transition:border-color 0.2s;" onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
-            <input type="text" name="preferred_color" placeholder="선호 색상" style="padding:10px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px; transition:border-color 0.2s;" onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
+            <div class="input-group color-selection">
+                <span class="color-label">선호 색상(중복선택 가능)</span>
+                <div class="color-grid">
+                    <input type="checkbox" id="mypage_red" name="preferred_color" value="red">
+                    <label for="mypage_red" class="color-swatch" style="background-color: #e74c3c;" title="빨강"></label>
+
+                    <input type="checkbox" id="mypage_orange" name="preferred_color" value="orange">
+                    <label for="mypage_orange" class="color-swatch" style="background-color: #e67e22;" title="주황"></label>
+
+                    <input type="checkbox" id="mypage_yellow" name="preferred_color" value="yellow">
+                    <label for="mypage_yellow" class="color-swatch" style="background-color: #f1c40f;" title="노랑"></label>
+
+                    <input type="checkbox" id="mypage_green" name="preferred_color" value="green">
+                    <label for="mypage_green" class="color-swatch" style="background-color: #2ecc71;" title="초록"></label>
+
+                    <input type="checkbox" id="mypage_blue" name="preferred_color" value="blue">
+                    <label for="mypage_blue" class="color-swatch" style="background-color: #3498db;" title="파랑"></label>
+
+                    <input type="checkbox" id="mypage_indigo" name="preferred_color" value="indigo">
+                    <label for="mypage_indigo" class="color-swatch" style="background-color: #34495e;" title="남색"></label>
+
+                    <input type="checkbox" id="mypage_violet" name="preferred_color" value="violet">
+                    <label for="mypage_violet" class="color-swatch" style="background-color: #9b59b6;" title="보라"></label>
+
+                    <input type="checkbox" id="mypage_black" name="preferred_color" value="black">
+                    <label for="mypage_black" class="color-swatch" style="background-color: #000000; border: 1px solid #fff;" title="검정"></label>
+
+                    <input type="checkbox" id="mypage_white" name="preferred_color" value="white">
+                    <label for="mypage_white" class="color-swatch" style="background-color: #ffffff; border: 1px solid #ddd;" title="흰색"></label>
+                </div>
+            </div>
+
             <input type="text" name="preferred_style" placeholder="선호 스타일" style="padding:10px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px; transition:border-color 0.2s;" onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
           </div>
           <div style="margin-top:20px; display:flex; gap:10px;">
@@ -345,14 +377,33 @@ document.addEventListener("DOMContentLoaded", () => {
         const res = await fetch('/mypage/profile/me');
         const data = await res.json();
         if (!data.success) return;
+
         form.email.value = data.user.email || '';
         form.gender.value = data.user.gender || '';
         form.height.value = data.preference.height || '';
         form.weight.value = data.preference.weight || '';
-        form.preferred_color.value = data.preference.preferred_color || '';
+
+        // 기존에 선택된 모든 preferred_color 체크박스를 먼저 해제합니다.
+        document.querySelectorAll('#profileForm input[name="preferred_color"]').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+
+        // 서버에서 반환된 preferred_color 데이터(리스트 형태)를 기반으로 체크박스를 설정합니다.
+        if (data.preference.preferred_color && Array.isArray(data.preference.preferred_color)) {
+          data.preference.preferred_color.forEach(color => {
+            const checkbox = document.getElementById(`mypage_${color}`);
+            if (checkbox) {
+              checkbox.checked = true;
+            }
+          });
+        }
+
         form.preferred_style.value = data.preference.preferred_style || '';
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
     }
+
 
     openBtn.addEventListener('click', async () => {
       await loadProfile();
@@ -394,12 +445,31 @@ document.addEventListener("DOMContentLoaded", () => {
         const fd = new FormData();
         fd.append('product_ids', clean.join(','));
         const res = await fetch('/mypage/jjim/delete', { method: 'POST', body: fd });
+        console.log('Response object:', res);
         const data = await res.json();
+        console.log('Parsed data object:', data);
         if (data.success) {
           clean.forEach(id => {
             const card = Array.from(jjimGrid.querySelectorAll('.product-card')).find(el => (el.getAttribute('data-product-id') || el.dataset.productId) === id);
             card?.remove();
           });
+          // Check if jjimGrid is empty after deletion
+          if (jjimGrid.children.length === 0) {
+            const mypageJjimForm = document.getElementById('mypageJjimForm');
+            if (mypageJjimForm) { // Check if it exists
+                mypageJjimForm.style.display = 'none';
+            }
+
+            const jjimScrollContainer = document.getElementById('jjim-grid')?.closest('.scroll-container'); // Use optional chaining
+            if (jjimScrollContainer) { // Check if it exists
+                jjimScrollContainer.style.display = 'none';
+            }
+
+            const noJjimMessage = document.getElementById('noJjimMessage');
+            if (noJjimMessage) { // Check if it exists
+                noJjimMessage.style.display = 'block';
+            }
+          }
         } else {
           alert('삭제 실패');
         }

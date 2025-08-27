@@ -200,6 +200,7 @@ class S3DataLoader:
                     "좋아요수": item.get("좋아요수", 0),
                     "상품링크": item.get("상품링크", ""),
                     "영어브랜드명": item.get("영어브랜드명", ""),
+                    "description": item.get("설명", item.get("제품설명", "")), # Added description field
                     
                     # 호환성을 위한 기존 필드들 (하위 호환성)
                     "제품이름": item.get("상품명", ""),

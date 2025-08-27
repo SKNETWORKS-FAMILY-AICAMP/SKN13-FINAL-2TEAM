@@ -11,6 +11,8 @@ from fastapi import Form
 from fastapi.responses import JSONResponse
 from typing import List
 
+from typing import List, Optional # Import Optional
+
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
@@ -43,23 +45,23 @@ async def delete_selected_jjim(request: Request, db: Session = Depends(get_db), 
 
 
 @router.get("/compare", response_class=HTMLResponse, dependencies=[Depends(login_required)])
-async def compare_jjim_products(request: Request, ids: List[str] = Query(...)):
-    if not ids:
-        raise HTTPException(status_code=400, detail="No product IDs provided for comparison.")
+async def compare_jjim_products(request: Request, ids: Optional[List[str]] = Query(None)): # Changed to Optional and default to None
+    sorted_products = []
+    if ids: # Only process if IDs are provided
+        # 중복 제거 및 순서 유지를 위해 dict.fromkeys 사용
+        unique_ids = list(dict.fromkeys(ids))
+        id_set = set(unique_ids)
 
-    # 중복 제거 및 순서 유지를 위해 dict.fromkeys 사용
-    unique_ids = list(dict.fromkeys(ids))
-    id_set = set(unique_ids)
+        # processed_clothing_data에서 선택된 상품들의 정보 가져오기
+        # 순서는 unique_ids 리스트를 따름
+        products_to_compare = [p for p in processed_clothing_data if p.get('상품코드') in id_set]
+        
+        # id_set 순서가 아닌 unique_ids의 순서를 따르도록 정렬
+        products_map = {p.get('상품코드'): p for p in products_to_compare}
+        sorted_products = [products_map[pid] for pid in unique_ids if pid in products_map]
 
-    # processed_clothing_data에서 선택된 상품들의 정보 가져오기
-    # 순서는 unique_ids 리스트를 따름
-    products_to_compare = [p for p in processed_clothing_data if p.get('상품코드') in id_set]
-    
-    # id_set 순서가 아닌 unique_ids의 순서를 따르도록 정렬
-    products_map = {p.get('상품코드'): p for p in products_to_compare}
-    sorted_products = [products_map[pid] for pid in unique_ids if pid in products_map]
-
+    print(f"DEBUG: Products being sent to compare.html: {sorted_products}") # Added debug print
     return templates.TemplateResponse("jjim/compare.html", {
         "request": request, 
-        "products": sorted_products
+        "products": sorted_products # Will be empty if no IDs were provided
     })

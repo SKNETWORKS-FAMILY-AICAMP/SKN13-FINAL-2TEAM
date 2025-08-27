@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select, delete
@@ -6,6 +6,7 @@ from sqlalchemy import select, delete
 from models.models_auth import User
 from models.models_mypage import UserPreference
 from models.models_jjim import Jjim
+from models.models_chat import ChatSession, ChatMessage
 
 
 def get_user_by_username(db: Session, username: str) -> Optional[User]:
@@ -51,10 +52,10 @@ def upsert_user_preference(
         pref.weight = weight
         pref.preferred_color = preferred_color
         pref.preferred_style = preferred_style
-
     db.commit()
     db.refresh(pref)
     return pref
+
 
 
 def get_preference_by_user_id(db: Session, user_id: int) -> Optional[UserPreference]:
@@ -97,6 +98,23 @@ def remove_jjim_bulk(db: Session, user_id: int, product_ids: list[str]) -> int:
     result = db.execute(stmt)
     db.commit()
     return result.rowcount or 0
+
+
+def delete_user_and_related_data(db: Session, user_id: int) -> bool:
+    # Delete user preferences
+    db.execute(delete(UserPreference).where(UserPreference.user_id == user_id))
+    # Delete jjim items
+    db.execute(delete(Jjim).where(Jjim.user_id == user_id))
+    # Delete chat messages
+    db.execute(delete(ChatSession).where(ChatSession.sender_id == user_id)) # Corrected column name
+    # Delete the user
+    user_to_delete = db.query(User).filter(User.id == user_id).first()
+    if user_to_delete:
+        db.delete(user_to_delete)
+        db.commit()
+        return True
+    db.rollback()
+    return False
 
 
 def get_trending_products(db: Session, limit: int = 20) -> list[dict]:

@@ -35,6 +35,7 @@ def upsert_user_preference(
     weight: Optional[int] = None,
     preferred_color: Optional[str] = None,
     preferred_style: Optional[str] = None,
+    survey_completed: Optional[bool] = None, # 파라미터 추가
 ) -> UserPreference:
     stmt = select(UserPreference).where(UserPreference.user_id == user_id)
     pref = db.execute(stmt).scalar_one_or_none()
@@ -45,13 +46,17 @@ def upsert_user_preference(
             weight=weight,
             preferred_color=preferred_color,
             preferred_style=preferred_style,
+            survey_completed=survey_completed if survey_completed is not None else False, # 생성 시 값 설정
         )
         db.add(pref)
     else:
-        pref.height = height
-        pref.weight = weight
-        pref.preferred_color = preferred_color
-        pref.preferred_style = preferred_style
+        if height is not None: pref.height = height
+        if weight is not None: pref.weight = weight
+        if preferred_color is not None: pref.preferred_color = preferred_color
+        if preferred_style is not None: pref.preferred_style = preferred_style
+        if survey_completed is not None: # 업데이트 시 값 설정
+            pref.survey_completed = survey_completed
+            
     db.commit()
     db.refresh(pref)
     return pref
@@ -425,5 +430,8 @@ def get_product_by_id(db: Session, product_id: int) -> Optional[Dict]:
     except Exception as e:
         print(f"상품 조회 중 오류: {e}")
         return None
+
+
+
 
 

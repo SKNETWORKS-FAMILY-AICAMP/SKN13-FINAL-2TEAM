@@ -78,6 +78,19 @@
 
 
 
+<!-- Survey Modal -->
+<div id="surveyModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:2000;">
+  <div style="background:white; color: #333; padding:30px; width:90%; max-width:450px; border-radius:12px; text-align:center; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
+    <h2 style="margin-top:0; margin-bottom:15px; font-weight:600;">환영합니다!</h2>
+    <p style="margin-bottom:25px; line-height:1.6;">더 정확한 추천을 위해 간단한 스타일 설문에 참여하시겠어요?</p>
+    <div style="display:flex; gap:15px; justify-content:center;">
+      <button id="acceptSurvey" style="padding:12px 25px; border:none; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border-radius:8px; cursor:pointer; font-weight:600;">예, 설문 진행</button>
+      <button id="declineSurvey" style="padding:12px 25px; border:2px solid #ccc; background:transparent; color:#555; border-radius:8px; cursor:pointer; font-weight:500;">아니오</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- Product Detail Modal -->
 <div id="homeProductModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
   <div style="background:#fff; padding:20px; width:90%; max-width:500px; border-radius:8px; max-height:90vh; overflow:auto;">
@@ -236,6 +249,35 @@
         homeProductModal.addEventListener('click', (e) => { 
             if (e.target === homeProductModal) closeHomeProductModal(); 
         });
+    // --- Survey Modal Logic ---
+        const showSurveyModal = {{ show_survey_modal|tojson }};
+        if (showSurveyModal) {
+            const surveyModal = document.getElementById('surveyModal');
+            surveyModal.style.display = 'flex';
+
+            document.getElementById('acceptSurvey').addEventListener('click', () => {
+                window.location.href = '/survey/';
+            });
+
+            document.getElementById('declineSurvey').addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/survey/decline', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    if (response.ok) {
+                        surveyModal.style.display = 'none';
+                    } else {
+                        alert('오류가 발생했습니다. 다시 시도해주세요.');
+                    }
+                } catch (error) {
+                    console.error('Error declining survey:', error);
+                    alert('오류가 발생했습니다. 다시 시도해주세요.');
+                }
+            });
+        }
     });
 
     </script>

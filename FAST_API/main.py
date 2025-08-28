@@ -94,13 +94,13 @@ async def startup_event():
     from routers.router_products import process_product_data
 
     s3_file_key = os.getenv("S3_FILE_KEY", "product_info.csv")
-    
+
     print("🚀 애플리케이션 시작: S3 데이터 로드를 시작합니다...")
     loaded_data = get_product_data_from_s3(s3_file_key)
     if loaded_data:
         clothing_data.extend(loaded_data)
         print(f"✅ S3 데이터 로드 완료: {len(clothing_data)}개 상품")
-        
+
         # 데이터 사전 처리 및 캐싱
         print("🔄 상품 데이터 사전 처리를 시작합니다...")
         processed_data = process_product_data(clothing_data)
@@ -110,6 +110,34 @@ async def startup_event():
         print("⚠️ S3에서 데이터를 불러오지 못했거나 데이터가 비어있습니다.")
 
     print("✅ 챗봇 데이터는 기본 clothing_data를 사용합니다")
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+
+    workers = int(os.getenv("UVICORN_WORKERS", "2"))
+    print(f"워커 수: {workers}")
+
+    ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
+    ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")
+
+    if ssl_cert_file and ssl_key_file and os.path.exists(ssl_cert_file) and os.path.exists(ssl_key_file):
+        uvicorn.run(
+            "main:app",  # app → "main:app"으로 변경
+            host="0.0.0.0",
+            port=443,
+            ssl_certfile=ssl_cert_file,
+            ssl_keyfile=ssl_key_file,
+            workers=workers  # 이 줄 추가
+        )
+    else:
+            uvicorn.run(
+            "main:app",  # app → "main:app"으로 변경
+            host="0.0.0.0",
+            port=8000,
+            workers=workers  # 이 줄 추가
+        )
+
 
 from sqlalchemy.orm import Session
 from db import get_db

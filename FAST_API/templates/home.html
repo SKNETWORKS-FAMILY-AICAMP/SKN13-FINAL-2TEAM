@@ -10,15 +10,10 @@
 <h1 class="hero-title">Ivle Malle</h1>
 <p class="hero-sub">당신의 취향, 체형, 계절 컬러를 이해하는 AI가
         오늘 입을 이유를 디자인합니다. 한 번의 클릭으로 완성형 코디 제안.</p>
-<div class="hero-cta">
-<button class="btn-glass btn-primary">지금 추천 받기</button>
-<button class="btn-glass">스타일 설문</button>
-<button class="btn-glass">룩북 보기</button>
-</div>
+
 <div aria-hidden="true" class="brand-ticker">
 <div class="brand-track">
-<span>Maison</span><span>Archive</span><span>Ivle Malle</span><span>Tailored</span><span>Minimal</span><span>Street</span>
-<span>Maison</span><span>Archive</span><span>Ivle Malle</span><span>Tailored</span><span>Minimal</span><span>Street</span>
+<span>Casual</span><span>Street</span><span>Formal</span><span>Minimal</span><span>Ivle Malle</span><span>Casual</span><span>Street</span><span>Formal</span><span>Minimal</span><span>Ivle Malle</span>
 </div>
 </div>
 </div>
@@ -36,8 +31,7 @@
         {% for section_title, section_items in [
             ("USER_CONTENT_TITLE", section1_items),
             ("지금 뜨는 콘텐츠", section2_items),
-            ("새로 추가된 콘텐츠", section3_items),
-            ("추가 추천 콘텐츠", section4_items)
+            ("새로 추가된 콘텐츠", section3_items)
         ] %}
         <section class="content-row">
         {% if section_title == "USER_CONTENT_TITLE" %}

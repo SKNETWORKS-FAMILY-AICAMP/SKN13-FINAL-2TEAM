@@ -5,100 +5,105 @@ from fastapi.templating import Jinja2Templates
 from data_store import clothing_data
 from db import get_db
 from sqlalchemy.orm import Session
-from crud.user_crud import get_trending_products, get_personalized_recommendations, filter_products_by_color, get_preference_by_user_id
+from crud.user_crud import (
+    get_trending_products, 
+    get_personalized_recommendations, 
+    get_preference_by_user_id,
+    filter_products_by_color
+)
 import random
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
+# 스타일-카테고리 하드코딩 맵
+STYLE_TO_CATEGORY_MAP = {
+    "Casual": ["후드티", "긴소매", "반소매", "피케카라", "니트스웨터", "데님 팬츠", "코튼 팬츠", "슈트 팬츠/슬랙스", "숏 팬츠", "트레이닝/조거 팬츠", "카고팬츠"],
+    "Street": ["후드티", "긴소매", "반소매", "슬리브리스", "데님 팬츠", "트레이닝/조거 팬츠", "카고팬츠", "숏 팬츠"],
+    "Formal": ["셔츠블라우스", "긴소매", "니트스웨터", "슈트 팬츠/슬랙스", "미니원피스", "미디원피스", "맥시원피스", "미니스커트", "미디스커트", "롱스커트"],
+    "Minimal": ["셔츠블라우스", "긴소매", "니트스웨터", "슬리브리스", "슈트 팬츠/슬랙스", "코튼 팬츠", "미디원피스", "롱스커트"]
+}
+
 @router.get("/", response_class=HTMLResponse, dependencies=[Depends(login_required)])
 async def read_home(request: Request, db: Session = Depends(get_db)):
-    """
-    메인 홈페이지를 렌더링합니다.
-    서버 시작 시 미리 로드된 clothing_data를 사용합니다.
-    """
-    # 데이터가 비어있는 경우를 대비하여 안전하게 처리 (불필요한 대량 로그 제거)
-    if not clothing_data:
-        sampled_data = []
-    else:
-        # 표시할 데이터 수를 100개 또는 전체 데이터 수 중 작은 값으로 제한
-        count = min(100, len(clothing_data))
-        sampled_data = random.sample(clothing_data, count)
-
-    # 사용자 ID 가져오기
     user_id = request.session.get('user_id')
-    
-    # 사용자 맞춤형 추천 상품 가져오기
-    personalized_products_data = get_personalized_recommendations(db, user_id, limit=20)
-    
-    # 사용자 맞춤형 추천 상품 ID 목록
-    personalized_product_ids = {item['product_id'] for item in personalized_products_data}
-    
-    # 사용자 맞춤형 추천 상품 정보 가져오기
-    personalized_products = []
-    for product in clothing_data:
-        if product.get('상품코드') in personalized_product_ids:
-            # 찜 횟수 정보 추가
-            jjim_count = next((item['jjim_count'] for item in personalized_products_data 
-                              if item['product_id'] == product.get('상품코드')), 0)
-            product_with_count = product.copy()
-            product_with_count['jjim_count'] = jjim_count
-            personalized_products.append(product_with_count)
-    
-    # 찜 횟수 순으로 정렬
-    personalized_products.sort(key=lambda x: x.get('jjim_count', 0), reverse=True)
-    
-    # 사용자 선호 색상으로 필터링
-    user_pref = get_preference_by_user_id(db, user_id)
-    if user_pref and user_pref.preferred_color:
-        personalized_products = filter_products_by_color(personalized_products, user_pref.preferred_color)
+    if not user_id:
+        return templates.TemplateResponse("error.html", {"request": request, "message": "로그인이 필요합니다."})
 
-    # 트렌딩 상품 가져오기 (찜 횟수 기반)
-    trending_products_data = get_trending_products(db, limit=20)
-    
-    # 트렌딩 상품 ID 목록
-    trending_product_ids = {item['product_id'] for item in trending_products_data}
-    
-    # 트렌딩 상품 정보 가져오기
-    trending_products = []
+    user_pref = get_preference_by_user_id(db, user_id)
+    show_survey_modal = not (user_pref and user_pref.survey_completed)
+
+    # --- 섹션 1: "님이 좋아할 만한 콘텐츠" (설문조사 기반 1차 필터링 + 체형 기반 2차 필터링 + 대체 로직) ---
+    section1_items = []
+    if user_pref and user_pref.preferred_style:
+        preferred_style = user_pref.preferred_style
+        target_categories = STYLE_TO_CATEGORY_MAP.get(preferred_style, [])
+
+        if target_categories:
+            # 1. 전체 상품 데이터에서 선호 스타일에 맞는 상품만 1차 필터링
+            style_filtered_clothing_data = [
+                product for product in clothing_data
+                if product.get('소분류') in target_categories
+            ]
+
+            # 2. 1차 필터링된 상품들 중에서 체형 기반 추천 로직 적용
+            if style_filtered_clothing_data:
+                # get_personalized_recommendations는 product_id와 jjim_count만 반환
+                # product_pool_ids_set을 get_personalized_recommendations에 전달해야 함
+                # 현재 get_personalized_recommendations는 product_pool_ids_set을 받지 않으므로,
+                # 이 부분은 router_home.py에서 직접 필터링 로직을 구현합니다.
+                
+                # get_personalized_recommendations는 전체 상품에서 유사 사용자 찜 목록 ID를 가져옴
+                personalized_data_ids_only = get_personalized_recommendations(db, user_id, limit=100) # 후보군 확보
+                personalized_ids_set = {item['product_id'] for item in personalized_data_ids_only}
+
+                # style_filtered_clothing_data 내에서 personalized_ids_set에 있는 상품만 선택
+                combined_filtered_products = []
+                for product in style_filtered_clothing_data:
+                    if product.get('상품코드') in personalized_ids_set:
+                        # 찜 횟수 정보 추가
+                        jjim_count = next((item['jjim_count'] for item in personalized_data_ids_only if item['product_id'] == product.get('상품코드')), 0)
+                        product_with_count = product.copy()
+                        product_with_count['jjim_count'] = jjim_count
+                        combined_filtered_products.append(product_with_count)
+                
+                # 3. 대체 로직: 2차 필터링 결과가 없으면 1차 필터링 결과 사용
+                if not combined_filtered_products:
+                    section1_items = style_filtered_clothing_data # 2차 필터링 결과가 없으면 1차 결과 사용
+                else:
+                    section1_items = combined_filtered_products # 2차 필터링 결과가 있으면 그것을 사용
+
+    # 사용자 선호 색상으로 필터링 (최종 단계)
+    if user_pref and user_pref.preferred_color:
+        section1_items = filter_products_by_color(section1_items, user_pref.preferred_color)
+
+    # 최종적으로 찜 순으로 정렬하여 상위 아이템 선택 (대체 로직 후에도 적용)
+    section1_items.sort(key=lambda x: x.get('jjim_count', 0), reverse=True)
+    section1_items = section1_items[:20]
+
+    # --- 섹션 2: "지금 뜨는 콘텐츠" (전체 인기 상품) ---
+    trending_data = get_trending_products(db, limit=20)
+    trending_ids = {item['product_id'] for item in trending_data}
+    section2_items = []
     for product in clothing_data:
-        if product.get('상품코드') in trending_product_ids:
-            # 찜 횟수 정보 추가
-            jjim_count = next((item['jjim_count'] for item in trending_products_data 
-                              if item['product_id'] == product.get('상품코드')), 0)
+        if product.get('상품코드') in trending_ids:
+            jjim_count = next((item['jjim_count'] for item in trending_data if item['product_id'] == product.get('상품코드')), 0)
             product_with_count = product.copy()
             product_with_count['jjim_count'] = jjim_count
-            trending_products.append(product_with_count)
+            section2_items.append(product_with_count)
+    section2_items.sort(key=lambda x: x.get('jjim_count', 0), reverse=True)
+
+    # --- 섹션 3 & 4: 랜덤 추천 (중복 방지) ---
+    used_ids = {p.get('상품코드') for p in section1_items}.union({p.get('상품코드') for p in section2_items})
+    remaining_products = [p for p in clothing_data if p.get('상품코드') not in used_ids]
     
-    # 찜 횟수 순으로 정렬
-    trending_products.sort(key=lambda x: x.get('jjim_count', 0), reverse=True)
-    
-    # 데이터를 4개의 섹션으로 분할 (최소 10개씩)
-    section_size = max(10, len(sampled_data) // 4)
-    
-    # 섹션 1: 사용자 맞춤 추천 (새로운 로직)
-    if personalized_products:
-        section1_items = personalized_products[:section_size]
-    else:
-        # 맞춤형 추천이 없으면 랜덤 상품으로 대체
-        section1_items = sampled_data[:section_size]
-    
-    # 섹션 2: 지금 뜨는 콘텐츠 (트렌딩 상품)
-    if trending_products:
-        section2_items = trending_products[:section_size]
-    else:
-        # 트렌딩 상품이 없으면 랜덤 상품으로 대체
-        section2_items = sampled_data[:section_size]
-    
-    # 나머지 상품들 (추천과 트렌딩에 포함되지 않은 것들)
-    used_product_ids = personalized_product_ids.union(trending_product_ids)
-    non_recommended_products = [p for p in sampled_data if p.get('상품코드') not in used_product_ids]
-    
-    # 섹션 3: 새로 추가된 콘텐츠 (나머지 상품들)
-    section3_items = non_recommended_products[:section_size]
-    
-    # 섹션 4: 추가 추천 콘텐츠 (나머지 상품들)
-    section4_items = non_recommended_products[section_size:section_size*2]
+    # 섹션 3
+    section3_items = random.sample(remaining_products, min(len(remaining_products), 20))
+    used_ids.update({p.get('상품코드') for p in section3_items})
+    remaining_products = [p for p in remaining_products if p.get('상품코드') not in used_ids]
+
+    # 섹션 4
+    section4_items = random.sample(remaining_products, min(len(remaining_products), 20))
 
     return templates.TemplateResponse(
         "home.html", 
@@ -107,6 +112,7 @@ async def read_home(request: Request, db: Session = Depends(get_db)):
             "section1_items": section1_items,
             "section2_items": section2_items,
             "section3_items": section3_items,
-            "section4_items": section4_items
+            "section4_items": section4_items,
+            "show_survey_modal": show_survey_modal
         }
     )

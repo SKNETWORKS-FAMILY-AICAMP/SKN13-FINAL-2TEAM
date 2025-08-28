@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from db import Base
 
@@ -12,5 +12,6 @@ class UserPreference(Base):
     weight = Column(Integer, nullable=True)
     preferred_color = Column(String(50), nullable=True)
     preferred_style = Column(String(100), nullable=True)
+    survey_completed = Column(Boolean, default=False, nullable=False)
 
     user = relationship("models.models_auth.User", back_populates="preferences")

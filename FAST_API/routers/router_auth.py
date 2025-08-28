@@ -12,6 +12,7 @@ from crud.user_crud import (
     get_user_by_email,
     create_user,
     upsert_user_preference,
+    get_preference_by_user_id
 )
 from security import hash_password, verify_password
 
@@ -90,12 +91,13 @@ async def signup_post(
     # 선호정보 저장 (색상 리스트를 문자열로 변환)
     preferred_color_str = ",".join(preferred_color) if preferred_color else None
     upsert_user_preference(
-        db,
+        db=db,
         user_id=user.id,
         height=height,
         weight=weight,
         preferred_color=preferred_color_str,
         preferred_style=None,
+        survey_completed=False  # survey_completed 값을 False로 명시적으로 전달
     )
 
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)

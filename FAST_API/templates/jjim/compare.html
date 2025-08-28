@@ -5,67 +5,48 @@
 {% endblock %}
 
 {% block content %}
-<div class="compare-page-container">
-    <header class="compare-header">
-        <h1 class="page-title">상품 비교</h1>
-        <a href="/jjim/" class="back-to-list-btn">찜 목록으로 돌아가기</a>
-    </header>
-
+<div class="modal-content">
+    <h2>상품 비교</h2>
     {% if products %}
-    <div class="comparison-table-wrapper">
-        <table class="comparison-table">
-            <!-- <thead> for images -->
-            <thead>
-                <tr>
-                    <th class="attribute-header">상품 이미지</th>
-                    {% for product in products %}
-                    <td class="product-image-cell">
-                        <img src="{{ product.get('대표이미지URL') }}" alt="{{ product.get('상품명') }}">
-                    </td>
-                    {% endfor %}
-                </tr>
-            </thead>
-
-            <!-- <tbody> for details -->
-            <tbody>
-                <!-- Product Name -->
-                <tr>
-                    <th class="attribute-header">상품명</th>
-                    {% for product in products %}
-                    <td><h3>{{ product.get('제품이름') }}</h3></td>
-                    {% endfor %}
-                </tr>
-
-                <!-- Brand -->
-                <tr>
-                    <th class="attribute-header">브랜드</th>
-                    {% for product in products %}
-                    <td>{{ product.get('브랜드') }}</td>
-                    {% endfor %}
-                </tr>
-
-                <!-- Price -->
-                <tr>
-                    <th class="attribute-header">가격</th>
-                    {% for product in products %}
-                    <td class="price">{{ product.get('가격') }}</td>
-                    {% endfor %}
-                </tr>
-
-                
-
-                
-
-                
-
-            </tbody>
-        </table>
-    </div>
+    <table class="comparison-table-modal">
+        <thead>
+            <tr>
+                <th></th> {# Empty cell for attribute labels #}
+                {% for product in products %}
+                <th>
+                    <img src="{{ product.image_url }}" alt="{{ product.product_name }}">
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>이름</td>
+                {% for product in products %}
+                <td>{{ product.product_name }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>브랜드</td>
+                {% for product in products %}
+                <td>{{ product.brand | default('브랜드 정보 없음') }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>가격</td>
+                {% for product in products %}
+                <td>{{ product.price }}원</td>
+                {% endfor %}
+            </tr>
+            {# Add more rows for other attributes if needed #}
+        </tbody>
+    </table>
     {% else %}
-    <div class="no-products-message">
-        <p>비교할 상품이 선택되지 않았습니다.</p>
-    </div>
+    <p class="no-products-message">비교할 상품이 없습니다. 찜 목록에서 상품을 선택해주세요.</p>
     {% endif %}
+    <button class="close-button" aria-label="Close modal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
 </div>
 {% endblock %}
 
@@ -94,4 +75,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+<script src="/static/js/compare_modal.js"></script>
 {% endblock %}

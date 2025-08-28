@@ -1,3 +1,4 @@
+from typing import List, Optional
 from fastapi import APIRouter, Request, Depends, Form
 from dependencies import login_required
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -13,6 +14,7 @@ from crud.user_crud import (
     list_jjim_product_ids,
     remove_jjim,
     remove_jjim_bulk,
+    delete_user_and_related_data, # Add this line
 )
 from crud.recommendation_crud import get_user_recommendations
 from crud.chat_crud import get_user_chat_sessions, get_session_messages
@@ -111,7 +113,7 @@ async def get_my_profile(request: Request, db: Session = Depends(get_db)):
         "preference": {
             "height": getattr(pref, "height", None),
             "weight": getattr(pref, "weight", None),
-            "preferred_color": getattr(pref, "preferred_color", None),
+            "preferred_color": getattr(pref, "preferred_color", "").split(",") if getattr(pref, "preferred_color", None) else [],  # Convert string to list
             "preferred_style": getattr(pref, "preferred_style", None),
         }
     }
@@ -125,13 +127,16 @@ async def update_my_profile(
     gender: str = Form(None),
     height: int = Form(None),
     weight: int = Form(None),
-    preferred_color: str = Form(None),
+    preferred_color: Optional[List[str]] = Form(None),  # Changed type hint
     preferred_style: str = Form(None),
 ):
     username = request.session.get("user_name")
     user = get_user_by_username(db, username)
     if not user:
-        return JSONResponse(status_code=404, content={"success": False, "message": "사용자를 찾을 수 없습니다."})
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "사용자를 찾을 수 없습니다."},
+        )
 
     # 기본 정보 업데이트
     if email:
@@ -147,8 +152,21 @@ async def update_my_profile(
         user_id=user.id,
         height=height,
         weight=weight,
-        preferred_color=preferred_color,
+        preferred_color=preferred_color,  # 그대로 전달 (함수 내부에서 join 처리)
         preferred_style=preferred_style,
     )
 
     return {"success": True, "message": "프로필이 업데이트되었습니다."}
+
+@router.post("/delete_account", response_class=JSONResponse, dependencies=[Depends(login_required)])
+async def delete_account(request: Request, db: Session = Depends(get_db)):
+    user = get_user_by_username(db, request.session.get("user_name"))
+    if not user:
+        return {"success": False, "message": "사용자를 찾을 수 없습니다."}
+
+    success = delete_user_and_related_data(db, user.id)
+    if success:
+        request.session.clear() # Clear session after successful deletion
+        return {"success": True, "message": "계정이 성공적으로 삭제되었습니다."}
+    else:
+        return {"success": False, "message": "계정 삭제 중 오류가 발생했습니다."}

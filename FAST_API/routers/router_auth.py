@@ -45,6 +45,11 @@ async def login_post(request: Request, username: str = Form(...), password: str 
     request.session["role"] = user.role or "user"
     return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
 
+@router.get("/logout")
+async def logout(request: Request):
+    request.session.clear() # Clear all session data
+    return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+
 @router.get("/signup", response_class=HTMLResponse)
 async def signup(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})

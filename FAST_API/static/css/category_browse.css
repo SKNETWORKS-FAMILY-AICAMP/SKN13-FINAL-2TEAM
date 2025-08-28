@@ -43,7 +43,8 @@
     font-size: 1.1rem;
     color: var(--text-primary);
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 8px;
+        padding-bottom: 8px;
+    font-family: inherit; /* Ensure default font */
 }
 
 .filter-section {

@@ -17,31 +17,39 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
+        working-directory: ./FAST_API
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run linting
-        run: |
-          echo "Running linting checks..."
-          pip install flake8
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
       - name: Run CI tests
+        working-directory: ./FAST_API
         run: |
           echo "Running CI tests..."
           python -c "import main; print('✅ Main module import successful')"
           python -c "from routers import router_products, router_chatbot; print('✅ Router imports successful')"
-          python -c "from services import WeatherService, IntentAnalyzer; print('✅ Service imports successful')"  
+          python -c "from services import WeatherService, IntentAnalyzer; print('✅ Service imports successful')"
 
       - name: Run tests
+        working-directory: ./FAST_API
         run: |
           echo "Running unit tests..."
           pip install pytest pytest-asyncio
           pytest tests/ -v || echo "No tests directory found, skipping tests"
 
+      - name: Run linting
+        working-directory: ./FAST_API
+        run: |
+          echo "Running linting checks..."
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          echo "✅ Linting passed!"
+
       - name: Check Docker files
+        working-directory: ./FAST_API
         run: |
           echo "Checking Docker configuration..."
           docker-compose config
+          echo "✅ Docker config OK!"
+

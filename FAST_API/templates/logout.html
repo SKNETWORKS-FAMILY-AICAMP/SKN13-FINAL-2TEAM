@@ -2,11 +2,20 @@
 
 {% block content %}
 <div class="logout-container">
-    <div class="logout-message">
-        <h2>로그아웃 완료</h2>
-        <p>성공적으로 로그아웃되었습니다.</p>
-        <p>잠시 후 로그인 페이지로 이동합니다...</p>
-        <div class="loading-spinner"></div>
+    <div class="logout-card">
+        <div class="logout-icon">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 17L21 12L16 7" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12H9" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h2 class="logout-title">로그아웃 완료</h2>
+        <p class="logout-text">성공적으로 로그아웃되었습니다.</p>
+        <p class="logout-subtext">잠시 후 로그인 페이지로 이동합니다...</p>
+        <div class="logout-spinner">
+            <div class="spinner-ring"></div>
+        </div>
     </div>
 </div>
 
@@ -15,30 +24,123 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 60vh;
-    text-align: center;
+    min-height: 80vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
 }
 
-.logout-message {
+.logout-card {
     background: white;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 3rem 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
-.loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #3498db;
+.logout-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.logout-icon {
+    margin-bottom: 1.5rem;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.logout-title {
+    color: #2c3e50;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.logout-text {
+    color: #34495e;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+.logout-subtext {
+    color: #7f8c8d;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    animation: fadeInUp 0.6s ease-out 0.6s both;
+}
+
+.logout-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+    animation: fadeInUp 0.6s ease-out 0.8s both;
+}
+
+.spinner-ring {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #ecf0f1;
+    border-top: 3px solid #667eea;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 20px auto;
 }
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 480px) {
+    .logout-card {
+        padding: 2rem 1.5rem;
+        margin: 10px;
+    }
+    
+    .logout-title {
+        font-size: 1.5rem;
+    }
+    
+    .logout-text {
+        font-size: 1rem;
+    }
+    
+    .logout-subtext {
+        font-size: 0.9rem;
+    }
 }
 </style>
 

@@ -81,3 +81,55 @@ def delete_recommendation(
         db.commit()
         return True
     return False
+
+# 피드백 관련 함수들
+def update_recommendation_feedback(
+    db: Session,
+    recommendation_id: int,
+    user_id: int,
+    feedback_rating: int,  # 1: 좋아요, 0: 싫어요
+    feedback_reason: str = None
+) -> bool:
+    """추천에 대한 피드백을 업데이트합니다."""
+    print(f"CRUD: 피드백 업데이트 시작 - recommendation_id={recommendation_id}, user_id={user_id}")
+    
+    recommendation = db.query(Recommendation).filter(
+        Recommendation.id == recommendation_id,
+        Recommendation.user_id == user_id
+    ).first()
+    
+    print(f"CRUD: 추천 기록 조회 결과 - {recommendation is not None}")
+    
+    if recommendation:
+        print(f"CRUD: 기존 피드백 - rating={recommendation.feedback_rating}, reason={recommendation.feedback_reason}")
+        recommendation.feedback_rating = feedback_rating
+        recommendation.feedback_reason = feedback_reason
+        db.commit()
+        print(f"CRUD: 피드백 업데이트 완료")
+        return True
+    else:
+        print(f"CRUD: 추천 기록을 찾을 수 없음")
+        return False
+
+def get_recommendation_feedback_stats(
+    db: Session,
+    user_id: int = None
+) -> Dict:
+    """피드백 통계를 조회합니다."""
+    query = db.query(Recommendation)
+    
+    if user_id:
+        query = query.filter(Recommendation.user_id == user_id)
+    
+    total_recommendations = query.count()
+    positive_feedback = query.filter(Recommendation.feedback_rating == 1).count()
+    negative_feedback = query.filter(Recommendation.feedback_rating == 0).count()
+    no_feedback = query.filter(Recommendation.feedback_rating.is_(None)).count()
+    
+    return {
+        "total": total_recommendations,
+        "positive": positive_feedback,
+        "negative": negative_feedback,
+        "no_feedback": no_feedback,
+        "satisfaction_rate": (positive_feedback / (positive_feedback + negative_feedback) * 100) if (positive_feedback + negative_feedback) > 0 else 0
+    }

@@ -12,5 +12,9 @@ class Recommendation(Base):
     query = Column(Text, nullable=False)
     reason = Column(Text, nullable=False)
     
+    # 피드백 관련 컬럼 추가
+    feedback_rating = Column(Integer, nullable=True)  # 1: 좋아요, 0: 싫어요, null: 없음
+    feedback_reason = Column(Text, nullable=True)     # 사용자가 입력한 이유
+    
     # 관계 설정 (선택사항)
     user = relationship("User", back_populates="recommendations")

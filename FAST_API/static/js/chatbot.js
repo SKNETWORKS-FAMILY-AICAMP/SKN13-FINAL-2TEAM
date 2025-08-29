@@ -245,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const productName = product.상품명 || product.제품이름 || '상품명 없음';
             const brand = product.한글브랜드명 || product.브랜드 || '브랜드 없음';
             const imageUrl = product.이미지URL || product.사진 || product.대표이미지URL || '';
-            const price = product.원가 || product.가격 || product.할인가 || 0;
+            const price = product.원가 || product.가격 || 0;
             const productLink = product.상품링크 || product.링크 || product.URL || '';
             
             // 상품코드는 itemid를 우선 사용, 없으면 상품코드 사용

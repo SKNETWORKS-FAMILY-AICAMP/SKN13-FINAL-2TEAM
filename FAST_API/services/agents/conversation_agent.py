@@ -136,7 +136,7 @@ class ConversationAgent:
 - 상황: {extracted_info.get('situations', [])}
 - 스타일: {extracted_info.get('styles', [])}
 - 색상: {extracted_info.get('colors', [])}
-- 키워드: {extracted_info.get('keywords', [])}
+- 브랜드: {extracted_info.get('brands', [])}
 
 {context_str}
 {weather_str}
@@ -269,8 +269,7 @@ class ConversationAgent:
                 
                 query = SearchQuery(
                     colors=[color],
-                    categories=[category],  # 기본 카테고리 (상의/하의)
-                    keywords=mapped_keywords,  # 매핑된 키워드들
+                    categories=mapped_keywords,  # 매핑된 키워드들을 카테고리로 사용
                     situations=[],
                     styles=[]
                 )

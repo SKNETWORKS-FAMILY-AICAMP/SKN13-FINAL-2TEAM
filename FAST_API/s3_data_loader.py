@@ -106,15 +106,11 @@ class S3DataLoader:
             clothing_data = []
             import hashlib
             for item in raw_data:
-                # 가격 처리 - 할인가 우선, 없으면 원가 사용
-                discount_price = item.get("할인가", 0)
+                # 가격 처리 - 원가 사용
                 original_price = item.get("원가", 0)
                 
                 # 숫자가 아닌 경우 0으로 처리
-                if not isinstance(discount_price, (int, float)) or discount_price == 0:
-                    price = original_price if isinstance(original_price, (int, float)) else 0
-                else:
-                    price = discount_price
+                price = original_price if isinstance(original_price, (int, float)) else 0
                 
                 fixed_img = item.get('fixed_image_url', '')
                 # 제품 식별자 결정 - 새로운 컬럼명 사용
@@ -191,8 +187,7 @@ class S3DataLoader:
                     "한글브랜드명": item.get("한글브랜드명", ""),
                     "대분류": item.get("대분류", ""),
                     "소분류": item.get("소분류", ""),
-                    "원가": int(original_price),
-                    "할인가": int(discount_price),
+                    "원가": int(original_price) if original_price is not None else 0,
                     "성별": item.get("성별", gender),
                     "이미지URL": fixed_img,
                     "소재": item.get("소재", ""),
@@ -205,13 +200,13 @@ class S3DataLoader:
                     # 호환성을 위한 기존 필드들 (하위 호환성)
                     "제품이름": item.get("상품명", ""),
                     "브랜드": item.get("한글브랜드명", ""),
-                    "가격": int(price),
+                    "가격": int(price) if price is not None else 0,
                     "사진": fixed_img,
                     "상품ID": str(product_id),
                     "대표이미지URL": fixed_img,
                     
                     # 사전 계산 필드
-                    "processed_price": int(price),
+                    "processed_price": int(price) if price is not None else 0,
                     "의류타입": clothing_type,
                     "평점": round(rating, 1),
                 }

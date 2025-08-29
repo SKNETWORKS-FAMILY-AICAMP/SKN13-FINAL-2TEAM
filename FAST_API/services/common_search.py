@@ -21,14 +21,13 @@ class SearchQuery:
     categories: List[str] = None
     situations: List[str] = None
     styles: List[str] = None
-    keywords: List[str] = None
     locations: List[str] = None
     price_range: Tuple[int, int] = None
     brands: List[str] = None
     
     def __post_init__(self):
         # None 값들을 빈 리스트로 초기화
-        for field in ['colors', 'categories', 'situations', 'styles', 'keywords', 'locations', 'brands']:
+        for field in ['colors', 'categories', 'situations', 'styles', 'locations', 'brands']:
             if getattr(self, field) is None:
                 setattr(self, field, [])
 
@@ -47,25 +46,40 @@ class CommonSearchModule:
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o-mini"
         
-        # 카테고리 키워드 매핑 (기존 로직에서 가져옴)
+        # 카테고리 키워드 매핑 (실제 데이터 구조에 맞게 업데이트)
         self.category_keywords = {
-            # 상의 카테고리
-            "후드티": ["후드티", "후드", "후드티셔츠", "hood", "hoodie"],
-            "셔츠블라우스": ["셔츠", "블라우스", "와이셔츠", "드레스셔츠", "shirt", "blouse", "dress shirt"],
-            "긴소매": ["긴소매", "긴팔", "long sleeve", "longsleeve"],
-            "반소매": ["반소매", "반팔", "티셔츠", "반팔티", "tshirt", "t-shirt", "tee"],
-            "피케카라": ["피케", "카라", "폴로", "polo", "pique", "collar"],
-            "니트스웨터": ["니트", "스웨터", "가디건", "knit", "sweater", "cardigan"],
-            "슬리브리스": ["슬리브리스", "민소매", "나시", "tank", "sleeveless"],
-            "애슬레저": ["애슬레저", "운동복", "스포츠", "athleisure", "activewear"],
+            # 대분류
+            "상의": ["상의", "top", "상의류"],
+            "바지": ["바지", "pants", "하의", "bottom", "하의류"],
+            "스커트": ["스커트", "skirt", "치마"],
+            "원피스": ["원피스", "dress", "원피스류"],
             
-            # 하의 카테고리  
-            "데님팬츠": ["데님", "청바지", "진", "jeans", "jean", "denim"],
-            "트레이닝조거팬츠": ["트레이닝", "조거", "운동복", "스웻팬츠", "training", "jogger", "track", "sweatpants"],
-            "코튼팬츠": ["코튼", "면바지", "치노", "cotton", "chino"],
-            "슈트팬츠슬랙스": ["슈트", "슬랙스", "정장바지", "정장", "suit", "slacks", "dress pants"],
+            # 소분류 - 상의
+            "긴소매": ["긴소매", "긴팔", "long sleeve", "longsleeve", "긴소매셔츠", "긴소매니트"],
+            "반소매": ["반소매", "반팔", "티셔츠", "반팔티", "tshirt", "t-shirt", "tee", "반소매셔츠"],
+            "후드티": ["후드티", "후드", "후드티셔츠", "hood", "hoodie", "후드티"],
+            "니트/스웨터": ["니트", "스웨터", "가디건", "knit", "sweater", "cardigan", "니트스웨터"],
+            "셔츠/블라우스": ["셔츠", "블라우스", "와이셔츠", "드레스셔츠", "shirt", "blouse", "dress shirt"],
+            "피케/카라": ["피케", "카라", "폴로", "polo", "pique", "collar", "피케카라"],
+            "슬리브리스": ["슬리브리스", "민소매", "나시", "tank", "sleeveless", "나시티"],
+            
+            # 소분류 - 하의
+            "데님팬츠": ["데님", "청바지", "진", "jeans", "jean", "denim", "데님팬츠"],
+            "코튼팬츠": ["코튼", "면바지", "치노", "cotton", "chino", "코튼팬츠"],
+            "슈트팬츠/슬랙스": ["슈트", "슬랙스", "정장바지", "정장", "suit", "slacks", "dress pants"],
+            "카고팬츠": ["카고", "cargo", "카고팬츠"],
+            "트레이닝/조거팬츠": ["트레이닝", "조거", "운동복", "스웻팬츠", "training", "jogger", "track", "sweatpants"],
             "숏팬츠": ["숏팬츠", "반바지", "shorts", "short"],
-            "레깅스": ["레깅스", "leggings"]
+            
+            # 소분류 - 스커트
+            "롱스커트": ["롱스커트", "long skirt", "롱치마"],
+            "미니스커트": ["미니스커트", "mini skirt", "미니치마"],
+            "미디스커트": ["미디스커트", "midi skirt", "미디치마"],
+            
+            # 소분류 - 원피스
+            "맥시원피스": ["맥시원피스", "maxi dress", "맥시드레스"],
+            "미니원피스": ["미니원피스", "mini dress", "미니드레스"],
+            "미디원피스": ["미디원피스", "midi dress", "미디드레스"]
         }
         
         self.color_keywords = {
@@ -91,7 +105,7 @@ class CommonSearchModule:
     def search_products(self, query: SearchQuery, available_products: List[Dict], 
                        context_filters: Optional[Dict] = None) -> SearchResult:
         """
-        통합 상품 검색 함수
+        통합 상품 검색 함수 - 개선된 버전
         
         Args:
             query: 검색 쿼리 정보
@@ -112,27 +126,33 @@ class CommonSearchModule:
                 applied_filters={}
             )
         
-        # 1. 기본 필터링
-        filtered_products = self._apply_basic_filters(available_products, query)
-        print(f"기본 필터링 후: {len(filtered_products)}개")
+        # 1. 필수 필터링 (색상, 카테고리, 브랜드, 가격)
+        filtered_products = self._apply_required_filters(available_products, query)
+        print(f"필수 필터링 후: {len(filtered_products)}개")
         
-        # 2. 컨텍스트 기반 추가 필터링
-        if context_filters:
+        # 2. 결과가 없으면 유연한 검색 시도
+        if not filtered_products and (query.colors or query.categories or query.brands):
+            print("필수 필터 결과 없음, 유연한 검색 시도...")
+            filtered_products = self._apply_flexible_search(available_products, query)
+            print(f"유연한 검색 후: {len(filtered_products)}개")
+        
+        # 3. 컨텍스트 기반 추가 필터링
+        if context_filters and filtered_products:
             filtered_products = self._apply_context_filters(filtered_products, context_filters)
             print(f"컨텍스트 필터링 후: {len(filtered_products)}개")
         
-        # 3. 결과 정리 및 선택
+        # 4. 결과 정리 및 선택
         final_products = self._select_final_products(filtered_products, query)
         
-        # 4. 검색 요약 생성
+        # 5. 검색 요약 생성
         search_summary = self._generate_search_summary(query, len(final_products), len(available_products))
         
         applied_filters = {
             "colors": query.colors,
             "categories": query.categories,
             "situations": query.situations,
-            "keywords": query.keywords,
-            "context_applied": bool(context_filters)
+            "context_applied": bool(context_filters),
+            "flexible_search": len(filtered_products) > 0 and not self._has_required_filters(filtered_products, query)
         }
         
         return SearchResult(
@@ -143,64 +163,104 @@ class CommonSearchModule:
         )
     
     def _apply_basic_filters(self, products: List[Dict], query: SearchQuery) -> List[Dict]:
-        """기본 필터링 적용"""
+        """기본 필터링 적용 - 개선된 버전"""
         filtered = products.copy()
         
-        # 색상 필터링
+        # 색상 필터링 (매핑 데이터 포함)
         if query.colors:
             color_filtered = []
             for product in filtered:
                 product_color = safe_lower(product.get("색상", ""))
                 product_name = safe_lower(product.get("상품명", ""))
                 
+                color_matched = False
                 for color in query.colors:
+                    # 색상 매핑 데이터에서 변형어 가져오기
                     color_variants = self.color_keywords.get(color, [color])
-                    if any(safe_lower(variant) in product_color or safe_lower(variant) in product_name 
-                          for variant in color_variants):
-                        color_filtered.append(product)
+                    
+                    # 색상 필드에서 정확한 매칭
+                    if any(safe_lower(variant) == product_color for variant in color_variants):
+                        color_matched = True
                         break
+                    
+                    # 상품명에서 색상 키워드 포함 여부 확인
+                    if any(safe_lower(variant) in product_name for variant in color_variants):
+                        color_matched = True
+                        break
+                
+                if color_matched:
+                    color_filtered.append(product)
+            
             filtered = color_filtered
             print(f"색상 필터링 적용: {query.colors} -> {len(filtered)}개")
         
-        # 카테고리 필터링
+        # 카테고리 필터링 (대분류/소분류 기반)
         if query.categories:
             category_filtered = []
             for product in filtered:
                 대분류 = safe_lower(product.get("대분류", ""))
                 소분류 = safe_lower(product.get("소분류", ""))
-                상품명 = safe_lower(product.get("상품명", ""))
                 
+                category_matched = False
                 for category in query.categories:
+                    # 카테고리 매핑 데이터에서 변형어 가져오기
                     category_variants = self.category_keywords.get(category, [category])
-                    product_matched = False
                     
-                    for variant in category_variants:
-                        variant_lower = safe_lower(variant)
-                        # 정확한 매칭을 위해 단어 경계 고려
-                        if (self._is_word_match(variant_lower, 대분류) or 
-                            self._is_word_match(variant_lower, 소분류) or 
-                            self._is_word_match(variant_lower, 상품명)):
-                            product_matched = True
-                            break
-                    
-                    if product_matched:
-                        category_filtered.append(product)
+                    # 대분류에서 정확한 매칭
+                    if any(safe_lower(variant) == 대분류 for variant in category_variants):
+                        category_matched = True
                         break
+                    
+                    # 소분류에서 정확한 매칭
+                    if any(safe_lower(variant) == 소분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                    
+                    # 소분류에서 부분 매칭 (긴소매셔츠 -> 긴소매 매칭)
+                    if any(safe_lower(variant) in 소분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                
+                if category_matched:
+                    category_filtered.append(product)
+            
             filtered = category_filtered
             print(f"카테고리 필터링 적용: {query.categories} -> {len(filtered)}개")
         
-        # 브랜드 필터링
+        # 브랜드 필터링 (언어별 검색)
         if query.brands:
             brand_filtered = []
             for product in filtered:
-                brand = safe_lower(product.get("한글브랜드명", ""))
-                eng_brand = safe_lower(product.get("영어브랜드명", ""))
+                한글브랜드명 = safe_lower(product.get("한글브랜드명", ""))
+                영어브랜드명 = safe_lower(product.get("영어브랜드명", ""))
                 
+                brand_matched = False
                 for query_brand in query.brands:
-                    if (safe_lower(query_brand) in brand or 
-                        safe_lower(query_brand) in eng_brand):
-                        brand_filtered.append(product)
+                    query_brand_lower = safe_lower(query_brand)
+                    
+                    # 한글 브랜드명 검색
+                    if query_brand_lower in 한글브랜드명:
+                        brand_matched = True
                         break
+                    
+                    # 영어 브랜드명 검색
+                    if query_brand_lower in 영어브랜드명:
+                        brand_matched = True
+                        break
+                    
+                    # 언어별 우선 검색
+                    if any(ord(char) > 127 for char in query_brand):  # 영어 문자가 포함된 경우
+                        if query_brand_lower in 영어브랜드명:
+                            brand_matched = True
+                            break
+                    else:  # 한글만 있는 경우
+                        if query_brand_lower in 한글브랜드명:
+                            brand_matched = True
+                            break
+                
+                if brand_matched:
+                    brand_filtered.append(product)
+            
             filtered = brand_filtered
             print(f"브랜드 필터링 적용: {query.brands} -> {len(filtered)}개")
         
@@ -214,44 +274,6 @@ class CommonSearchModule:
                     price_filtered.append(product)
             filtered = price_filtered
             print(f"가격 필터링 적용: {min_price}-{max_price}원 -> {len(filtered)}개")
-        
-        # 키워드 필터링 (유연한 점수 기반)
-        if query.keywords:
-            keyword_scored = []
-            for product in filtered:
-                product_text = f"{safe_str(product.get('상품명', ''))} {safe_str(product.get('대분류', ''))} {safe_str(product.get('소분류', ''))}".lower()
-                brand_text = f"{safe_str(product.get('한글브랜드명', ''))} {safe_str(product.get('영어브랜드명', ''))}".lower()
-                
-                score = 0
-                matched_keywords = []
-                
-                for keyword in query.keywords:
-                    keyword_lower = safe_lower(keyword)
-                    
-                    # 완전 일치 (높은 점수)
-                    if keyword_lower in product_text:
-                        score += 3
-                        matched_keywords.append(keyword)
-                    # 부분 일치 (낮은 점수)
-                    elif any(part in product_text for part in keyword_lower.split() if len(part) >= 2):
-                        score += 1
-                        matched_keywords.append(f"{keyword}(부분)")
-                    # 브랜드 일치
-                    elif keyword_lower in brand_text:
-                        score += 2
-                        matched_keywords.append(f"{keyword}(브랜드)")
-                
-                # 점수가 있는 상품만 포함
-                if score > 0:
-                    product_copy = product.copy()
-                    product_copy["_search_score"] = score
-                    product_copy["_matched_keywords"] = matched_keywords
-                    keyword_scored.append(product_copy)
-            
-            # 점수순으로 정렬
-            keyword_scored.sort(key=lambda x: x.get("_search_score", 0), reverse=True)
-            filtered = keyword_scored
-            print(f"키워드 필터링 적용: {query.keywords} -> {len(filtered)}개 (점수 기반)")
         
         return filtered
     
@@ -433,3 +455,200 @@ class CommonSearchModule:
             message += "\n"
         
         return message
+    
+
+    
+    def _apply_required_filters(self, products: List[Dict], query: SearchQuery) -> List[Dict]:
+        """필수 필터링 적용 (색상, 카테고리, 브랜드, 가격)"""
+        filtered = products.copy()
+        
+        # 색상 필터링 (매핑 데이터 포함)
+        if query.colors:
+            color_filtered = []
+            for product in filtered:
+                product_color = safe_lower(product.get("색상", ""))
+                product_name = safe_lower(product.get("상품명", ""))
+                
+                color_matched = False
+                for color in query.colors:
+                    # 색상 매핑 데이터에서 변형어 가져오기
+                    color_variants = self.color_keywords.get(color, [color])
+                    
+                    # 색상 필드에서 정확한 매칭
+                    if any(safe_lower(variant) == product_color for variant in color_variants):
+                        color_matched = True
+                        break
+                    
+                    # 상품명에서 색상 키워드 포함 여부 확인
+                    if any(safe_lower(variant) in product_name for variant in color_variants):
+                        color_matched = True
+                        break
+                
+                if color_matched:
+                    color_filtered.append(product)
+            
+            filtered = color_filtered
+            print(f"색상 필터링 적용: {query.colors} -> {len(filtered)}개")
+        
+        # 카테고리 필터링 (대분류/소분류 기반)
+        if query.categories:
+            category_filtered = []
+            for product in filtered:
+                대분류 = safe_lower(product.get("대분류", ""))
+                소분류 = safe_lower(product.get("소분류", ""))
+                
+                category_matched = False
+                for category in query.categories:
+                    # 카테고리 매핑 데이터에서 변형어 가져오기
+                    category_variants = self.category_keywords.get(category, [category])
+                    
+                    # 대분류에서 정확한 매칭
+                    if any(safe_lower(variant) == 대분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                    
+                    # 소분류에서 정확한 매칭
+                    if any(safe_lower(variant) == 소분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                    
+                    # 소분류에서 부분 매칭 (긴소매셔츠 -> 긴소매 매칭)
+                    if any(safe_lower(variant) in 소분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                
+                if category_matched:
+                    category_filtered.append(product)
+            
+            filtered = category_filtered
+            print(f"카테고리 필터링 적용: {query.categories} -> {len(filtered)}개")
+        
+        # 브랜드 필터링 (언어별 검색)
+        if query.brands:
+            brand_filtered = []
+            for product in filtered:
+                한글브랜드명 = safe_lower(product.get("한글브랜드명", ""))
+                영어브랜드명 = safe_lower(product.get("영어브랜드명", ""))
+                
+                brand_matched = False
+                for query_brand in query.brands:
+                    query_brand_lower = safe_lower(query_brand)
+                    
+                    # 한글 브랜드명 검색
+                    if query_brand_lower in 한글브랜드명:
+                        brand_matched = True
+                        break
+                    
+                    # 영어 브랜드명 검색
+                    if query_brand_lower in 영어브랜드명:
+                        brand_matched = True
+                        break
+                    
+                    # 언어별 우선 검색
+                    if any(ord(char) > 127 for char in query_brand):  # 영어 문자가 포함된 경우
+                        if query_brand_lower in 영어브랜드명:
+                            brand_matched = True
+                            break
+                    else:  # 한글만 있는 경우
+                        if query_brand_lower in 한글브랜드명:
+                            brand_matched = True
+                            break
+                
+                if brand_matched:
+                    brand_filtered.append(product)
+            
+            filtered = brand_filtered
+            print(f"브랜드 필터링 적용: {query.brands} -> {len(filtered)}개")
+        
+        # 가격 필터링
+        if query.price_range:
+            min_price, max_price = query.price_range
+            price_filtered = []
+            for product in filtered:
+                price = product.get("원가", 0)
+                if isinstance(price, (int, float)) and min_price <= price <= max_price:
+                    price_filtered.append(product)
+            filtered = price_filtered
+            print(f"가격 필터링 적용: {min_price}-{max_price}원 -> {len(filtered)}개")
+        
+        return filtered
+    
+    def _apply_flexible_search(self, products: List[Dict], query: SearchQuery) -> List[Dict]:
+        """유연한 검색 (필수 필터가 너무 제한적일 때)"""
+        flexible_products = []
+        
+        for product in products:
+            product_color = safe_lower(product.get("색상", ""))
+            product_name = safe_lower(product.get("상품명", ""))
+            대분류 = safe_lower(product.get("대분류", ""))
+            소분류 = safe_lower(product.get("소분류", ""))
+            한글브랜드명 = safe_lower(product.get("한글브랜드명", ""))
+            영어브랜드명 = safe_lower(product.get("영어브랜드명", ""))
+            
+            # 색상 유연 검색 (상품명에서만)
+            color_flexible = True
+            if query.colors:
+                color_found = False
+                for color in query.colors:
+                    color_variants = self.color_keywords.get(color, [color])
+                    if any(safe_lower(variant) in product_name for variant in color_variants):
+                        color_found = True
+                        break
+                color_flexible = color_found
+            
+            # 카테고리 유연 검색 (대분류만)
+            category_flexible = True
+            if query.categories:
+                category_found = False
+                for category in query.categories:
+                    category_variants = self.category_keywords.get(category, [category])
+                    if any(safe_lower(variant) == 대분류 for variant in category_variants):
+                        category_found = True
+                        break
+                category_flexible = category_found
+            
+            # 브랜드 유연 검색 (부분 매칭)
+            brand_flexible = True
+            if query.brands:
+                brand_found = False
+                for query_brand in query.brands:
+                    query_brand_lower = safe_lower(query_brand)
+                    if (query_brand_lower in 한글브랜드명 or query_brand_lower in 영어브랜드명):
+                        brand_found = True
+                        break
+                brand_flexible = brand_found
+            
+            # 모든 조건이 유연하게 만족되면 포함
+            if color_flexible and category_flexible and brand_flexible:
+                flexible_products.append(product)
+        
+        return flexible_products[:20]  # 최대 20개만 반환
+    
+    def _has_required_filters(self, products: List[Dict], query: SearchQuery) -> bool:
+        """필수 필터가 적용되었는지 확인"""
+        if not products:
+            return False
+        
+        # 샘플 상품에서 필터 조건 확인
+        sample_product = products[0]
+        
+        if query.colors:
+            product_color = safe_lower(sample_product.get("색상", ""))
+            color_matched = any(
+                any(safe_lower(variant) == product_color for variant in self.color_keywords.get(color, [color]))
+                for color in query.colors
+            )
+            if not color_matched:
+                return False
+        
+        if query.categories:
+            대분류 = safe_lower(sample_product.get("대분류", ""))
+            소분류 = safe_lower(sample_product.get("소분류", ""))
+            category_matched = any(
+                any(safe_lower(variant) in [대분류, 소분류] for variant in self.category_keywords.get(category, [category]))
+                for category in query.categories
+            )
+            if not category_matched:
+                return False
+        
+        return True

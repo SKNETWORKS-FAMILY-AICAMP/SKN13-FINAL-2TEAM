@@ -64,7 +64,9 @@ class SearchAgent:
             
             # 4. 결과 메시지 생성
             if search_result.products:
-                message = self.search_module.generate_search_message(search_result, search_query)
+                # LLM을 사용한 향상된 메시지 생성
+                context_summaries = context_info.get("previous_summaries", []) if context_info else []
+                message = self.enhance_search_with_llm(user_input, search_result, context_summaries)
                 success = True
                 
                 # 5. recommendation 테이블에 저장
@@ -102,7 +104,6 @@ class SearchAgent:
             categories=extracted_info.get("categories", []),
             situations=extracted_info.get("situations", []),
             styles=extracted_info.get("styles", []),
-            keywords=extracted_info.get("keywords", [user_input]),
             locations=extracted_info.get("locations", []),
             brands=extracted_info.get("brands", [])
         )

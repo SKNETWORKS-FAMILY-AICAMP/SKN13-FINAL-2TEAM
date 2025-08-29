@@ -100,21 +100,29 @@ class MainAnalyzer:
         "categories": ["추출된 카테고리들"],
         "situations": ["추출된 상황들"],
         "styles": ["추출된 스타일들"],
-        "keywords": ["기타 키워드들"],
+        "brands": ["추출된 브랜드들"],
         "locations": ["지역명들"]
     }},
     "analysis_summary": "분석 결과 요약"
 }}
 
 Intent 분류 기준:
-- search: 구체적인 상품 검색 ("파란색 셔츠", "청바지 추천")
+- search: 구체적인 상품 검색 ("파란색 셔츠", "청바지 추천", "나이키 운동화")
 - conversation: 상황별 추천 ("데이트룩", "면접복", "파티룩")  
 - followup: 이전 추천에 대한 후속 질문 ("이것들중에 제일 싼거", "더 비싼 것도 있어?", "첫 번째가 좋을까?")
 - weather: 날씨 관련 ("오늘 날씨", "서울 날씨")
 - general: 일반 대화 ("안녕", "고마워")
 
-**중요**: 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요."""
+필터링 조건 추출 기준:
+- colors: 색상 관련 ("빨간색", "파란색", "검은색", "흰색", "베이지", "네이비", "카키", "민트", "와인", "올리브" 등)
+- categories: 대분류/소분류 ("상의", "바지", "스커트", "원피스", "긴소매", "반소매", "후드티", "니트/스웨터", "셔츠/블라우스", "피케/카라", "슬리브리스", "데님팬츠", "코튼팬츠", "슈트팬츠/슬랙스", "카고팬츠", "트레이닝/조거팬츠", "숏팬츠", "롱스커트", "미니스커트", "미디스커트", "맥시원피스", "미니원피스", "미디원피스")
+- brands: 브랜드명 ("나이키", "아디다스", "유니클로", "ZARA", "H&M" 등)
+- situations: 상황/장소 ("데이트", "면접", "파티", "운동", "여행", "출근", "캐주얼" 등)
+- styles: 스타일 ("캐주얼", "정장", "스포티", "빈티지", "미니멀" 등)
 
+**중요**: 
+1. 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요.
+"""
         messages = [
             {"role": "system", "content": system_prompt.format(
                 context=context,
@@ -140,7 +148,7 @@ Intent 분류 기준:
             return {
                 "intent": "general",
                 "confidence": 0.0,
-                "filtering_conditions": {"keywords": [user_input]},
+                "filtering_conditions": {},
                 "analysis_summary": "분석 중 오류 발생"
             }
 
@@ -429,8 +437,7 @@ class LLMService:
                     
                 # 검색 쿼리 구성
                 search_query = SearchQuery(
-                    categories=[category],
-                    keywords=items,
+                    categories=[category] + items,  # 카테고리와 아이템들을 모두 카테고리로 사용
                     colors=[],  # 색상 제한 없음
                     situations=["날씨"],
                     styles=[]

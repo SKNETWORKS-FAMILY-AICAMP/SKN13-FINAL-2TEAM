@@ -91,6 +91,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 const details = cardClone.querySelector('.product-details');
                 const productName = details ? details.dataset.name : '상품명 없음';
                 
+                // img 요소가 제대로 복사되었는지 확인
+                const imgElement = cardClone.querySelector('img');
+                if (!imgElement || !imgElement.src) {
+                    // img 요소가 없거나 src가 없는 경우 기본 이미지로 교체
+                    const defaultImg = document.createElement('img');
+                    defaultImg.src = 'https://via.placeholder.com/150';
+                    defaultImg.alt = productName;
+                    if (imgElement) {
+                        imgElement.replaceWith(defaultImg);
+                    } else {
+                        cardClone.insertBefore(defaultImg, cardClone.firstChild);
+                    }
+                }
+                
                 // 카드에 이름 정보 div 추가
                 const nameDiv = document.createElement('div');
                 nameDiv.className = 'product-card-info';
@@ -111,6 +125,19 @@ document.addEventListener("DOMContentLoaded", () => {
             const nameInfo = cardClone.querySelector('.product-card-info');
             if (nameInfo) {
                 nameInfo.remove();
+            }
+            
+            // img 요소가 제대로 있는지 확인
+            const imgElement = cardClone.querySelector('img');
+            if (!imgElement || !imgElement.src) {
+                const defaultImg = document.createElement('img');
+                defaultImg.src = 'https://via.placeholder.com/150';
+                defaultImg.alt = '상품 이미지';
+                if (imgElement) {
+                    imgElement.replaceWith(defaultImg);
+                } else {
+                    cardClone.insertBefore(defaultImg, cardClone.firstChild);
+                }
             }
             
             wishlistGrid.appendChild(cardClone);
@@ -137,16 +164,21 @@ document.addEventListener("DOMContentLoaded", () => {
         // 데이터 추출 (숨겨진 div의 data-* 속성에서)
         const productsData = productsInSlots.map(card => {
             const details = card.querySelector('.product-details');
+            const imgElement = card.querySelector('img');
+            
+            // img 요소가 없거나 src가 없는 경우 기본 이미지 사용
+            const imgSrc = imgElement && imgElement.src ? imgElement.src : 'https://via.placeholder.com/150';
+            
             return {
                 id: card.dataset.productId,
-                img: card.querySelector('img').src,
-                name: details.dataset.name,
-                brand: details.dataset.brand,
-                price: details.dataset.price,
-                rating: details.dataset.rating,
-                material: details.dataset.material,
-                description: details.dataset.description,
-                productLink: details.dataset.productLink // Added productLink
+                img: imgSrc,
+                name: details ? details.dataset.name : '상품명 없음',
+                brand: details ? details.dataset.brand : '브랜드 정보 없음',
+                price: details ? details.dataset.price : '가격 정보 없음',
+                rating: details ? details.dataset.rating : '0',
+                material: details ? details.dataset.material : '소재 정보 없음',
+                description: details ? details.dataset.description : '설명 없음',
+                productLink: details ? details.dataset.productLink : '#'
             };
         });
 

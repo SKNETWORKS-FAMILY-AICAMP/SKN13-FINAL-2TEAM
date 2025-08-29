@@ -6,7 +6,7 @@ from data_store import clothing_data, processed_clothing_data
 import urllib.parse
 from db import get_db
 from sqlalchemy.orm import Session
-from crud.user_crud import get_user_by_username, list_jjim_product_ids, remove_jjim_bulk
+from crud.user_crud import get_user_by_username, list_jjim_product_ids, remove_jjim_bulk, add_jjim
 from fastapi import Form
 from fastapi.responses import JSONResponse
 from typing import List
@@ -27,6 +27,38 @@ async def jjim_list(request: Request, db: Session = Depends(get_db)):
     jjim_products = [p for p in processed_clothing_data if p.get('상품코드') in id_set]
     
     return templates.TemplateResponse("jjim/jjim.html", {"request": request, "jjim_products": jjim_products})
+
+
+@router.post("/add", response_class=JSONResponse, dependencies=[Depends(login_required)])
+async def add_to_jjim(request: Request, product_id: str = Form(...), db: Session = Depends(get_db)):
+    username = request.session.get("user_name")
+    user = get_user_by_username(db, username)
+    if not user:
+        return {"success": False, "message": "사용자 없음"}
+    
+    try:
+        add_jjim(db, user.id, product_id)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": f"찜하기 실패: {str(e)}"}
+
+
+@router.post("/remove", response_class=JSONResponse, dependencies=[Depends(login_required)])
+async def remove_from_jjim(request: Request, product_id: str = Form(...), db: Session = Depends(get_db)):
+    username = request.session.get("user_name")
+    user = get_user_by_username(db, username)
+    if not user:
+        return {"success": False, "message": "사용자 없음"}
+    
+    try:
+        # 단일 상품 제거를 위해 remove_jjim_bulk 사용
+        deleted_count = remove_jjim_bulk(db, user.id, [product_id])
+        if deleted_count > 0:
+            return {"success": True, "message": "찜목록에서 제거되었습니다"}
+        else:
+            return {"success": False, "message": "찜목록에 해당 상품이 없습니다"}
+    except Exception as e:
+        return {"success": False, "message": f"찜목록 제거 실패: {str(e)}"}
 
 
 @router.post("/delete", response_class=JSONResponse, dependencies=[Depends(login_required)])

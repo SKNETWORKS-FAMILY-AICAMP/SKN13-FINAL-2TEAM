@@ -250,6 +250,11 @@
     <script>
         // 사이드바 토글 기능
         document.addEventListener('DOMContentLoaded', function() {
+            // 홈페이지에서만 GSAP 애니메이션 실행
+            if (window.location.pathname === '/' || window.location.pathname === '/home') {
+                // GSAP 애니메이션 코드는 홈페이지에서만 실행
+                console.log('홈페이지에서 GSAP 애니메이션 실행');
+            }
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
             const sidebarOverlay = document.getElementById('sidebarOverlay');

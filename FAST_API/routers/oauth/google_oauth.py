@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from typing import Optional
 import os
+import uuid
 
 # --- 내부 의존성 (DB/CRUD) ---
 from db import get_db
@@ -78,10 +79,14 @@ def upsert_user_from_google(
 
 
 def set_login_session(request: Request, user: User):
+    # 기존 세션 데이터 삭제 후 새로운 세션 생성
+    request.session.clear()
+    
     # 로컬 로그인과 동일한 세션 키 사용 (중요)
     request.session["user_name"] = user.username
     request.session["user_id"]  = user.id
     request.session["role"]     = user.role or "user"
+    request.session["login_time"] = str(uuid.uuid4())  # 고유한 로그인 식별자
 
 
 # ======================

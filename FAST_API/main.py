@@ -45,7 +45,13 @@ app.add_middleware(
 )
 
 # 미들웨어 및 정적 파일 설정
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "change-me"))
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=os.getenv("SESSION_SECRET", "change-me"),
+    max_age=3600,  # 세션 만료 시간 1시간
+    same_site="lax",  # CSRF 보호
+    https_only=False  # 개발 환경에서는 False, 프로덕션에서는 True
+)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 

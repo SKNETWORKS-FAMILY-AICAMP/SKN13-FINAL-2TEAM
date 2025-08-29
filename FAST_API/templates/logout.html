@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-message">
+        <h2>로그아웃 완료</h2>
+        <p>성공적으로 로그아웃되었습니다.</p>
+        <p>잠시 후 로그인 페이지로 이동합니다...</p>
+        <div class="loading-spinner"></div>
+    </div>
+</div>
+
+<style>
+.logout-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    text-align: center;
+}
+
+.logout-message {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 챗봇 세션 완전 초기화
+    console.log('로그아웃: 챗봇 세션 초기화 시작');
+    
+    // 챗봇 관련 모든 데이터 삭제
+    const chatbotKeys = [
+        'chatbot_session_id', 
+        'chatbot_messages', 
+        'chatbot_state',
+        'chatbot_history',
+        'chatbot_preferences'
+    ];
+    
+    chatbotKeys.forEach(key => {
+        if (localStorage.getItem(key)) {
+            console.log('삭제:', key);
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // sessionStorage도 정리
+    const sessionKeys = [
+        'chatbot_session_id',
+        'chatbot_messages'
+    ];
+    
+    sessionKeys.forEach(key => {
+        if (sessionStorage.getItem(key)) {
+            console.log('sessionStorage 삭제:', key);
+            sessionStorage.removeItem(key);
+        }
+    });
+    
+    console.log('챗봇 세션 초기화 완료');
+    
+    // 2초 후 로그인 페이지로 이동
+    setTimeout(() => {
+        window.location.href = '/auth/login';
+    }, 2000);
+});
+</script>
+{% endblock %}

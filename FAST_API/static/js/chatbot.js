@@ -16,6 +16,20 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem('chatbot_session_id');
         currentSessionId = null;
     }
+    
+    // 페이지 로드 시 세션 검증 (로그아웃 후 재로그인 시 새로운 세션 생성)
+    function validateSession() {
+        // 로그인 상태 확인 (간단한 방법)
+        const isLoggedIn = document.cookie.includes('session=');
+        if (!isLoggedIn && currentSessionId) {
+            console.log('로그인 상태가 아니므로 챗봇 세션 초기화');
+            localStorage.removeItem('chatbot_session_id');
+            currentSessionId = null;
+        }
+    }
+    
+    // 페이지 로드 시 세션 검증 실행
+    validateSession();
 
     // UUID 유효성 검사 함수
     function isValidUUID(uuid) {

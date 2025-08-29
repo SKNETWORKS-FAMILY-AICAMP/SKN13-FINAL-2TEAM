@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Optional
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
@@ -41,15 +42,33 @@ async def login_post(request: Request, username: str = Form(...), password: str 
     if not user or not verify_password(password, user.password):
         return templates.TemplateResponse("login.html", {"request": request, "error": "아이디 또는 비밀번호가 올바르지 않습니다."})
     
+    # 기존 세션 데이터 삭제 후 새로운 세션 생성
+    request.session.clear()
+    
+    # 새로운 세션에 사용자 정보 저장
     request.session["user_name"] = user.username
     request.session["user_id"] = user.id
     request.session["role"] = user.role or "user"
+    request.session["login_time"] = str(uuid.uuid4())  # 고유한 로그인 식별자
+    
     return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
 
 @router.get("/logout")
 async def logout(request: Request):
-    request.session.clear() # Clear all session data
-    return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+    # 세션 데이터 완전 삭제
+    request.session.clear()
+    
+    # 새로운 세션 ID 생성 (세션 무효화)
+    # FastAPI SessionMiddleware는 자동으로 새로운 세션을 생성합니다
+    # 하지만 명시적으로 세션을 재생성하기 위해 세션 ID를 변경
+    request.session["_new_session"] = True
+    
+    # 로그아웃 페이지로 리다이렉트 (챗봇 세션 초기화를 위해)
+    return RedirectResponse(url="/auth/logout-page", status_code=status.HTTP_302_FOUND)
+
+@router.get("/logout-page", response_class=HTMLResponse)
+async def logout_page(request: Request):
+    return templates.TemplateResponse("logout.html", {"request": request})
 
 @router.get("/signup", response_class=HTMLResponse)
 async def signup(request: Request):

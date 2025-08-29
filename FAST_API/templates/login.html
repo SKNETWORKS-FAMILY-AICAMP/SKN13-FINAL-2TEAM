@@ -37,4 +37,23 @@
             </div> 
         </form>
     </div>
+
+    <script>
+        // 로그인 페이지 로드 시 챗봇 세션 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 챗봇 세션 ID 초기화
+            if (localStorage.getItem('chatbot_session_id')) {
+                console.log('로그인 페이지: 챗봇 세션 초기화');
+                localStorage.removeItem('chatbot_session_id');
+            }
+            
+            // 기타 챗봇 관련 데이터도 초기화
+            const chatbotKeys = ['chatbot_session_id', 'chatbot_messages', 'chatbot_state'];
+            chatbotKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    localStorage.removeItem(key);
+                }
+            });
+        });
+    </script>
 {% endblock %}

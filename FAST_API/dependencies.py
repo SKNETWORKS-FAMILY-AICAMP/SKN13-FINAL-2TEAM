@@ -9,10 +9,14 @@ def login_required(request: Request):
     """세션에서 로그인 상태를 확인합니다.
     - 기본: `session['user_name']`
     - OAuth 호환: `session['user']`가 dict인 경우 표시 이름을 유도하여 채웁니다.
+    - 세션 무효화 검증 추가
     """
     user_name = request.session.get("user_name")
+    user_id = request.session.get("user_id")
+    login_time = request.session.get("login_time")
 
-    if not user_name:
+    # 필수 세션 데이터 검증
+    if not user_name or not user_id:
         oauth_user = request.session.get("user")
         if isinstance(oauth_user, dict):
             # Kakao/Google 공통 필드에서 표시 이름 추출 시도
@@ -21,7 +25,10 @@ def login_required(request: Request):
                 request.session["user_name"] = display
                 user_name = display
 
-    if not user_name:
+    # 세션 데이터가 불완전하면 로그인 페이지로 리다이렉트
+    if not user_name or not user_id:
+        # 세션 데이터 정리
+        request.session.clear()
         raise HTTPException(
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             headers={"Location": "/auth/login"},

@@ -17,8 +17,7 @@ jobs:
       - name: Build Docker image
         run: |
           echo "Building Docker image..."
-          docker build -t fastapi-app FAST_API/
-
+          docker compose -f FAST_API/docker-compose.yml build
       - name: Test Docker image
         run: |
           echo "Testing Docker image..."

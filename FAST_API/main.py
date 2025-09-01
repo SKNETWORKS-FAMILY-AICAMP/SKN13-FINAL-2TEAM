@@ -18,6 +18,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from db import init_db, bootstrap_admin
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
 
 # 라우터 임포트
 from routers.router_home import router as home_router
@@ -215,3 +217,30 @@ async def startup_event():
         print("⚠️ S3에서 데이터를 불러오지 못했거나 데이터가 비어있습니다.")
 
     print("✅ 챗봇 데이터는 기본 clothing_data를 사용합니다")
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+
+    workers = int(os.getenv("UVICORN_WORKERS", "2"))
+    print(f"워커 수: {workers}")
+
+    ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
+    ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")
+
+    if ssl_cert_file and ssl_key_file and os.path.exists(ssl_cert_file) and os.path.exists(ssl_key_file):
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=443,
+            ssl_certfile=ssl_cert_file,
+            ssl_keyfile=ssl_key_file,
+            workers=workers
+        )
+    else:
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=8000,
+            workers=workers
+        )

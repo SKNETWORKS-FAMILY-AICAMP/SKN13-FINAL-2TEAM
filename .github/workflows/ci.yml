@@ -7,6 +7,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -50,6 +52,6 @@ jobs:
         working-directory: ./FAST_API
         run: |
           echo "Checking Docker configuration..."
-          docker-compose config
+          docker compose config
           echo "✅ Docker config OK!"
 

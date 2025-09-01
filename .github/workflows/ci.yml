@@ -8,7 +8,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -30,7 +30,7 @@ jobs:
           echo "Running CI tests..."
           python -c "import main; print('✅ Main module import successful')"
           python -c "from routers import router_products, router_chatbot; print('✅ Router imports successful')"
-          python -c "from services import WeatherService, IntentAnalyzer; print('✅ Service imports successful')"
+          python -c "from services import weather_service, location_service; print('✅ Service imports successful')"
 
       - name: Run tests
         working-directory: ./FAST_API

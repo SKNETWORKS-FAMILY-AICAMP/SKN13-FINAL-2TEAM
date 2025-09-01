@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-card">
+        <div class="logout-icon">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 17L21 12L16 7" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12H9" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h2 class="logout-title">로그아웃 완료</h2>
+        <p class="logout-text">성공적으로 로그아웃되었습니다.</p>
+        <p class="logout-subtext">잠시 후 로그인 페이지로 이동합니다...</p>
+        <div class="logout-spinner">
+            <div class="spinner-ring"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.logout-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.logout-card {
+    background: white;
+    padding: 3rem 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.logout-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.logout-icon {
+    margin-bottom: 1.5rem;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.logout-title {
+    color: #2c3e50;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.logout-text {
+    color: #34495e;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+.logout-subtext {
+    color: #7f8c8d;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    animation: fadeInUp 0.6s ease-out 0.6s both;
+}
+
+.logout-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+    animation: fadeInUp 0.6s ease-out 0.8s both;
+}
+
+.spinner-ring {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #ecf0f1;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 480px) {
+    .logout-card {
+        padding: 2rem 1.5rem;
+        margin: 10px;
+    }
+    
+    .logout-title {
+        font-size: 1.5rem;
+    }
+    
+    .logout-text {
+        font-size: 1rem;
+    }
+    
+    .logout-subtext {
+        font-size: 0.9rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 챗봇 세션 완전 초기화
+    console.log('로그아웃: 챗봇 세션 초기화 시작');
+    
+    // 챗봇 관련 모든 데이터 삭제
+    const chatbotKeys = [
+        'chatbot_session_id', 
+        'chatbot_messages', 
+        'chatbot_state',
+        'chatbot_history',
+        'chatbot_preferences'
+    ];
+    
+    chatbotKeys.forEach(key => {
+        if (localStorage.getItem(key)) {
+            console.log('삭제:', key);
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // sessionStorage도 정리
+    const sessionKeys = [
+        'chatbot_session_id',
+        'chatbot_messages'
+    ];
+    
+    sessionKeys.forEach(key => {
+        if (sessionStorage.getItem(key)) {
+            console.log('sessionStorage 삭제:', key);
+            sessionStorage.removeItem(key);
+        }
+    });
+    
+    console.log('챗봇 세션 초기화 완료');
+    
+    // 2초 후 로그인 페이지로 이동
+    setTimeout(() => {
+        window.location.href = '/auth/login';
+    }, 2000);
+});
+</script>
+{% endblock %}

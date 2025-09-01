@@ -33,6 +33,10 @@ services:
       # OpenAI용으로는 SSL 인증서 비활성화
       - OPENAI_SSL_CERT_FILE=""
       - OPENAI_SSL_KEY_FILE=""
+      # 환경 변수 기본값 설정 (개발용)
+      - GOOGLEMAP_API_KEY=${GOOGLEMAP_API_KEY:-}
+      - WEATHER_API_KEY=${WEATHER_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     env_file:
       - .env
     volumes:

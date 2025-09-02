@@ -9,7 +9,17 @@
 <div class="preference-container">
     <div class="card-stack-container" id="card-stack">
         {% for item in recommended_items %}
-        <div class="preference-card" data-product-id="{{ item.get('상품ID') }}">
+        <div class="preference-card" 
+             data-product-id="{{ item.get('상품ID') }}"
+             data-product-name="{{ item.get('제품이름') }}"
+             data-product-brand="{{ item.get('브랜드') or item.get('한글브랜드명') }}"
+             data-product-category="{{ item.get('대분류') }}"
+             data-product-subcategory="{{ item.get('소분류') }}"
+             data-product-color="{{ item.get('색상') }}"
+             data-product-price="{{ item.get('원가') }}"
+             data-product-image="{{ item.get('사진') or item.get('대표이미지URL') }}"
+             data-product-link="{{ item.get('상품링크') }}"
+             data-product-site="{{ item.get('사이트명') }}">
             <img class="card-image" src="{{ item.get('사진') or item.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ item['제품이름'] }}">
             <div class="card-info">
                 <h3 class="card-title">{{ item['제품이름'] }}</h3>

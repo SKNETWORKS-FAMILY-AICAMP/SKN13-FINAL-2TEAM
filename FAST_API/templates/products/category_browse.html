@@ -105,19 +105,23 @@
         {% for product in products %}
         <div class="product-card" 
              data-product-id="{{ product.get('상품코드', '') }}"
-             data-product-name="{{ product.get('상품명', '') }}"
-             data-product-brand="{{ product.get('한글브랜드명', '') }}"
+             data-product-name="{{ product.get('제품이름', product.get('상품명', '')) }}"
+             data-product-brand="{{ product.get('브랜드', product.get('한글브랜드명', '')) }}"
              data-product-category="{{ product.get('대분류', '') }}"
              data-product-subcategory="{{ product.get('소분류', '') }}"
              data-product-color="{{ product.get('색상', '') }}"
              data-product-price="{{ product.get('원가', '0') }}"
-             data-product-image="{{ product.get('이미지URL', product.get('대표이미지URL', '')) }}"
+             data-product-image="{{ product.get('사진', product.get('이미지URL', product.get('대표이미지URL', ''))) }}"
              data-product-link="{{ product.get('상품링크', '') }}"
+             data-product-site="{{ product.get('사이트명', '') }}"
              data-type="{{ product.get('의류타입', product.get('대분류', '')) }}">
-            <img src="{{ product.get('이미지URL', product.get('대표이미지URL', '')) }}" 
-                 alt="{{ product.get('상품명', '') }}"
-                 title="{{ product.get('상품명', '') }}: {{ product.get('한글브랜드명', '') }}">
-
+            <img src="{{ product.get('사진', product.get('이미지URL', product.get('대표이미지URL', ''))) }}" 
+                 alt="{{ product.get('제품이름', product.get('상품명', '')) }}"
+                 title="{{ product.get('제품이름', product.get('상품명', '')) }}: {{ product.get('브랜드', product.get('한글브랜드명', '')) }}">
+            <div class="product-info-overlay">
+                <div class="product-name">{{ product.get('제품이름', product.get('상품명', '상품명 없음')) }}</div>
+                <div class="product-brand">{{ product.get('브랜드', product.get('한글브랜드명', '브랜드 정보 없음')) }}</div>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -170,6 +174,49 @@
   </div>
 </div>
 {% endblock %}
+
+<style>
+/* 호버링을 위한 오버레이 스타일 - 카테고리검색 전용 */
+.category-page .product-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
+    color: white;
+    padding: 15px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 0 0 8px 8px;
+    z-index: 10;
+}
+
+.category-page .product-card:hover .product-info-overlay {
+    opacity: 1;
+}
+
+.category-page .product-info-overlay .product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.category-page .product-info-overlay .product-brand {
+    font-size: 12px;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 카테고리검색 페이지의 product-card가 호버링 효과를 제대로 받을 수 있도록 설정 */
+.category-page .product-card {
+    position: relative !important;
+}
+</style>
 
 {% block scripts %}
 {{ super() }}

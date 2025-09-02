@@ -69,8 +69,6 @@ class S3DataLoader:
         # 그 외의 경우 빈 문자열 반환
         return ""
 
-
-
     def load_product_data(self, file_key: str, use_cache: bool = True) -> List[Dict]:
         """제품 데이터를 S3에서 로드하고 가공하여 반환 (캐싱 지원 및 상세 로깅)"""
         from cache_manager import cache_manager
@@ -196,6 +194,7 @@ class S3DataLoader:
                     "상품링크": item.get("상품링크", ""),
                     "영어브랜드명": item.get("영어브랜드명", ""),
                     "description": item.get("설명", item.get("제품설명", "")), # Added description field
+                    "사이트명": item.get("사이트명", ""), # Added site name field
                     
                     # 호환성을 위한 기존 필드들 (하위 호환성)
                     "제품이름": item.get("상품명", ""),

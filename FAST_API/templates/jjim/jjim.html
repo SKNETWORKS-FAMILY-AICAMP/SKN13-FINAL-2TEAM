@@ -40,7 +40,8 @@
                      data-rating="{{ product.get('평점', 0) | round(1) }}"
                      data-material="{{ product.get('제품소재', '정보 없음') }}"
                      data-description="{{ product.get('description', '설명 없음') }}"
-                     data-product-link="{{ product.get('상품링크', '#') }}"> <!-- Added productLink -->
+                     data-product-link="{{ product.get('상품링크', '#') }}"
+                     data-site="{{ product.get('사이트명', '정보 없음') }}"> <!-- Added site -->
                 </div>
             </div>
             {% endfor %}
@@ -178,7 +179,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 rating: details ? details.dataset.rating : '0',
                 material: details ? details.dataset.material : '소재 정보 없음',
                 description: details ? details.dataset.description : '설명 없음',
-                productLink: details ? details.dataset.productLink : '#'
+                productLink: details ? details.dataset.productLink : '#',
+                site: details ? details.dataset.site : '사이트 정보 없음'
             };
         });
 
@@ -207,6 +209,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     <tr>
                         <td class="attribute-label">브랜드</td>
                         ${productsData.map(p => `<td>${p.brand || '브랜드 정보 없음'}</td>`).join('')}
+                    </tr>
+                    <tr>
+                        <td class="attribute-label">사이트</td>
+                        ${productsData.map(p => `<td>${p.site || '사이트 정보 없음'}</td>`).join('')}
                     </tr>
                     <tr>
                         <td class="attribute-label">가격</td>

@@ -17,6 +17,11 @@ def process_product_data(products):
     
     for product in products:
         processed_product = product.copy()
+        
+        # 사이트명 필드 보장
+        if '사이트명' not in processed_product:
+            processed_product['사이트명'] = product.get('사이트명', '')
+        
         # S3 데이터 호환: 대표이미지URL 필드 보장
         if '대표이미지URL' not in processed_product:
             processed_product['대표이미지URL'] = processed_product.get('이미지URL', processed_product.get('사진', ''))

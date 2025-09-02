@@ -271,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const productPrice = card.dataset.productPrice;
             const productImage = card.dataset.productImage;
             const productLink = card.dataset.productLink;
+            const productSite = card.dataset.productSite;
             const productType = card.dataset.type;
 
             // 가격 포맷팅 (원가 사용)
@@ -293,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">카테고리:</strong> <span style="color:#34495e;">${productType || productCategory || 'N/A'} > ${productSubcategory || 'N/A'}</span></p>
                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">색상:</strong> <span style="color:#34495e;">${productColor || 'N/A'}</span></p>
                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">가격:</strong> <span style="color:#e74c3c; font-weight:600; font-size:16px;">${formatPrice(productPrice)}</span></p>
+                            <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">사이트:</strong> <span style="color:#34495e;">${productSite || 'N/A'}</span></p>
                         </div>
                         <div style="display:flex; gap:12px;">
                             ${productLink ? `<a href="${productLink}" target="_blank" style="flex:1; padding:12px 20px; background:linear-gradient(135deg, #3498db, #2980b9); color:#fff; text-decoration:none; border-radius:6px; font-weight:600; text-align:center; box-shadow:0 2px 8px rgba(52,152,219,0.3); transition:all 0.3s ease; white-space:nowrap;">상품 보기</a>` : ''}

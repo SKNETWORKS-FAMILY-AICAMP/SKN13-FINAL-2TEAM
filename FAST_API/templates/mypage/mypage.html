@@ -8,6 +8,47 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
+  /* 호버링을 위한 오버레이 스타일 - 마이페이지 전용 */
+  .mypage-wrapper .product-info-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
+      color: white;
+      padding: 15px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      border-radius: 0 0 8px 8px;
+      z-index: 10;
+  }
+
+  .mypage-wrapper .product-card:hover .product-info-overlay {
+      opacity: 1;
+  }
+
+  .mypage-wrapper .product-info-overlay .product-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+  }
+
+  .mypage-wrapper .product-info-overlay .product-brand {
+      font-size: 12px;
+      opacity: 0.9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+  }
+
+  /* 마이페이지의 product-card가 호버링 효과를 제대로 받을 수 있도록 설정 */
+  .mypage-wrapper .product-card {
+      position: relative !important;
+  }
 </style>
 {% endblock %}
 
@@ -51,11 +92,15 @@
                  data-product-price="{{ rec.product.get('원가') }}"
                  data-product-image="{{ rec.product.get('사진') }}"
                  data-product-link="{{ rec.product.get('상품링크') }}"
+                 data-product-site="{{ rec.product.get('사이트명') }}"
                  data-query="{{ rec.query }}" 
                  data-reason="{{ rec.reason }}" 
                  style="cursor: pointer;">
               <img src="{{ rec.product.get('사진') or rec.product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ rec.product.get('제품이름') }}">
-              <p class="product-name">{{ rec.product.get('제품이름') }}</p>
+              <div class="product-info-overlay">
+                  <div class="product-name">{{ rec.product.get('제품이름', '상품명 없음') }}</div>
+                  <div class="product-brand">{{ rec.product.get('브랜드') or rec.product.get('한글브랜드명') or '브랜드 정보 없음' }}</div>
+              </div>
             </div>
             {% endfor %}
           </div>
@@ -88,12 +133,16 @@
                  data-product-price="{{ product.get('원가') }}"
                  data-product-image="{{ product.get('사진') }}"
                  data-product-link="{{ product.get('상품링크') }}"
+                 data-product-site="{{ product.get('사이트명') }}"
                  style="position:relative; cursor: pointer;">
               <label style="position:absolute; top:6px; left:6px; background:#fff; padding:2px 4px; border-radius:4px; z-index:10;">
                 <input type="checkbox" class="mypage-select-item">
               </label>
               <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product.get('제품이름') }}">
-              <p class="product-name">{{ product.get('제품이름') }}</p>
+              <div class="product-info-overlay">
+                  <div class="product-name">{{ product.get('제품이름', '상품명 없음') }}</div>
+                  <div class="product-brand">{{ product.get('브랜드') or product.get('한글브랜드명') or '브랜드 정보 없음' }}</div>
+              </div>
             </div>
             {% endfor %}
           </div>
@@ -231,6 +280,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const productPrice = productCard.getAttribute('data-product-price');
         const productImage = productCard.getAttribute('data-product-image');
         const productLink = productCard.getAttribute('data-product-link');
+        const productSite = productCard.getAttribute('data-product-site');
 
         // 가격 포맷팅 함수
         function formatPrice(price) {
@@ -252,6 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">카테고리:</strong> <span style="color:#34495e;">${productCategory || 'N/A'} > ${productSubcategory || 'N/A'}</span></p>
                         <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">색상:</strong> <span style="color:#34495e;">${productColor || 'N/A'}</span></p>
                         <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">가격:</strong> <span style="color:#e74c3c; font-weight:600; font-size:16px;">${formatPrice(productPrice)}</span></p>
+                        <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">사이트:</strong> <span style="color:#34495e;">${productSite || 'N/A'}</span></p>
                     </div>
                     ${productLink ? `<a href="${productLink}" target="_blank" style="display:inline-block; margin-top:10px; padding:12px 20px; background:linear-gradient(135deg, #3498db, #2980b9); color:#fff; text-decoration:none; border-radius:6px; font-weight:600; box-shadow:0 2px 8px rgba(52,152,219,0.3); transition:all 0.3s ease;">상품 보기</a>` : ''}
                 </div>

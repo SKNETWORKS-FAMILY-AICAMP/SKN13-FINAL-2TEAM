@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const widgetMessages = document.getElementById("widget-messages");
     const widgetForm = document.getElementById("widget-form");
     const widgetInput = document.getElementById("widget-input");
+    const imageUploadBtn = document.getElementById("widget-image-upload-btn");
+    const imageInput = document.getElementById("widget-image-input");
 
     // 세션 관리 변수들 (저장용으로만 사용)
     let currentSessionId = localStorage.getItem('chatbot_session_id') || null;
@@ -84,6 +86,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 showLoadingIndicator();
                 
                 sendMessageToAPI(message);
+            }
+        });
+
+        // 이미지 업로드 버튼 클릭 이벤트
+        imageUploadBtn.addEventListener("click", () => {
+            imageInput.click();
+        });
+
+        // 이미지 파일 선택 이벤트
+        imageInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                addMessage(`이미지 '${file.name}'를 분석 중입니다...`, "user");
+                showLoadingIndicator();
+                sendImageToAPI(file);
             }
         });
 
@@ -974,6 +991,36 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             console.error('피드백 제출 오류:', error);
             alert('피드백 제출 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function sendImageToAPI(file) {
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await fetch('/chat/image-recommend', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            removeLoadingIndicator();
+
+            if (data.message) {
+                addMessage(data.message, "bot");
+            }
+
+            if (data.products && data.products.length > 0) {
+                addRecommendations(data.products, null); // recommendationId는 없으므로 null 전달
+            } else if (!data.message) {
+                addMessage("추천 상품을 찾지 못했습니다.", "bot");
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            removeLoadingIndicator();
+            addMessage("이미지 처리 중 오류가 발생했습니다.", "bot");
         }
     }
 });

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, Depends, Query
+from fastapi import APIRouter, Form, Depends, Query, File, UploadFile
 from fastapi.responses import JSONResponse
 import pandas as pd
 import random
@@ -25,6 +25,7 @@ from models.recommendation import Recommendation
 from services.llm_service import LLMService, LLMResponse
 from services.clothing_recommender import recommend_clothing_by_weather
 from utils.safe_utils import safe_lower, safe_str
+from image_recommender import recommend_by_image
 
 router = APIRouter()
 
@@ -340,4 +341,45 @@ async def submit_feedback(
         return JSONResponse(content={
             "success": False, 
             "message": "피드백 처리 중 오류가 발생했습니다."
+        })
+
+@router.post("/image-recommend", response_class=JSONResponse)
+async def chat_image_recommend(image: UploadFile = File(...)):
+    """챗봇 추천 API - 이미지 기반"""
+    try:
+        image_bytes = await image.read()
+        result = recommend_by_image(image_bytes)
+
+        if "error" in result:
+            return JSONResponse(content={"message": result["error"], "products": []})
+
+        # 테스트용: information 텍스트를 메시지에 추가
+        info_text = result.get("information", "정보 텍스트를 가져올 수 없습니다.")
+        message = f"[생성된 정보 텍스트]:\n{info_text}\n\n이미지와 유사한 상품을 추천해 드립니다."
+
+        # Qdrant에서 받은 데이터(id, payload)를 기반으로 상품 정보를 조회해야 할 수 있음
+        # 현재는 받은 payload를 그대로 반환
+        recommendations = result.get("recommendations", [])
+        products = [
+            {
+                "상품코드": r.get("id"),
+                "상품명": r.get("information", "").split('|')[0].split('=')[-1], # payload에서 정보 추출 (임시)
+                "가격": "정보 없음",
+                "사진": r.get("payload", {}).get("image_url", ""), # payload에 이미지 URL이 있다고 가정
+            } for r in recommendations
+        ]
+
+        info_text = result.get("information", "정보 텍스트를 가져올 수 없습니다.")
+        message = f"[생성된 정보 텍스트]:\n{info_text}\n\n이미지 기반 추천이 완료되었습니다."
+
+        return JSONResponse(content={
+            "message": message,
+            "products": products
+        })
+
+    except Exception as e:
+        print(f"이미지 챗봇 오류: {e}")
+        return JSONResponse(content={
+            "message": "이미지 처리 중 오류가 발생했습니다.",
+            "products": []
         })

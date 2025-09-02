@@ -51,7 +51,11 @@ async def login_post(request: Request, username: str = Form(...), password: str 
     request.session["role"] = user.role or "user"
     request.session["login_time"] = str(uuid.uuid4())  # 고유한 로그인 식별자
     
-    return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    # 관리자인 경우 관리자 페이지로, 일반 사용자인 경우 홈으로 리다이렉션
+    if user.role == "admin":
+        return RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_302_FOUND)
+    else:
+        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
 
 @router.get("/logout")
 async def logout(request: Request):

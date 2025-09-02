@@ -32,6 +32,7 @@ from routers.router_products import router as products_router
 from routers.router_survey import router as survey_router
 from routers.router_chatbot import router as chatbot_router
 from routers.router_cache_admin import router as cache_admin_router
+from routers.router_admin import router as admin_router
 from routers.oauth.google_oauth import router as google_oauth_router
 from routers.oauth.kakao_oauth import router as kakao_oauth_router
 
@@ -78,118 +79,8 @@ app.include_router(mypage_router, prefix="/mypage", tags=["Mypage"])
 app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(survey_router, prefix="/survey", tags=["Survey"])
 app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
-app.include_router(cache_admin_router, prefix="/admin", tags=["Cache Admin"])
-app.include_router(google_oauth_router, prefix="/auth", tags=["oauth-google"])
-app.include_router(kakao_oauth_router, prefix="/auth", tags=["oauth-kakao"])
-
-# 404 에러 핸들러
-@app.exception_handler(StarletteHTTPException)
-async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code == 404:
-        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
-    return await http_exception_handler(request, exc)
-
-# 애플리케이션 시작 시 데이터 초기화
-@app.on_event("startup")
-async def startup_event():
-    # DB 테이블 생성
-    init_db()
-    bootstrap_admin()
-
-    # S3에서 제품 데이터 로드
-    from s3_data_loader import get_product_data_from_s3
-    from data_store import clothing_data, processed_clothing_data
-    from routers.router_products import process_product_data
-
-    s3_file_key = os.getenv("S3_FILE_KEY", "product_info.csv")
-
-    print("🚀 애플리케이션 시작: S3 데이터 로드를 시작합니다...")
-    loaded_data = get_product_data_from_s3(s3_file_key)
-    if loaded_data:
-        clothing_data.extend(loaded_data)
-        print(f"✅ S3 데이터 로드 완료: {len(clothing_data)}개 상품")
-
-        # 데이터 사전 처리 및 캐싱
-        print("🔄 상품 데이터 사전 처리를 시작합니다...")
-        processed_data = process_product_data(clothing_data)
-        processed_clothing_data.extend(processed_data)
-        print(f"✅ 상품 데이터 사전 처리 및 캐싱 완료: {len(processed_clothing_data)}개 상품")
-    else:
-        print("⚠️ S3에서 데이터를 불러오지 못했거나 데이터가 비어있습니다.")
-
-    print("✅ 챗봇 데이터는 기본 clothing_data를 사용합니다")
-
-if __name__ == "__main__":
-    import uvicorn
-    import os
-
-    workers = int(os.getenv("UVICORN_WORKERS", "2"))
-    print(f"워커 수: {workers}")
-
-    ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
-    ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")
-
-    if ssl_cert_file and ssl_key_file and os.path.exists(ssl_cert_file) and os.path.exists(ssl_key_file):
-        uvicorn.run(
-            "main:app",  # app → "main:app"으로 변경
-            host="0.0.0.0",
-            port=443,
-            ssl_certfile=ssl_cert_file,
-            ssl_keyfile=ssl_key_file,
-            workers=workers  # 이 줄 추가
-        )
-    else:
-            uvicorn.run(
-            "main:app",  # app → "main:app"으로 변경
-            host="0.0.0.0",
-            port=8000,
-            workers=workers  # 이 줄 추가
-        )
-
-
-from sqlalchemy.orm import Session
-from db import get_db
-from crud.faq_crud import create_faq
-from models.models_faq import FAQ
-
-app = FastAPI()
-
-# CORS 미들웨어 추가
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # 모든 출처 허용
-    allow_credentials=True,
-    allow_methods=["*"],  # 모든 HTTP 메소드 허용
-    allow_headers=["*"],  # 모든 헤더 허용
-)
-
-# 미들웨어 및 정적 파일 설정
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "change-me"))
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
-# Jinja2Templates에 url_for 함수 추가
-from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response
-
-def url_for(request: StarletteRequest, name: str, **path_params: str) -> str:
-    if name == "static":
-        return f"/static/{path_params.get('filename', '')}"
-    return request.url_for(name, **path_params)
-
-templates.env.globals["url_for"] = url_for
-
-# 라우터 등록
-app.include_router(home_router, tags=["Home"])
-app.include_router(auth_router, prefix="/auth", tags=["Auth"])
-app.include_router(preference_router, prefix="/preference", tags=["Preference"])
-app.include_router(jjim_router, prefix="/jjim", tags=["Jjim"])
-app.include_router(faq_router, prefix="/faq", tags=["FAQ"])
-app.include_router(mypage_router, prefix="/mypage", tags=["Mypage"])
-app.include_router(products_router, prefix="/products", tags=["Products"])
-app.include_router(survey_router, prefix="/survey", tags=["Survey"])
-app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
-app.include_router(cache_admin_router, prefix="/admin", tags=["Cache Admin"])
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
+app.include_router(cache_admin_router, prefix="/admin/api", tags=["Cache Admin API"])
 app.include_router(google_oauth_router, prefix="/auth", tags=["oauth-google"])
 app.include_router(kakao_oauth_router, prefix="/auth", tags=["oauth-kakao"])
 
@@ -208,6 +99,11 @@ async def startup_event():
     bootstrap_admin()
 
     # FAQ 데이터 초기화 (테이블이 비어있을 경우에만)
+    from sqlalchemy.orm import Session
+    from db import get_db
+    from crud.faq_crud import create_faq
+    from models.models_faq import FAQ
+    
     db_session = next(get_db()) # Get a session
     if db_session.query(FAQ).count() == 0:
         initial_faq_data = [
@@ -223,7 +119,7 @@ async def startup_event():
             {"id": "q-jjim-location", "category": "account", "question": "찜 목록은 어디서 확인하나요?", "answer": "로그인 후 마이페이지에서 '찜 목록' 메뉴를 통해 확인하실 수 있습니다."}
         ]
         for faq_item in initial_faq_data:
-                        create_faq(db_session, question=faq_item["question"], answer=faq_item["answer"])
+            create_faq(db_session, question=faq_item["question"], answer=faq_item["answer"])
         db_session.close()
         print("✅ FAQ 데이터 초기화 완료")
     else:

@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>🔧 관리자 대시보드</h1>
+        <p>시스템 모니터링 및 관리 도구</p>
+    </div>
+    
+    <!-- 통계 요약 -->
+    <div class="stats-grid">
+        <div class="stat-item">
+            <div class="stat-number" id="cache-count">-</div>
+            <div class="stat-label">캐시 항목</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number" id="s3-status">-</div>
+            <div class="stat-label">S3 상태</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number" id="system-status">정상</div>
+            <div class="stat-label">시스템 상태</div>
+        </div>
+    </div>
+    
+    <!-- 캐시 관리 -->
+    <div class="admin-grid">
+        <div class="admin-card">
+            <h3>📊 캐시 관리</h3>
+            <p>시스템 캐시 상태를 모니터링하고 관리합니다.</p>
+            <button class="admin-btn" onclick="getCacheInfo()">캐시 정보 조회</button>
+            <button class="admin-btn secondary" onclick="clearCache()">전체 캐시 삭제</button>
+            <button class="admin-btn secondary" onclick="cleanupCache()">만료 캐시 정리</button>
+        </div>
+        
+        <div class="admin-card">
+            <h3>☁️ S3 데이터 관리</h3>
+            <p>S3 연결 상태를 확인하고 데이터를 새로고침합니다.</p>
+            <button class="admin-btn" onclick="testS3Connection()">S3 연결 테스트</button>
+            <button class="admin-btn secondary" onclick="refreshS3Data()">데이터 새로고침</button>
+            <button class="admin-btn" onclick="getS3Health()">S3 상태 확인</button>
+        </div>
+        
+        <div class="admin-card">
+            <h3>🔍 시스템 모니터링</h3>
+            <p>전체 시스템의 건강 상태를 확인합니다.</p>
+            <button class="admin-btn" onclick="checkSystemHealth()">시스템 상태 확인</button>
+            <button class="admin-btn secondary" onclick="getSystemInfo()">시스템 정보</button>
+        </div>
+    </div>
+    
+    <!-- 로그 시각화 (향후 구현 예정) -->
+    <div class="coming-soon">
+        <h3>📈 로그 데이터 시각화</h3>
+        <p>OpenSearch를 활용한 로그 데이터 분석 및 시각화 기능이 준비 중입니다.</p>
+        <p>예정 기능: 실시간 로그 모니터링, 사용자 행동 분석, 시스템 성능 지표 등</p>
+    </div>
+    
+    <!-- 결과 표시 영역 -->
+    <div class="admin-card">
+        <h3>📋 실행 결과</h3>
+        <div id="result-area" class="result-area">
+            <p style="color: #6c757d; text-align: center; margin: 0;">명령을 실행하면 결과가 여기에 표시됩니다.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// 결과 표시 함수
+function showResult(message, isError = false) {
+    const resultArea = document.getElementById('result-area');
+    const timestamp = new Date().toLocaleTimeString();
+    const resultHtml = `
+        <div class="result-item ${isError ? 'error' : 'success'}">
+            <strong>${timestamp}</strong><br>
+            ${message}
+        </div>
+    `;
+    resultArea.innerHTML = resultHtml + resultArea.innerHTML;
+}
+
+// 캐시 정보 조회
+async function getCacheInfo() {
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.innerHTML = '<span class="loading"></span> 로딩중...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/admin/api/cache/info');
+        const data = await response.json();
+        if (data.success) {
+            showResult(`✅ 캐시 정보 조회 성공: ${JSON.stringify(data.cache_info, null, 2)}`);
+            // 통계 업데이트
+            document.getElementById('cache-count').textContent = data.cache_info.total_items || 0;
+        } else {
+            showResult(`❌ 캐시 정보 조회 실패: ${data.message}`, true);
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 전체 캐시 삭제
+async function clearCache() {
+    if (!confirm('정말로 전체 캐시를 삭제하시겠습니까?')) return;
+    
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.innerHTML = '<span class="loading"></span> 삭제중...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/admin/api/cache/clear', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showResult(`✅ ${data.message}`);
+            document.getElementById('cache-count').textContent = '0';
+        } else {
+            showResult(`❌ 캐시 삭제 실패: ${data.message}`, true);
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 만료 캐시 정리
+async function cleanupCache() {
+    try {
+        const response = await fetch('/admin/api/cache/cleanup', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showResult(`✅ ${data.message}`);
+            // 캐시 정보 새로고침
+            getCacheInfo();
+        } else {
+            showResult(`❌ 캐시 정리 실패: ${data.message}`, true);
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+    }
+}
+
+// S3 연결 테스트
+async function testS3Connection() {
+    try {
+        const response = await fetch('/admin/api/cache/test-s3');
+        const data = await response.json();
+        if (data.success) {
+            showResult(`✅ S3 연결 성공: ${data.files_found}개 파일 발견`);
+            document.getElementById('s3-status').textContent = '연결됨';
+        } else {
+            showResult(`❌ S3 연결 실패: ${data.message}`, true);
+            document.getElementById('s3-status').textContent = '실패';
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+        document.getElementById('s3-status').textContent = '오류';
+    }
+}
+
+// S3 데이터 새로고침
+async function refreshS3Data() {
+    if (!confirm('S3 데이터를 새로고침하시겠습니까? 이 작업은 시간이 걸릴 수 있습니다.')) return;
+    
+    try {
+        const response = await fetch('/admin/api/cache/refresh-data', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showResult(`✅ ${data.message}`);
+        } else {
+            showResult(`❌ 데이터 새로고침 실패: ${data.message}`, true);
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+    }
+}
+
+// S3 상태 확인
+async function getS3Health() {
+    try {
+        const response = await fetch('/admin/api/cache/health');
+        const data = await response.json();
+        if (data.success) {
+            showResult(`✅ 시스템 상태: ${JSON.stringify(data.status, null, 2)}`);
+        } else {
+            showResult(`❌ 상태 확인 실패: ${data.message}`, true);
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+    }
+}
+
+// 시스템 상태 확인
+async function checkSystemHealth() {
+    try {
+        const response = await fetch('/admin/api/cache/health');
+        const data = await response.json();
+        if (data.success) {
+            showResult(`✅ 시스템이 정상적으로 작동 중입니다.`);
+            document.getElementById('system-status').textContent = '정상';
+        } else {
+            showResult(`❌ 시스템 상태 확인 실패: ${data.message}`, true);
+            document.getElementById('system-status').textContent = '오류';
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+        document.getElementById('system-status').textContent = '오류';
+    }
+}
+
+// 시스템 정보 조회
+async function getSystemInfo() {
+    try {
+        const response = await fetch('/admin/api/cache/health');
+        const data = await response.json();
+        if (data.success) {
+            showResult(`📊 시스템 정보: ${JSON.stringify(data.status, null, 2)}`);
+        } else {
+            showResult(`❌ 시스템 정보 조회 실패: ${data.message}`, true);
+        }
+    } catch (error) {
+        showResult(`❌ 오류 발생: ${error.message}`, true);
+    }
+}
+
+// 페이지 로드 시 초기 상태 확인
+window.addEventListener('load', function() {
+    checkSystemHealth();
+    getCacheInfo();
+    testS3Connection();
+});
+</script>
+{% endblock %}

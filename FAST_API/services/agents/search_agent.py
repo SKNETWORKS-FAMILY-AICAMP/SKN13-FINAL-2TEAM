@@ -142,21 +142,25 @@ class SearchAgent:
     def _save_search_recommendations(self, db, user_id: int, query: str, products: List[Dict]):
         """검색 결과를 recommendation 테이블에 저장"""
         try:
-            from crud.recommendation_crud import create_multiple_recommendations
+            from crud.recommendation_crud import create_recommendation
             
-            recommendations_data = []
+            # 모든 상품 ID를 하나의 리스트로 수집
+            item_ids = []
             for product in products[:4]:  # 최대 4개만 저장
                 item_id = product.get("상품코드", 0)
                 if item_id:
-                    recommendations_data.append({
-                        "item_id": item_id,
-                        "query": query,
-                        "reason": f"검색 조건 '{query}'에 매칭된 상품"
-                    })
+                    item_ids.append(item_id)
             
-            if recommendations_data:
-                create_multiple_recommendations(db, user_id, recommendations_data)
-                print(f"✅ 검색 결과 {len(recommendations_data)}개를 recommendation 테이블에 저장했습니다.")
+            if item_ids:
+                # 여러 상품을 한 번에 저장
+                create_recommendation(
+                    db, 
+                    user_id, 
+                    item_ids,  # 상품 ID 리스트 전달
+                    query, 
+                    f"검색 조건 '{query}'에 매칭된 {len(item_ids)}개 상품"
+                )
+                print(f"✅ 검색 결과 {len(item_ids)}개를 recommendation 테이블에 저장했습니다.")
             else:
                 print("⚠️ 저장할 검색 결과가 없습니다.")
                 

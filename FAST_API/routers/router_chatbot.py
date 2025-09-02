@@ -21,6 +21,7 @@ from crud.chat_crud import (
     cleanup_user_expired_sessions,
     cleanup_old_sessions_if_needed
 )
+from models.recommendation import Recommendation
 from services.llm_service import LLMService, LLMResponse
 from services.clothing_recommender import recommend_clothing_by_weather
 from utils.safe_utils import safe_lower, safe_str
@@ -189,10 +190,15 @@ async def chat_recommend(
                     
                     if recommendations_data:
                         created_recommendations = create_multiple_recommendations(db, user.id, recommendations_data)
-                        # 첫 번째 추천 ID를 메시지와 연결
+                        # 각 상품별로 개별적인 추천 ID를 생성
                         if created_recommendations:
-                            recommendation_id = created_recommendations[0].id
-                            print(f"✅ 추천 결과 {len(created_recommendations)}개를 저장하고 메시지와 연결했습니다.")
+                            # 각 상품에 개별적인 추천 ID 할당
+                            for i, product in enumerate(products):
+                                if i < len(created_recommendations):
+                                    product['recommendation_id'] = created_recommendations[i].id
+                            
+                            recommendation_id = created_recommendations[0].id  # 메시지 연결용 (첫 번째 ID)
+                            print(f"✅ 추천 결과 {len(created_recommendations)}개를 저장하고 각 상품별로 개별 추천 ID를 할당했습니다.")
                 except Exception as e:
                     print(f"❌ 추천 결과 저장 중 오류: {e}")
             
@@ -316,10 +322,21 @@ async def submit_feedback(
         print(f"피드백 업데이트 결과: {success}")
         
         if success:
-            return JSONResponse(content={
-                "success": True,
-                "message": "피드백이 성공적으로 저장되었습니다."
-            })
+            # 피드백 타입을 구분
+            if feedback_reason and feedback_reason.strip():  # 코멘트가 있는 경우
+                return JSONResponse(content={
+                    "success": True,
+                    "message": "코멘트가 성공적으로 저장되었습니다.",
+                    "already_feedback": False,
+                    "feedback_type": "comment"
+                })
+            else:  # 일반 피드백만 있는 경우
+                return JSONResponse(content={
+                    "success": True,
+                    "message": "피드백이 성공적으로 저장되었습니다.",
+                    "already_feedback": False,
+                    "feedback_type": "rating"
+                })
         else:
             return JSONResponse(content={
                 "success": False,

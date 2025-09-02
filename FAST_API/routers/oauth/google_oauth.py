@@ -120,9 +120,12 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         # 세션 저장 (로컬과 동일 포맷)
         set_login_session(request, user)
 
-        # 원래 가려던 경로로 이동
-        next_url = request.session.pop("next_url", "/")
-        return RedirectResponse(url=next_url)
+        # 관리자인 경우 관리자 페이지로, 일반 사용자인 경우 원래 경로로 이동
+        if user.role == "admin":
+            return RedirectResponse(url="/admin/dashboard")
+        else:
+            next_url = request.session.pop("next_url", "/")
+            return RedirectResponse(url=next_url)
 
     except Exception as e:
         print("Google OAuth Error:", e)

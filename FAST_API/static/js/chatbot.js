@@ -189,6 +189,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.message) {
                 addMessage(data.message, "bot");
                 
+                console.log('챗봇 응답 데이터:', data);
+                console.log('추천 ID:', data.recommendation_id);
+                console.log('상품 데이터:', data.products);
+                
                 if (data.products && data.products.length > 0) {
                     addRecommendations(data.products, data.recommendation_id);
                 }
@@ -234,6 +238,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function addRecommendations(recommendations, recommendationId) {
+        console.log('addRecommendations 호출됨:', { recommendations, recommendationId });
+        
         const recommendationsWrapper = document.createElement("div");
         recommendationsWrapper.classList.add("widget-message", "widget-bot-message");
         
@@ -250,6 +256,9 @@ document.addEventListener("DOMContentLoaded", () => {
             
             // 상품코드는 itemid를 우선 사용, 없으면 상품코드 사용
             const productId = product.itemid || product.상품코드;
+            
+            // 각 상품별로 개별적인 추천 ID 사용
+            const productRecommendationId = product.recommendation_id || recommendationId;
             
 
             
@@ -299,12 +308,33 @@ document.addEventListener("DOMContentLoaded", () => {
                              ">${price ? price.toLocaleString() + '원' : '가격 정보 없음'}</p>
                          </div>
                          
+                         <!-- 피드백 버튼들 -->
+                         <div class="feedback-buttons">
+                             <button class="feedback-like-btn" 
+                                     onclick="submitQuickFeedback('${productId}', '${productName}', 1, '${productRecommendationId || ''}')"
+                                     data-recommendation-id="${productRecommendationId || ''}">
+                                 👍 좋아요
+                             </button>
+                             <button class="feedback-dislike-btn" 
+                                     onclick="submitQuickFeedback('${productId}', '${productName}', 0, '${productRecommendationId || ''}')"
+                                     data-recommendation-id="${productRecommendationId || ''}">
+                                 👎 싫어요
+                             </button>
+                             <button class="feedback-comment-btn" 
+                                     onclick="showCommentModal('${productId}', '${productName}', '${productRecommendationId || ''}')"
+                                     data-recommendation-id="${productRecommendationId || ''}">
+                                 💬 코멘트
+                             </button>
+                         </div>
+                         
+
+                         
                          <!-- 액션 버튼들 -->
                          <div style="display: flex; gap: 6px; margin-top: 8px;">
                              <button class="chatbot-jjim-btn" 
-                             onclick="addToJjim('${productId}', '${productName}', '${brand}', '${imageUrl}', '${price}', '${productLink}', '${recommendationId}')"
+                             onclick="addToJjim('${productId}', '${productName}', '${brand}', '${imageUrl}', '${price}', '${productLink}', '${productRecommendationId}')"
                              data-product-id="${productId}"
-                             data-recommendation-id="${recommendationId}">
+                             data-recommendation-id="${productRecommendationId}">
                                  ❤️ 찜하기
                              </button>
                              ${hasLink ? 
@@ -490,22 +520,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 // 성공 메시지 표시
                 showFeedbackMessage('찜목록에 추가되었습니다! 💕', 'success');
-                
-                // 피드백 요청 (세션당 한 번만)
-                console.log('피드백 상태 확인:', {
-                    feedbackRequested: sessionFeedbackState.feedbackRequested,
-                    sessionStorageValue: sessionStorage.getItem(`chatbot_feedback_${currentSessionId}`)
-                });
-                
-                if (!sessionFeedbackState.feedbackRequested) {
-                    console.log('피드백 모달 표시 예정');
-                    setTimeout(() => {
-                        console.log('피드백 모달 표시 중...');
-                        showFeedbackModal(productId, productName, '찜하기', recommendationId);
-                    }, 1000);
-                } else {
-                    console.log('이미 피드백 요청됨 - 모달 표시 안함');
-                }
             } else {
                 showFeedbackMessage(result.message || '찜하기에 실패했습니다.', 'error');
             }
@@ -600,10 +614,162 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 3000);
     }
 
-    // 피드백 모달 표시 함수
-    function showFeedbackModal(productId, productName, action, recommendationId) {
+
+
+
+
+    // 빠른 피드백 제출 함수 (좋아요/싫어요)
+    async function submitQuickFeedback(productId, productName, rating, recommendationId) {
+        // recommendationId가 비어있는지 확인
+        if (!recommendationId || recommendationId === '') {
+            showFeedbackMessage('추천 ID를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
+            return;
+        }
+        
+        // 이미 피드백을 제출한 버튼인지 확인
+        const button = event.target;
+        if (button.disabled) {
+            return; // 이미 비활성화된 버튼이면 무시
+        }
+        
+        try {
+            // 버튼 즉시 비활성화 (중복 클릭 방지)
+            button.disabled = true;
+            button.style.opacity = '0.6';
+            button.style.cursor = 'not-allowed';
+            
+            // 같은 상품의 다른 피드백 버튼들도 비활성화 (코멘트 버튼은 제외)
+            const productCard = button.closest('.chatbot-product-card');
+            if (productCard) {
+                const otherFeedbackBtns = productCard.querySelectorAll('.feedback-like-btn, .feedback-dislike-btn');
+                otherFeedbackBtns.forEach(btn => {
+                    if (btn !== button) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.6';
+                        btn.style.cursor = 'not-allowed';
+                    }
+                });
+                // 코멘트 버튼은 계속 활성화 (별도로 저장 가능)
+            }
+            
+            const formData = new FormData();
+            formData.append('recommendation_id', recommendationId);
+            formData.append('feedback_rating', rating);
+            formData.append('feedback_reason', ''); // 빠른 피드백은 이유 없음
+            
+            console.log('빠른 피드백 제출:', {
+                productId,
+                productName,
+                rating,
+                recommendationId
+            });
+            
+            const response = await fetch('/chat/feedback', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log('피드백 성공 응답:', result);
+                
+                let message;
+                if (result.already_feedback) {
+                    message = '이미 피드백을 제공하셨습니다! 👍';
+                    console.log('이미 피드백 존재 - 메시지:', message);
+                } else {
+                    if (result.feedback_type === 'comment') {
+                        message = '코멘트가 성공적으로 저장되었습니다! 💝';
+                    } else {
+                        message = rating === 1 ? '좋아요! 감사합니다! 👍' : '피드백 감사합니다! 👎';
+                    }
+                    console.log('새로운 피드백 - 메시지:', message);
+                }
+                
+                console.log('showFeedbackMessage 호출 전');
+                showFeedbackMessage(message, 'success');
+                console.log('showFeedbackMessage 호출 후');
+                
+                // 성공 시 버튼별로 다른 완료 표시
+                console.log('버튼 상태 변경 전:', button.innerHTML, button.style.background);
+                
+                // 각 버튼 타입에 맞게 완료 표시
+                if (button.classList.contains('feedback-comment-btn')) {
+                    // 코멘트 버튼인 경우
+                    button.innerHTML = '💬 완료';
+                    button.style.setProperty('background', '#3498db', 'important');
+                } else if (button.classList.contains('feedback-like-btn')) {
+                    // 좋아요 버튼인 경우
+                    button.innerHTML = '👍 완료';
+                    button.style.setProperty('background', '#27ae60', 'important');
+                } else if (button.classList.contains('feedback-dislike-btn')) {
+                    // 싫어요 버튼인 경우
+                    button.innerHTML = '👎 완료';
+                    button.style.setProperty('background', '#e74c3c', 'important');
+                }
+                
+                button.style.setProperty('color', 'white', 'important');
+                button.style.setProperty('opacity', '0.8', 'important');
+                
+                console.log('버튼 상태 변경 후:', button.innerHTML, button.style.background);
+                
+                // 버튼 비활성화 상태 확인
+                console.log('버튼 비활성화 상태:', button.disabled);
+                
+                // CSS 클래스도 추가
+                button.classList.add('feedback-completed');
+            } else {
+                showFeedbackMessage(`피드백 저장에 실패했습니다: ${result.message}`, 'error');
+                
+                // 실패 시 버튼 다시 활성화
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                
+                // 다른 버튼들도 다시 활성화 (코멘트 버튼은 이미 활성화 상태)
+                if (productCard) {
+                    const otherFeedbackBtns = productCard.querySelectorAll('.feedback-like-btn, .feedback-dislike-btn');
+                    otherFeedbackBtns.forEach(btn => {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('빠른 피드백 제출 오류:', error);
+            showFeedbackMessage('피드백 전송 중 오류가 발생했습니다.', 'error');
+            
+            // 오류 시 버튼 다시 활성화
+            button.disabled = false;
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+            
+                            // 다른 버튼들도 다시 활성화 (코멘트 버튼은 이미 활성화 상태)
+                const productCard = button.closest('.chatbot-product-card');
+                if (productCard) {
+                    const otherFeedbackBtns = productCard.querySelectorAll('.feedback-like-btn, .feedback-dislike-btn');
+                    otherFeedbackBtns.forEach(btn => {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    });
+                }
+        }
+    }
+    
+    // 코멘트 모달 표시 함수
+    function showCommentModal(productId, productName, recommendationId) {
+        // recommendationId가 비어있는지 확인
+        if (!recommendationId || recommendationId === '') {
+            showFeedbackMessage('추천 ID를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
+            return;
+        }
+        
         const modal = document.createElement('div');
-        modal.className = 'chatbot-feedback-modal';
+        modal.className = 'comment-modal';
         modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -616,154 +782,59 @@ document.addEventListener("DOMContentLoaded", () => {
             align-items: center;
             justify-content: center;
             z-index: 10001;
-            animation: chatbotFeedbackFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.3s ease;
         `;
         
         modal.innerHTML = `
-            <div class="chatbot-feedback-content" style="
-                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-                padding: 32px;
-                border-radius: 20px;
-                max-width: 450px;
+            <div class="comment-content" style="
+                background: white;
+                padding: 24px;
+                border-radius: 16px;
+                max-width: 400px;
                 width: 90%;
                 text-align: center;
                 box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-                border: 1px solid rgba(255,255,255,0.2);
-                position: relative;
-                overflow: hidden;
             ">
-                <div class="chatbot-feedback-header" style="
-                    margin-bottom: 24px;
-                    position: relative;
-                ">
-                    <div class="chatbot-feedback-icon" style="
-                        width: 60px;
-                        height: 60px;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        margin: 0 auto 16px;
-                        font-size: 24px;
-                        color: white;
-                        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-                    ">
-                        💝
-                    </div>
-                    <h3 style="
-                        margin: 0 0 8px 0; 
-                        color: #2c3e50; 
-                        font-size: 1.4rem;
-                        font-weight: 700;
-                        background: linear-gradient(135deg, #667eea, #764ba2);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-clip: text;
-                    ">
-                        이 추천이 어떠셨나요?
-                    </h3>
-                    <p style="
-                        margin: 0; 
-                        color: #7f8c8d; 
-                        font-size: 0.95rem;
-                        line-height: 1.5;
-                    ">
-                        <strong style="color: #667eea;">"${productName}"</strong>을 ${action}하셨네요!<br>
-                        앞으로 더 나은 추천을 위해 간단한 피드백을 남겨주세요.
-                    </p>
-                </div>
-                
-                <div class="chatbot-feedback-buttons" style="
-                    display: flex; 
-                    gap: 16px; 
-                    margin-bottom: 24px;
-                ">
-                    <button class="chatbot-feedback-btn chatbot-like-btn" style="
+                <h3 style="margin: 0 0 16px 0; color: #2c3e50; font-size: 1.2rem;">
+                    💬 ${productName}에 대한 코멘트
+                </h3>
+                <textarea id="comment-text" placeholder="이 상품에 대한 의견을 자유롭게 작성해주세요..." style="
+                    width: 100%;
+                    padding: 12px;
+                    border: 2px solid #e9ecef;
+                    border-radius: 8px;
+                    resize: vertical;
+                    min-height: 80px;
+                    font-family: inherit;
+                    font-size: 0.9rem;
+                    margin-bottom: 16px;
+                    box-sizing: border-box;
+                "></textarea>
+                <div style="display: flex; gap: 8px;">
+                    <button id="submit-comment" style="
                         flex: 1;
-                        padding: 16px 12px;
-                        border: 2px solid #27ae60;
-                        background: white;
-                        color: #27ae60;
-                        border-radius: 12px;
-                        font-weight: 600;
-                        font-size: 0.95rem;
-                        cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        position: relative;
-                        overflow: hidden;
-                    ">
-                        <span style="font-size: 1.2rem; margin-right: 8px;">👍</span>
-                        좋아요
-                    </button>
-                    <button class="chatbot-feedback-btn chatbot-dislike-btn" style="
-                        flex: 1;
-                        padding: 16px 12px;
-                        border: 2px solid #e74c3c;
-                        background: white;
-                        color: #e74c3c;
-                        border-radius: 12px;
-                        font-weight: 600;
-                        font-size: 0.95rem;
-                        cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        position: relative;
-                        overflow: hidden;
-                    ">
-                        <span style="font-size: 1.2rem; margin-right: 8px;">👎</span>
-                        아쉬워요
-                    </button>
-                </div>
-                
-                <div class="chatbot-feedback-textarea" style="margin-bottom: 24px;">
-                    <textarea id="feedback-reason" placeholder="이유를 간단히 알려주세요 (선택사항)" style="
-                        width: 100%;
-                        padding: 16px;
-                        border: 2px solid #e9ecef;
-                        border-radius: 12px;
-                        resize: vertical;
-                        min-height: 100px;
-                        font-family: inherit;
-                        font-size: 0.9rem;
-                        transition: all 0.3s ease;
-                        background: #f8f9fa;
-                        box-sizing: border-box;
-                        max-width: 100%;
-                        overflow-x: hidden;
-                    "></textarea>
-                </div>
-                
-                <div class="chatbot-feedback-actions" style="
-                    display: flex; 
-                    gap: 12px;
-                ">
-                    <button id="submit-feedback" style="
-                        flex: 1;
-                        padding: 16px;
+                        padding: 12px;
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                         color: white;
                         border: none;
-                        border-radius: 12px;
+                        border-radius: 8px;
                         font-weight: 600;
-                        font-size: 0.95rem;
                         cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                        transition: all 0.3s ease;
                     ">
-                        💝 피드백 제출
+                        코멘트 제출
                     </button>
-                    <button id="skip-feedback" style="
-                        padding: 16px 24px;
+                    <button id="cancel-comment" style="
+                        padding: 12px 16px;
                         background: #95a5a6;
                         color: white;
                         border: none;
-                        border-radius: 12px;
+                        border-radius: 8px;
                         font-weight: 600;
-                        font-size: 0.9rem;
                         cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        transition: all 0.3s ease;
                     ">
-                        건너뛰기
+                        취소
                     </button>
                 </div>
             </div>
@@ -771,31 +842,26 @@ document.addEventListener("DOMContentLoaded", () => {
         
         document.body.appendChild(modal);
         
-                            // 피드백 제출 이벤트
-        modal.querySelector('#submit-feedback').addEventListener('click', async () => {
-            const feedbackType = modal.querySelector('.chatbot-like-btn').classList.contains('active') ? 'like' : 'dislike';
-            const reason = modal.querySelector('#feedback-reason').value;
+        // 코멘트 제출 이벤트
+        modal.querySelector('#submit-comment').addEventListener('click', async () => {
+            const comment = modal.querySelector('#comment-text').value.trim();
             
-            // 피드백 API 호출
+            if (!comment) {
+                alert('코멘트를 입력해주세요.');
+                return;
+            }
+            
+            // 제출 버튼 비활성화
+            const submitBtn = modal.querySelector('#submit-comment');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '제출 중...';
+            submitBtn.style.opacity = '0.6';
+            
             try {
-                console.log('피드백 제출 데이터:', {
-                    recommendationId,
-                    feedbackType,
-                    reason,
-                    productId,
-                    productName
-                });
-                
                 const formData = new FormData();
                 formData.append('recommendation_id', recommendationId);
-                formData.append('feedback_rating', feedbackType === 'like' ? 1 : 0);
-                formData.append('feedback_reason', reason);
-                
-                console.log('피드백 API 요청:', {
-                    url: '/chat/feedback',
-                    method: 'POST',
-                    formData: Object.fromEntries(formData.entries())
-                });
+                formData.append('feedback_rating', 1); // 코멘트가 있으면 기본적으로 긍정적
+                formData.append('feedback_reason', comment);
                 
                 const response = await fetch('/chat/feedback', {
                     method: 'POST',
@@ -803,77 +869,80 @@ document.addEventListener("DOMContentLoaded", () => {
                     credentials: 'same-origin'
                 });
                 
-                console.log('피드백 API 응답 상태:', response.status, response.statusText);
-                
                 const result = await response.json();
-                console.log('피드백 API 응답:', result);
                 
                 if (result.success) {
-                    showFeedbackMessage('피드백을 보내주셔서 감사합니다! 💝', 'success');
+                    let message;
+                    if (result.already_feedback) {
+                        message = '이미 피드백을 제공하셨습니다! 💝';
+                    } else {
+                        if (result.feedback_type === 'comment') {
+                            message = '코멘트가 성공적으로 저장되었습니다! 💝';
+                        } else {
+                            message = '코멘트를 보내주셔서 감사합니다! 💝';
+                        }
+                    }
+                    showFeedbackMessage(message, 'success');
+                    
+                    // 성공 시 해당 상품의 모든 피드백 버튼 비활성화
+                    const productCard = document.querySelector(`[data-product-id="${productId}"]`)?.closest('.chatbot-product-card');
+                    if (productCard) {
+                        const feedbackBtns = productCard.querySelectorAll('.feedback-like-btn, .feedback-dislike-btn, .feedback-comment-btn');
+                        feedbackBtns.forEach(btn => {
+                            btn.disabled = true;
+                            btn.style.opacity = '0.6';
+                            btn.style.cursor = 'not-allowed';
+                            
+                            // 각 버튼 타입에 맞게 완료 표시
+                            if (btn.classList.contains('feedback-comment-btn')) {
+                                btn.innerHTML = '💬 완료';
+                                btn.style.background = '#3498db';
+                            } else if (btn.classList.contains('feedback-like-btn')) {
+                                btn.innerHTML = '👍 완료';
+                                btn.style.background = '#27ae60';
+                            } else if (btn.classList.contains('feedback-dislike-btn')) {
+                                btn.innerHTML = '👎 완료';
+                                btn.style.background = '#e74c3c';
+                            }
+                        });
+                    }
+                    
+                    document.body.removeChild(modal);
                 } else {
-                    showFeedbackMessage(`피드백 저장에 실패했습니다: ${result.message}`, 'error');
+                    showFeedbackMessage(`코멘트 저장에 실패했습니다: ${result.message}`, 'error');
+                    
+                    // 실패 시 버튼 다시 활성화
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '코멘트 제출';
+                    submitBtn.style.opacity = '1';
                 }
             } catch (error) {
-                console.error('피드백 제출 오류:', error);
-                showFeedbackMessage('피드백 전송 중 오류가 발생했습니다.', 'error');
+                console.error('코멘트 제출 오류:', error);
+                showFeedbackMessage('코멘트 전송 중 오류가 발생했습니다.', 'error');
+                
+                // 오류 시 버튼 다시 활성화
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '코멘트 제출';
+                submitBtn.style.opacity = '1';
             }
-            
-            // 모달 닫기
-            document.body.removeChild(modal);
-            sessionFeedbackState.feedbackRequested = true;
-            sessionStorage.setItem('chatbot_feedback_requested', 'true');
         });
         
-        // 건너뛰기 이벤트
-        modal.querySelector('#skip-feedback').addEventListener('click', () => {
+        // 취소 이벤트
+        modal.querySelector('#cancel-comment').addEventListener('click', () => {
             document.body.removeChild(modal);
-            sessionFeedbackState.feedbackRequested = true;
-            sessionStorage.setItem(`chatbot_feedback_${currentSessionId}`, 'true');
-        });
-        
-        // 좋아요/아쉬워요 버튼 이벤트
-        modal.querySelectorAll('.chatbot-feedback-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                modal.querySelectorAll('.chatbot-feedback-btn').forEach(b => {
-                    b.classList.remove('active');
-                    b.style.background = 'white';
-                    b.style.color = b.classList.contains('chatbot-like-btn') ? '#27ae60' : '#e74c3c';
-                    b.style.transform = 'scale(1)';
-                    b.style.boxShadow = 'none';
-                });
-                btn.classList.add('active');
-                btn.style.background = btn.classList.contains('chatbot-like-btn') ? '#27ae60' : '#e74c3c';
-                btn.style.color = 'white';
-                btn.style.transform = 'scale(1.05)';
-                btn.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-            });
         });
         
         // 모달 외부 클릭 시 닫기
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 document.body.removeChild(modal);
-                sessionFeedbackState.feedbackRequested = true;
-                sessionStorage.setItem(`chatbot_feedback_${currentSessionId}`, 'true');
             }
         });
     }
-
-    // 세션별 피드백 상태 관리 (세션스토리지에 저장)
-    const sessionFeedbackState = {
-        sessionId: currentSessionId,  // 현재 챗봇 세션 ID
-        feedbackRequested: sessionStorage.getItem(`chatbot_feedback_${currentSessionId}`) === 'true'
-    };
-
+    
     // 전역 함수로 등록
     window.addToJjim = addToJjim;
     window.removeFromJjim = removeFromJjim;
-    window.showFeedbackModal = showFeedbackModal;
-    
-    // 피드백 상태 초기화 함수 (테스트용)
-    window.resetFeedbackState = function() {
-        sessionStorage.removeItem(`chatbot_feedback_${currentSessionId}`);
-        sessionFeedbackState.feedbackRequested = false;
-        console.log('피드백 상태 초기화 완료');
-    };
+    window.submitQuickFeedback = submitQuickFeedback;
+    window.showCommentModal = showCommentModal;
 });

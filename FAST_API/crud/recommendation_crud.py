@@ -1,18 +1,22 @@
 from sqlalchemy.orm import Session
 from models.recommendation import Recommendation
 from typing import List, Dict
+import json
 
 def create_recommendation(
     db: Session, 
     user_id: int, 
-    item_id: int, 
+    item_ids: List[int],  # 단일 상품 ID 대신 상품 ID 리스트 받기
     query: str, 
     reason: str
 ) -> Recommendation:
     """추천 결과를 데이터베이스에 저장합니다."""
+    # 상품 ID 리스트를 JSON 문자열로 변환
+    item_ids_json = json.dumps(item_ids)
+    
     db_recommendation = Recommendation(
         user_id=user_id,
-        item_id=item_id,
+        item_ids=item_ids_json,
         query=query,
         reason=reason
     )
@@ -30,9 +34,13 @@ def create_multiple_recommendations(
     db_recommendations = []
     
     for rec_data in recommendations_data:
+        # item_id를 리스트로 변환 (단일 ID인 경우도 처리)
+        item_ids = rec_data["item_id"] if isinstance(rec_data["item_id"], list) else [rec_data["item_id"]]
+        item_ids_json = json.dumps(item_ids)
+        
         db_recommendation = Recommendation(
             user_id=user_id,
-            item_id=rec_data["item_id"],
+            item_ids=item_ids_json,
             query=rec_data["query"],
             reason=rec_data["reason"]
         )
@@ -101,12 +109,31 @@ def update_recommendation_feedback(
     print(f"CRUD: 추천 기록 조회 결과 - {recommendation is not None}")
     
     if recommendation:
-        print(f"CRUD: 기존 피드백 - rating={recommendation.feedback_rating}, reason={recommendation.feedback_reason}")
-        recommendation.feedback_rating = feedback_rating
-        recommendation.feedback_reason = feedback_reason
-        db.commit()
-        print(f"CRUD: 피드백 업데이트 완료")
-        return True
+        # 코멘트가 있는 경우와 일반 피드백을 구분하여 처리
+        if feedback_reason and feedback_reason.strip():  # 코멘트가 있는 경우
+            print(f"CRUD: 코멘트 추가/업데이트 - reason={feedback_reason}")
+            # 코멘트는 기존 코멘트에 추가 (덮어쓰지 않음)
+            if recommendation.feedback_reason:
+                # 기존 코멘트가 있으면 새 줄로 추가
+                recommendation.feedback_reason = recommendation.feedback_reason + "\n---\n" + feedback_reason
+            else:
+                # 기존 코멘트가 없으면 새로 저장
+                recommendation.feedback_reason = feedback_reason
+            db.commit()
+            print(f"CRUD: 코멘트 업데이트 완료")
+            return True
+        else:  # 일반 피드백만 있는 경우
+            # 이미 피드백이 있는지 확인
+            if recommendation.feedback_rating is not None:
+                print(f"CRUD: 이미 피드백이 존재함 - 기존 rating={recommendation.feedback_rating}")
+                # 기존 피드백이 있으면 업데이트하지 않고 True 반환 (중복 방지)
+                return True
+            
+            print(f"CRUD: 새로운 피드백 추가 - rating={feedback_rating}")
+            recommendation.feedback_rating = feedback_rating
+            db.commit()
+            print(f"CRUD: 피드백 업데이트 완료")
+            return True
     else:
         print(f"CRUD: 추천 기록을 찾을 수 없음")
         return False

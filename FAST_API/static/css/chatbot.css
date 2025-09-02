@@ -365,41 +365,28 @@
 }
 
 @keyframes slideIn {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
-}
-
-/* 피드백 관련 애니메이션 */
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
+    from { 
+        opacity: 0; 
+        transform: translateX(100%); 
     }
-    to {
-        transform: translateX(0);
-        opacity: 1;
+    to { 
+        opacity: 1; 
+        transform: translateX(0); 
     }
 }
 
 @keyframes slideOut {
-    from {
-        transform: translateX(0);
-        opacity: 1;
+    from { 
+        opacity: 1; 
+        transform: translateX(0); 
     }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
+    to { 
+        opacity: 0; 
+        transform: translateX(100%); 
     }
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
+
 
 /* 챗봇 전용 상품 카드 스타일 */
 .chatbot-product-card {
@@ -416,6 +403,126 @@
     overflow: hidden;
     margin-bottom: 12px;
     min-height: 80px;
+}
+
+/* 새로운 피드백 버튼 스타일 */
+.feedback-buttons {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.feedback-like-btn,
+.feedback-dislike-btn,
+.feedback-comment-btn {
+    flex: 1;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    min-height: 24px;
+}
+
+.feedback-like-btn {
+    background: #27ae60;
+    color: white;
+}
+
+.feedback-like-btn:hover {
+    background: #229954;
+    transform: translateY(-1px);
+}
+
+.feedback-dislike-btn {
+    background: #e74c3c;
+    color: white;
+}
+
+.feedback-dislike-btn:hover {
+    background: #c0392b;
+    transform: translateY(-1px);
+}
+
+.feedback-comment-btn {
+    background: #3498db;
+    color: white;
+}
+
+.feedback-comment-btn:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+/* 비활성화된 피드백 버튼 */
+.feedback-like-btn:disabled,
+.feedback-dislike-btn:disabled,
+.feedback-comment-btn:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    background: #27ae60 !important;
+    color: white !important;
+}
+
+/* 완료된 피드백 버튼 */
+.feedback-like-btn:disabled::after,
+.feedback-dislike-btn:disabled::after,
+.feedback-comment-btn:disabled::after {
+    content: ' ✅';
+    margin-left: 2px;
+}
+
+/* 피드백 완료 상태 */
+.feedback-completed {
+    color: white !important;
+    opacity: 0.8 !important;
+    cursor: not-allowed !important;
+}
+
+.feedback-completed:hover {
+    transform: none !important;
+}
+
+/* 각 버튼 타입별 완료 상태 */
+.feedback-like-btn.feedback-completed {
+    background: #27ae60 !important;
+}
+
+.feedback-dislike-btn.feedback-completed {
+    background: #e74c3c !important;
+}
+
+.feedback-comment-btn.feedback-completed {
+    background: #3498db !important;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 코멘트 모달 스타일 */
+.comment-modal {
+    backdrop-filter: blur(8px);
+}
+
+.comment-content {
+    animation: fadeIn 0.3s ease;
+}
+
+.comment-content textarea {
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.comment-content textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
 }
 
 
@@ -507,121 +614,7 @@
     background: linear-gradient(135deg, #5dade2, #3498db);
 }
 
-/* 피드백 모달 스타일 */
-.feedback-modal {
-    backdrop-filter: blur(5px);
-}
 
-.feedback-modal .modal-content {
-    animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes modalSlideIn {
-    from {
-        transform: translateY(-50px) scale(0.9);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-/* 챗봇 피드백 모달 전용 스타일 */
-@keyframes chatbotFeedbackFadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8) translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.chatbot-feedback-modal {
-    backdrop-filter: blur(8px);
-}
-
-.chatbot-feedback-content {
-    animation: chatbotFeedbackSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes chatbotFeedbackSlideIn {
-    from {
-        transform: translateY(-30px) scale(0.95);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-.chatbot-feedback-btn {
-    position: relative;
-    overflow: hidden;
-}
-
-.chatbot-feedback-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.chatbot-feedback-btn:hover::before {
-    left: 100%;
-}
-
-.chatbot-feedback-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-
-.chatbot-feedback-btn.active {
-    transform: scale(1.05);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-}
-
-/* 피드백 텍스트영역 포커스 효과 */
-#feedback-reason:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    background: white;
-}
-
-/* 피드백 텍스트영역 기본 스타일 */
-#feedback-reason {
-    box-sizing: border-box !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    word-wrap: break-word !important;
-    word-break: break-word !important;
-}
-
-/* 피드백 모달 컨테이너 오버플로우 방지 */
-.chatbot-feedback-content {
-    overflow: hidden !important;
-    max-width: 100% !important;
-}
-
-.chatbot-feedback-textarea {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-}
-
-/* 피드백 버튼 활성화 상태 (기존 호환성) */
-.feedback-btn.active {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
 
 /* 상품 이미지 로딩 애니메이션 */
 .product-card img {
@@ -663,6 +656,20 @@
     .chatbot-product-card p:last-of-type {
         font-size: 1rem !important;
     }
+    
+    /* 모바일에서 피드백 버튼 크기 조정 */
+    .feedback-buttons {
+        gap: 6px;
+        margin-top: 8px;
+    }
+    
+    .feedback-like-btn,
+    .feedback-dislike-btn,
+    .feedback-comment-btn {
+        padding: 6px 8px;
+        font-size: 0.7rem;
+        min-height: 28px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -683,62 +690,38 @@
         min-height: 36px;
     }
     
-    /* 피드백 모달 모바일 최적화 */
-    .chatbot-feedback-content {
-        padding: 24px 20px;
-        margin: 20px;
-        max-width: calc(100% - 40px);
+    /* 모바일에서 피드백 버튼 크기 조정 */
+    .feedback-buttons {
+        gap: 4px;
+        margin-top: 6px;
     }
     
-    .chatbot-feedback-buttons {
-        flex-direction: column;
-        gap: 12px;
+    .feedback-like-btn,
+    .feedback-dislike-btn,
+    .feedback-comment-btn {
+        padding: 5px 6px;
+        font-size: 0.65rem;
+        min-height: 26px;
     }
     
-    .chatbot-feedback-btn {
-        padding: 14px 12px;
-        font-size: 0.9rem;
+    /* 코멘트 모달 모바일 최적화 */
+    .comment-content {
+        padding: 20px 16px;
+        margin: 15px;
+        max-width: calc(100% - 30px);
     }
     
-    .chatbot-feedback-actions {
-        flex-direction: column;
-        gap: 10px;
+    .comment-content h3 {
+        font-size: 1.1rem;
     }
     
-    #submit-feedback,
-    #skip-feedback {
-        padding: 14px;
-        font-size: 0.9rem;
-    }
-    
-    .chatbot-feedback-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
-    }
-    
-    .chatbot-feedback-header h3 {
-        font-size: 1.2rem;
-    }
-    
-    .chatbot-feedback-header p {
+    .comment-content textarea {
+        min-height: 70px;
         font-size: 0.85rem;
     }
     
-    /* 모바일에서 텍스트 영역 오버플로우 방지 */
-    .chatbot-feedback-textarea {
-        padding: 0 10px;
-    }
-    
-    #feedback-reason {
-        padding: 12px !important;
-        font-size: 0.85rem !important;
-        min-height: 80px !important;
-    }
-    
-    .chatbot-feedback-content {
-        padding: 20px 15px !important;
-        margin: 10px !important;
-        max-width: calc(100vw - 20px) !important;
+    .comment-content button {
+        padding: 12px;
+        font-size: 0.9rem;
     }
 }

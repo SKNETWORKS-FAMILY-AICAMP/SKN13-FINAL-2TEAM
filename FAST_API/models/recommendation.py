@@ -8,7 +8,7 @@ class Recommendation(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    item_id = Column(Integer, nullable=False)
+    item_id = Column(Integer, nullable=False)  # 원래대로 유지
     query = Column(Text, nullable=False)
     reason = Column(Text, nullable=False)
     

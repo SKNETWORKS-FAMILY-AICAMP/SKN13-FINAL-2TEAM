@@ -168,10 +168,36 @@ def _migrate_chat_tables() -> None:
 
         # chat_messages 테이블에 recommendation_id 컬럼 추가
         try:
-            conn.execute(text("ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS recommendation_id INTEGER REFERENCES recommendations(id)"))
-            print("✅ chat_messages 테이블에 recommendation_id 컬럼 추가 완료")
+            # 기존 컬럼이 INTEGER이면 TEXT로 변경
+            existing_cols = conn.execute(
+                text("""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns
+                    WHERE table_name = 'chat_messages' AND table_schema = 'public'
+                      AND column_name = 'recommendation_id'
+                """)
+            ).fetchall()
+            
+            if existing_cols:
+                if existing_cols[0][1] == 'integer':
+                    # Foreign Key 제약 조건 제거
+                    try:
+                        conn.execute(text("ALTER TABLE public.chat_messages DROP CONSTRAINT IF EXISTS chat_messages_recommendation_id_fkey"))
+                        print("✅ chat_messages 테이블의 Foreign Key 제약 조건 제거 완료")
+                    except Exception as e:
+                        print(f"Foreign Key 제약 조건 제거 중 오류 (이미 제거되었을 수 있음): {e}")
+                    
+                    # 기존 컬럼을 TEXT로 변경
+                    conn.execute(text("ALTER TABLE public.chat_messages ALTER COLUMN recommendation_id TYPE TEXT"))
+                    print("✅ chat_messages 테이블의 recommendation_id 컬럼을 TEXT로 변경 완료")
+                else:
+                    print("✅ chat_messages 테이블의 recommendation_id 컬럼이 이미 TEXT 타입입니다")
+            else:
+                # 컬럼이 없으면 새로 추가
+                conn.execute(text("ALTER TABLE public.chat_messages ADD COLUMN recommendation_id TEXT"))
+                print("✅ chat_messages 테이블에 recommendation_id 컬럼 추가 완료")
         except Exception as e:
-            print(f"recommendation_id 컬럼 추가 중 오류: {e}")
+            print(f"recommendation_id 컬럼 수정 중 오류: {e}")
 
         # chat_messages 테이블에 products_data 컬럼 추가
         try:

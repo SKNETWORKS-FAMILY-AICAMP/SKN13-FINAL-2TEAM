@@ -173,20 +173,27 @@ async def chat_recommend(
                 summary_text = llm_response.summary_result.summary_text
             
             # 추천 결과가 있으면 Recommendation 테이블에 저장 (기존 방식 유지)
-            recommendation_id = None
+            recommendation_ids = []
             if products and len(products) > 0:
                 try:
-                    from crud.recommendation_crud import create_multiple_recommendations, update_recommendation_feedback
+                    from crud.recommendation_crud import create_multiple_recommendations, update_recommendation_feedback, get_user_recommendations
+                    
+                    # 최근 추천 기록 조회하여 중복 체크 (더 많은 기록 조회)
+                    recent_recommendations = get_user_recommendations(db, user.id, limit=50)
+                    recent_item_ids = {rec.item_id for rec in recent_recommendations}
                     
                     recommendations_data = []
                     for product in products:
                         item_id = product.get("상품코드", product.get("상품ID", 0))
-                        if item_id:
+                        if item_id and item_id not in recent_item_ids:
                             recommendations_data.append({
                                 "item_id": item_id,
                                 "query": user_input,
                                 "reason": f"챗봇 추천 - {user_input}"
                             })
+                            recent_item_ids.add(item_id)  # 중복 방지를 위해 추가
+                        else:
+                            print(f"ℹ️ 상품 {item_id}는 이미 추천되어 저장하지 않습니다.")
                     
                     if recommendations_data:
                         created_recommendations = create_multiple_recommendations(db, user.id, recommendations_data)
@@ -197,10 +204,15 @@ async def chat_recommend(
                                 if i < len(created_recommendations):
                                     product['recommendation_id'] = created_recommendations[i].id
                             
-                            recommendation_id = created_recommendations[0].id  # 메시지 연결용 (첫 번째 ID)
+                            # 모든 추천 ID를 리스트로 수집
+                            recommendation_ids = [str(rec.id) for rec in created_recommendations]
                             print(f"✅ 추천 결과 {len(created_recommendations)}개를 저장하고 각 상품별로 개별 추천 ID를 할당했습니다.")
+                    else:
+                        print("⚠️ 저장할 추천 결과가 없습니다 (중복 제거 후).")
+                        recommendation_ids = []
                 except Exception as e:
                     print(f"❌ 추천 결과 저장 중 오류: {e}")
+                    recommendation_ids = []
             
             # 챗봇 응답 저장 (상품 데이터와 추천 ID 함께)
             bot_message = create_chat_message(
@@ -209,7 +221,7 @@ async def chat_recommend(
                 "bot", 
                 message, 
                 summary_text, 
-                recommendation_id,
+                recommendation_ids,  # 리스트 형태로 전달
                 products if products else None  # 상품 데이터를 JSON으로 저장
             )
             
@@ -225,7 +237,7 @@ async def chat_recommend(
             "session_id": str(chat_session.id),
             "session_name": chat_session.session_name,
             "analysis": analysis_info,
-            "recommendation_id": recommendation_id  # 추천 ID 추가
+            "recommendation_id": recommendation_ids  # 추천 ID 추가
         }
         
         print(f"챗봇 응답 데이터: {response_data}")
@@ -276,75 +288,56 @@ async def get_session_messages_api(
 
 @router.post("/feedback", response_class=JSONResponse)
 async def submit_feedback(
-    recommendation_id: int = Form(...),
-    feedback_rating: int = Form(...),  # 1: 좋아요, 0: 싫어요
+    recommendation_id: List[str] = Form(...),  # int → List[str]로 변경
+    feedback_rating: int = Form(...),
     feedback_reason: str = Form(""),
     db: Session = Depends(get_db),
     user_name: str = Depends(login_required)
 ):
-    """챗봇 추천에 대한 피드백을 제출합니다."""
-    print(f"피드백 요청 받음: recommendation_id={recommendation_id}, rating={feedback_rating}, reason={feedback_reason}")
-    print(f"사용자: {user_name}")
-    print(f"데이터 타입: recommendation_id={type(recommendation_id)}, rating={type(feedback_rating)}")
+    """추천 결과에 대한 피드백을 제출합니다."""
     try:
-        # 피드백 함수 import
-        from crud.recommendation_crud import update_recommendation_feedback
-        
-        # 사용자 정보 가져오기
         user = get_user_by_username(db, user_name)
         if not user:
+            return JSONResponse(content={"success": False, "message": "사용자 정보를 찾을 수 없습니다."})
+        
+        print(f"피드백 요청 받음: recommendation_id={recommendation_id}, rating={feedback_rating}, reason={feedback_reason}")
+        print(f"데이터 타입: recommendation_id={type(recommendation_id)}, rating={type(feedback_rating)}")
+        
+        # 피드백 처리
+        from crud.recommendation_crud import update_recommendation_feedback
+        
+        success_count = 0
+        for rec_id in recommendation_id:
+            try:
+                rec_id_int = int(rec_id)
+                success = update_recommendation_feedback(
+                    db, 
+                    rec_id_int, 
+                    user.id, 
+                    feedback_rating, 
+                    feedback_reason
+                )
+                if success:
+                    success_count += 1
+                    print(f"추천 ID: {rec_id}")
+            except ValueError:
+                print(f"잘못된 추천 ID 형식: {rec_id}")
+                continue
+        
+        if success_count > 0:
             return JSONResponse(content={
-                "success": False,
-                "message": "사용자 정보를 찾을 수 없습니다."
+                "success": True, 
+                "message": f"{success_count}개의 추천 결과에 피드백이 저장되었습니다."
             })
-        
-        # 피드백 유효성 검사
-        if feedback_rating not in [0, 1]:
-            return JSONResponse(content={
-                "success": False,
-                "message": "잘못된 피드백 값입니다. (0: 싫어요, 1: 좋아요)"
-            })
-        
-        print(f"사용자 ID: {user.id}")
-        print(f"추천 ID: {recommendation_id}")
-        print(f"피드백 레이팅: {feedback_rating}")
-        print(f"피드백 이유: {feedback_reason}")
-        
-        # 피드백 업데이트
-        success = update_recommendation_feedback(
-            db=db,
-            recommendation_id=recommendation_id,
-            user_id=user.id,
-            feedback_rating=feedback_rating,
-            feedback_reason=feedback_reason if feedback_reason.strip() else None
-        )
-        
-        print(f"피드백 업데이트 결과: {success}")
-        
-        if success:
-            # 피드백 타입을 구분
-            if feedback_reason and feedback_reason.strip():  # 코멘트가 있는 경우
-                return JSONResponse(content={
-                    "success": True,
-                    "message": "코멘트가 성공적으로 저장되었습니다.",
-                    "already_feedback": False,
-                    "feedback_type": "comment"
-                })
-            else:  # 일반 피드백만 있는 경우
-                return JSONResponse(content={
-                    "success": True,
-                    "message": "피드백이 성공적으로 저장되었습니다.",
-                    "already_feedback": False,
-                    "feedback_type": "rating"
-                })
         else:
             return JSONResponse(content={
-                "success": False,
-                "message": "추천 기록을 찾을 수 없습니다."
+                "success": False, 
+                "message": "피드백 저장에 실패했습니다."
             })
             
     except Exception as e:
+        print(f"피드백 처리 중 오류: {e}")
         return JSONResponse(content={
-            "success": False,
-            "message": f"피드백 저장 중 오류가 발생했습니다: {str(e)}"
+            "success": False, 
+            "message": "피드백 처리 중 오류가 발생했습니다."
         })

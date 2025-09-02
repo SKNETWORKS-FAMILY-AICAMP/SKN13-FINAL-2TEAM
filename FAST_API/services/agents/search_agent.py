@@ -140,33 +140,48 @@ class SearchAgent:
         return filters
     
     def _save_search_recommendations(self, db, user_id: int, query: str, products: List[Dict]):
-        """검색 결과를 recommendation 테이블에 저장"""
+        """검색 결과를 recommendation 테이블에 저장 - 챗봇 라우터에서만 저장하도록 비활성화"""
+        # 챗봇 라우터에서만 추천을 저장하도록 비활성화
+        # 중복 저장 방지를 위해 SearchAgent에서는 저장하지 않음
+        print("ℹ️ SearchAgent: 추천 저장은 챗봇 라우터에서 처리됩니다.")
+        return
+        
+        # 기존 코드 (주석 처리)
+        """
         try:
-            from crud.recommendation_crud import create_recommendation
+            from crud.recommendation_crud import create_multiple_recommendations, get_user_recommendations
             
-            # 모든 상품 ID를 하나의 리스트로 수집
-            item_ids = []
+            # 최근 추천 기록 조회하여 중복 체크
+            recent_recommendations = get_user_recommendations(db, user_id, limit=20)
+            recent_item_ids = {rec.item_id for rec in recent_recommendations}
+            
+            # 각 상품별로 개별 추천 데이터 생성 (중복 제거)
+            recommendations_data = []
             for product in products[:4]:  # 최대 4개만 저장
                 item_id = product.get("상품코드", 0)
-                if item_id:
-                    item_ids.append(item_id)
+                if item_id and item_id not in recent_item_ids:
+                    recommendations_data.append({
+                        "item_id": item_id,
+                        "query": query,
+                        "reason": f"검색 조건 '{query}'에 매칭된 상품"
+                    })
+                    recent_item_ids.add(item_id)  # 중복 방지를 위해 추가
             
-            if item_ids:
-                # 여러 상품을 한 번에 저장
-                create_recommendation(
+            if recommendations_data:
+                # 여러 상품을 개별적으로 저장
+                created_recommendations = create_multiple_recommendations(
                     db, 
                     user_id, 
-                    item_ids,  # 상품 ID 리스트 전달
-                    query, 
-                    f"검색 조건 '{query}'에 매칭된 {len(item_ids)}개 상품"
+                    recommendations_data
                 )
-                print(f"✅ 검색 결과 {len(item_ids)}개를 recommendation 테이블에 저장했습니다.")
+                print(f"✅ 검색 결과 {len(created_recommendations)}개를 recommendation 테이블에 저장했습니다.")
             else:
-                print("⚠️ 저장할 검색 결과가 없습니다.")
+                print("⚠️ 저장할 검색 결과가 없습니다 (중복 제거 후).")
                 
         except Exception as e:
             print(f"❌ 검색 결과 저장 중 오류: {e}")
             # 저장 실패해도 검색은 계속 진행
+        """
     
     def enhance_search_with_llm(self, user_input: str, search_result: SearchResult, 
                                context_summaries: List[str]) -> str:

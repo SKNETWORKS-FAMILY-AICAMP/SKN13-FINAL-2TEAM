@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, desc, delete
 from datetime import datetime, timedelta
 import uuid
+import json
 
 from models.models_chat import ChatSession, ChatMessage
 from models.models_auth import User
@@ -137,12 +138,15 @@ def cleanup_old_sessions_if_needed(db: Session, user_id: int, max_sessions: int 
     return 0
 
 
-def create_chat_message(db: Session, session_id: str, message_type: str, text: str, summary: Optional[str] = None, recommendation_id: Optional[int] = None, products_data: Optional[List[Dict]] = None) -> ChatMessage:
+def create_chat_message(db: Session, session_id: str, message_type: str, text: str, summary: Optional[str] = None, recommendation_id: Optional[List[str]] = None, products_data: Optional[List[Dict]] = None) -> ChatMessage:
     """챗봇 메시지를 생성합니다."""
     try:
         session_uuid = uuid.UUID(session_id)
     except ValueError:
         raise ValueError("Invalid session ID format")
+    
+    # recommendation_id를 JSON 문자열로 변환
+    recommendation_id_json = json.dumps(recommendation_id) if recommendation_id else None
     
     try:
         message = ChatMessage(
@@ -150,7 +154,7 @@ def create_chat_message(db: Session, session_id: str, message_type: str, text: s
             message_type=message_type,
             text=text,
             summary=summary,
-            recommendation_id=recommendation_id,
+            recommendation_id=recommendation_id_json,
             products_data=products_data
         )
         db.add(message)
@@ -175,7 +179,7 @@ def create_chat_message(db: Session, session_id: str, message_type: str, text: s
                     message_type=message_type,
                     text=text,
                     summary="",
-                    recommendation_id=recommendation_id,
+                    recommendation_id=recommendation_id_json,
                     products_data=products_data
                 )
                 db.add(message)
@@ -365,14 +369,45 @@ def get_chat_message_with_recommendations(db: Session, session_id: str, user_id:
             message_data["products"] = msg.products_data
         # 추천 결과가 있으면 상품 데이터 추가 (기존 방식 유지)
         elif msg.recommendation_id:
-            from crud.recommendation_crud import get_recommendation_by_id
-            recommendation = get_recommendation_by_id(db, msg.recommendation_id)
-            if recommendation:
-                # 추천된 상품들의 상품코드로 상품 정보 조회
-                from crud.user_crud import get_product_by_id
-                product = get_product_by_id(db, recommendation.item_id)
-                if product:
-                    message_data["products"] = [product]
+            try:
+                # JSON 문자열을 파싱해서 리스트로 변환
+                recommendation_ids = json.loads(msg.recommendation_id) if msg.recommendation_id else []
+                if isinstance(recommendation_ids, list) and len(recommendation_ids) > 0:
+                    from crud.recommendation_crud import get_recommendation_by_id
+                    products = []
+                    for rec_id in recommendation_ids:
+                        recommendation = get_recommendation_by_id(db, int(rec_id))
+                        if recommendation:
+                            # 추천된 상품들의 상품코드로 상품 정보 조회
+                            from crud.user_crud import get_product_by_id
+                            try:
+                                # item_ids를 JSON으로 파싱
+                                item_ids = json.loads(recommendation.item_ids) if recommendation.item_ids else []
+                                for item_id in item_ids:
+                                    product = get_product_by_id(db, item_id)
+                                    if product:
+                                        products.append(product)
+                            except (json.JSONDecodeError, ValueError):
+                                # 기존 방식 호환성 유지
+                                product = get_product_by_id(db, recommendation.item_ids)
+                                if product:
+                                    products.append(product)
+                    
+                    if products:
+                        message_data["products"] = products
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"추천 ID 파싱 오류: {e}")
+                # 기존 방식으로 fallback
+                try:
+                    from crud.recommendation_crud import get_recommendation_by_id
+                    recommendation = get_recommendation_by_id(db, int(msg.recommendation_id))
+                    if recommendation:
+                        from crud.user_crud import get_product_by_id
+                        product = get_product_by_id(db, recommendation.item_ids)
+                        if product:
+                            message_data["products"] = [product]
+                except (ValueError, TypeError):
+                    pass
         
         result.append(message_data)
     

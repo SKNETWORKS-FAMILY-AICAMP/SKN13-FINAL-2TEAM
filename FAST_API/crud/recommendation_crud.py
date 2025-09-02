@@ -6,17 +6,14 @@ import json
 def create_recommendation(
     db: Session, 
     user_id: int, 
-    item_ids: List[int],  # 단일 상품 ID 대신 상품 ID 리스트 받기
+    item_id: int,  # item_ids → item_id로 되돌림
     query: str, 
     reason: str
 ) -> Recommendation:
     """추천 결과를 데이터베이스에 저장합니다."""
-    # 상품 ID 리스트를 JSON 문자열로 변환
-    item_ids_json = json.dumps(item_ids)
-    
     db_recommendation = Recommendation(
         user_id=user_id,
-        item_ids=item_ids_json,
+        item_id=item_id,  # item_ids → item_id로 되돌림
         query=query,
         reason=reason
     )
@@ -33,24 +30,54 @@ def create_multiple_recommendations(
     """여러 추천 결과를 한 번에 데이터베이스에 저장합니다."""
     db_recommendations = []
     
+    # 중복 체크를 위한 기존 추천 상품 ID 조회 (더 많은 기록 조회)
+    existing_item_ids = set()
+    existing_recommendations = db.query(Recommendation).filter(
+        Recommendation.user_id == user_id
+    ).all()
+    
+    for existing_rec in existing_recommendations:
+        existing_item_ids.add(existing_rec.item_id)
+    
+    print(f"🔍 사용자 {user_id}의 기존 추천 상품 수: {len(existing_item_ids)}")
+    
+    # 중복되지 않는 추천만 필터링
+    unique_recommendations_data = []
+    duplicate_count = 0
+    
     for rec_data in recommendations_data:
-        # item_id를 리스트로 변환 (단일 ID인 경우도 처리)
-        item_ids = rec_data["item_id"] if isinstance(rec_data["item_id"], list) else [rec_data["item_id"]]
-        item_ids_json = json.dumps(item_ids)
-        
+        if rec_data["item_id"] not in existing_item_ids:
+            unique_recommendations_data.append(rec_data)
+            existing_item_ids.add(rec_data["item_id"])  # 중복 방지를 위해 추가
+        else:
+            duplicate_count += 1
+            print(f"ℹ️ 상품 {rec_data['item_id']}는 이미 추천되어 저장하지 않습니다.")
+    
+    if duplicate_count > 0:
+        print(f"⚠️ 중복 상품 {duplicate_count}개는 저장하지 않습니다.")
+    
+    if not unique_recommendations_data:
+        print("⚠️ 모든 추천 상품이 이미 존재합니다.")
+        return []
+    
+    # 중복되지 않는 추천만 저장
+    for rec_data in unique_recommendations_data:
         db_recommendation = Recommendation(
             user_id=user_id,
-            item_ids=item_ids_json,
+            item_id=rec_data["item_id"],  # item_ids → item_id로 되돌림
             query=rec_data["query"],
             reason=rec_data["reason"]
         )
         db_recommendations.append(db_recommendation)
     
-    db.add_all(db_recommendations)
-    db.commit()
-    
-    for rec in db_recommendations:
-        db.refresh(rec)
+    if db_recommendations:
+        db.add_all(db_recommendations)
+        db.commit()
+        
+        for rec in db_recommendations:
+            db.refresh(rec)
+        
+        print(f"✅ 중복 제거 후 {len(db_recommendations)}개 추천을 저장했습니다.")
     
     return db_recommendations
 

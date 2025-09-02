@@ -414,25 +414,40 @@ class ConversationAgent:
         )
     
     def _save_recommendations_to_db(self, db, user_id: int, query: str, products: List[Dict]):
-        """추천 결과를 데이터베이스에 저장"""
+        """추천 결과를 데이터베이스에 저장 - 챗봇 라우터에서만 저장하도록 비활성화"""
+        # 챗봇 라우터에서만 추천을 저장하도록 비활성화
+        # 중복 저장 방지를 위해 ConversationAgent에서는 저장하지 않음
+        print("ℹ️ ConversationAgent: 추천 저장은 챗봇 라우터에서 처리됩니다.")
+        return
+        
+        # 기존 코드 (주석 처리)
+        """
         try:
-            from crud.recommendation_crud import create_multiple_recommendations
+            from crud.recommendation_crud import create_multiple_recommendations, get_user_recommendations
+            
+            # 최근 추천 기록 조회하여 중복 체크
+            recent_recommendations = get_user_recommendations(db, user_id, limit=20)
+            recent_item_ids = {rec.item_id for rec in recent_recommendations}
             
             recommendations_data = []
             for product in products:
                 item_id = product.get("상품코드", 0)
-                if item_id:
+                if item_id and item_id not in recent_item_ids:
                     recommendations_data.append({
                         "item_id": item_id,
                         "query": query,
                         "reason": "상황별 추천"
                     })
+                    recent_item_ids.add(item_id)  # 중복 방지를 위해 추가
             
             if recommendations_data:
                 create_multiple_recommendations(db, user_id, recommendations_data)
                 print(f"✅ 추천 결과 {len(recommendations_data)}개를 데이터베이스에 저장했습니다.")
+            else:
+                print("⚠️ 저장할 추천 결과가 없습니다 (중복 제거 후).")
                 
         except Exception as e:
             print(f"❌ 추천 결과 저장 중 오류: {e}")
             
             # 저장 실패해도 추천은 계속 진행
+        """

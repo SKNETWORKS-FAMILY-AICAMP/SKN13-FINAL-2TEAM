@@ -945,4 +945,35 @@ document.addEventListener("DOMContentLoaded", () => {
     window.removeFromJjim = removeFromJjim;
     window.submitQuickFeedback = submitQuickFeedback;
     window.showCommentModal = showCommentModal;
+
+    // 피드백 제출 함수 (좋아요/싫어요)
+    async function submitFeedback(recommendationId, rating) {
+        try {
+            // recommendationId가 리스트인지 확인하고 리스트로 변환
+            const recommendationIds = Array.isArray(recommendationId) ? recommendationId : [recommendationId];
+            
+            const formData = new FormData();
+            recommendationIds.forEach(id => {
+                formData.append('recommendation_id', id);
+            });
+            formData.append('feedback_rating', rating);
+            formData.append('feedback_reason', '');
+            
+            const response = await fetch('/chat/feedback', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(result.message);
+            } else {
+                alert('피드백 제출에 실패했습니다: ' + result.message);
+            }
+        } catch (error) {
+            console.error('피드백 제출 오류:', error);
+            alert('피드백 제출 중 오류가 발생했습니다.');
+        }
+    }
 });

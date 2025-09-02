@@ -28,7 +28,7 @@ class ChatMessage(Base):
     message_type = Column(String(20), nullable=False)  # 'user' 또는 'bot'
     text = Column(Text, nullable=False)
     summary = Column(Text, nullable=True)  # Q/A 쌍별 요약 저장
-    recommendation_id = Column(Integer, ForeignKey("recommendations.id"), nullable=True)  # 추천 결과 연결
+    recommendation_id = Column(Text, nullable=True)  # 추천 결과 연결 (Integer → Text로 변경, ForeignKey 제거)
     products_data = Column(JSON, nullable=True)  # 상품 데이터를 JSON으로 저장
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -39,4 +39,4 @@ class ChatMessage(Base):
 
     # 관계 설정
     session = relationship("ChatSession", back_populates="messages")
-    recommendation = relationship("Recommendation", backref="chat_messages")
+    # recommendation 관계 제거 (Text 타입이므로)

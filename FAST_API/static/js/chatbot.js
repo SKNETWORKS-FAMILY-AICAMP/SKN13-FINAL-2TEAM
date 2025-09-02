@@ -21,25 +21,25 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // 페이지 로드 시 세션 검증 (로그아웃 후 재로그인 시 새로운 세션 생성)
     function validateSession() {
-        // FastAPI SessionMiddleware는 서버 사이드 세션이므로 쿠키로 직접 확인 불가
-        // 대신 페이지에서 로그인 상태를 나타내는 요소가 있는지 확인
-        const hasLoginIndicator = document.querySelector('.nav-link[href="/mypage/"], .logout-btn, a[href="/auth/logout"]') !== null;
-        const hasSessionCookie = document.cookie.includes('session=');
+        // 챗봇 위젯이 DOM에 존재하는지 확인 (서버에서 로그인 상태에 따라 렌더링됨)
+        const chatbotExists = document.getElementById('chatbot-toggle-btn') !== null;
         
         console.log('로그인 상태 확인:', {
-            hasLoginIndicator,
-            hasSessionCookie,
-            allCookies: document.cookie
+            chatbotExists,
+            currentSessionId
         });
         
-        const isLoggedIn = hasLoginIndicator || hasSessionCookie;
-        
-        if (!isLoggedIn && currentSessionId) {
-            console.log('로그인 상태가 아니므로 챗봇 세션 초기화');
-            localStorage.removeItem('chatbot_session_id');
-            currentSessionId = null;
-        } else if (isLoggedIn) {
-            console.log('로그인 상태 확인됨 - 세션 유지');
+        if (!chatbotExists) {
+            // 챗봇 위젯이 없으면 로그인하지 않은 상태
+            if (currentSessionId) {
+                console.log('로그인 상태가 아니므로 챗봇 세션 초기화');
+                localStorage.removeItem('chatbot_session_id');
+                currentSessionId = null;
+            }
+            return false;
+        } else {
+            console.log('로그인 상태 확인됨 - 챗봇 위젯 표시됨');
+            return true;
         }
     }
     
@@ -52,8 +52,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return uuidRegex.test(uuid);
     }
 
-    // 플로팅 위젯 초기화
-    if (floatingWidget && toggleBtn && closeBtn) {
+    // 플로팅 위젯 초기화 (로그인 상태일 때만)
+    if (floatingWidget && toggleBtn && closeBtn && validateSession()) {
         initializeFloatingWidget();
     }
 

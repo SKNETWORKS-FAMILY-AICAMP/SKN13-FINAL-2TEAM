@@ -35,6 +35,9 @@ python-dotenv==1.1.1
 python-multipart==0.0.20
 Jinja2==3.1.6
 
+# Text Processing & Fuzzy Matching
+rapidfuzz==3.5.2
+
 # Monitoring & Metrics
 prometheus-client==0.19.0
 

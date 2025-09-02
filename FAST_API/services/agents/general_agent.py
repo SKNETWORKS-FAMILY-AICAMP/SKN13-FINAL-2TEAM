@@ -106,12 +106,6 @@ class GeneralAgent:
             # 2. LLM을 사용한 자연스러운 대화 처리
             response = self._generate_intelligent_response(user_input, context_summaries)
             
-            # 3. 의류 관련 질문인지 확인하여 안내 추가
-            has_clothing_context = self._has_clothing_context(user_input_lower)
-            if not has_clothing_context and not any(keyword in user_input_lower for keyword in ["안녕", "감사", "고마워", "좋아"]):
-                # 의류와 관련 없는 질문에는 의류 추천 안내 추가
-                response += "\n\n💡 의류나 패션 관련 질문이 있으시면 언제든 말씀해주세요!"
-            
             return GeneralAgentResult(
                 success=True,
                 message=response,
@@ -169,6 +163,11 @@ class GeneralAgent:
     def _generate_intelligent_response(self, user_input: str, context_summaries: Optional[List[str]] = None) -> str:
         """LLM을 사용한 지능형 응답 생성"""
         try:
+            # 먼저 의류 관련 질문인지 확인
+            if not self._has_clothing_context(safe_lower(user_input)):
+                # 의류와 전혀 관련 없는 질문은 기본 응답 반환
+                return self._get_non_clothing_response()
+            
             # 컨텍스트 정보 구성
             context_info = ""
             if context_summaries:
@@ -176,22 +175,21 @@ class GeneralAgent:
                 context_info = f"이전 대화 요약: {recent_context}"
             
             system_prompt = f"""당신은 친근하고 도움이 되는 의류 추천 챗봇입니다.
-사용자의 다양한 질문에 자연스럽고 따뜻하게 응답해주세요.
+사용자의 의류/패션 관련 질문에만 응답해주세요.
 
 {context_info}
 
 응답 가이드라인:
 1. 친근하고 자연스러운 대화체 사용
 2. 사용자의 감정과 상황 공감
-3. 가능하면 의류/패션과 연결하여 도움 제안
+3. 의류/패션과 관련된 도움 제안
 4. 이모지를 적절히 사용해서 친근함 표현
 5. 간결하면서도 따뜻한 응답 (2-4줄)
-6. 의류와 전혀 관련 없는 질문도 자연스럽게 응답
 
 특별 지침:
-- 일상 대화, 감정 표현, 상태 문의 등에 자연스럽게 응답
-- 가능한 경우 패션/의류 추천으로 자연스럽게 연결
-- 부정적 감정에는 위로와 격려 제공"""
+- 의류/패션 관련 질문에만 응답
+- 일상 대화, 감정 표현, 상태 문의 등은 의류 추천으로 연결
+- 부정적 감정에는 위로와 격려 제공 후 패션 추천 제안"""
             
             messages = [
                 {"role": "system", "content": system_prompt},

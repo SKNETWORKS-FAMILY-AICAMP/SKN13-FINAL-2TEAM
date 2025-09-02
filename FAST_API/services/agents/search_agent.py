@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from services.common_search import CommonSearchModule, SearchQuery, SearchResult
 
+
 load_dotenv()
 
 @dataclass
@@ -66,12 +67,8 @@ class SearchAgent:
             if search_result.products:
                 # LLM을 사용한 향상된 메시지 생성
                 context_summaries = context_info.get("previous_summaries", []) if context_info else []
-                message = self.enhance_search_with_llm(user_input, search_result, context_summaries)
+                message = self.enhance_search_with_llm(user_input, search_result, context_summaries, search_query)
                 success = True
-                
-                # 5. recommendation 테이블에 저장
-                if db and user_id and search_result.products:
-                    self._save_search_recommendations(db, user_id, user_input, search_result.products)
             else:
                 message = f"'{user_input}' 조건에 맞는 상품을 찾지 못했습니다. 다른 조건으로 검색해보세요."
                 success = False
@@ -105,7 +102,8 @@ class SearchAgent:
             situations=extracted_info.get("situations", []),
             styles=extracted_info.get("styles", []),
             locations=extracted_info.get("locations", []),
-            brands=extracted_info.get("brands", [])
+            brands=extracted_info.get("brands", []),
+            price_range=extracted_info.get("price_range")
         )
     
     def _build_context_filters(self, context_info: Dict) -> Dict:
@@ -139,52 +137,9 @@ class SearchAgent:
         
         return filters
     
-    def _save_search_recommendations(self, db, user_id: int, query: str, products: List[Dict]):
-        """검색 결과를 recommendation 테이블에 저장 - 챗봇 라우터에서만 저장하도록 비활성화"""
-        # 챗봇 라우터에서만 추천을 저장하도록 비활성화
-        # 중복 저장 방지를 위해 SearchAgent에서는 저장하지 않음
-        print("ℹ️ SearchAgent: 추천 저장은 챗봇 라우터에서 처리됩니다.")
-        return
-        
-        # 기존 코드 (주석 처리)
-        """
-        try:
-            from crud.recommendation_crud import create_multiple_recommendations, get_user_recommendations
-            
-            # 최근 추천 기록 조회하여 중복 체크
-            recent_recommendations = get_user_recommendations(db, user_id, limit=20)
-            recent_item_ids = {rec.item_id for rec in recent_recommendations}
-            
-            # 각 상품별로 개별 추천 데이터 생성 (중복 제거)
-            recommendations_data = []
-            for product in products[:4]:  # 최대 4개만 저장
-                item_id = product.get("상품코드", 0)
-                if item_id and item_id not in recent_item_ids:
-                    recommendations_data.append({
-                        "item_id": item_id,
-                        "query": query,
-                        "reason": f"검색 조건 '{query}'에 매칭된 상품"
-                    })
-                    recent_item_ids.add(item_id)  # 중복 방지를 위해 추가
-            
-            if recommendations_data:
-                # 여러 상품을 개별적으로 저장
-                created_recommendations = create_multiple_recommendations(
-                    db, 
-                    user_id, 
-                    recommendations_data
-                )
-                print(f"✅ 검색 결과 {len(created_recommendations)}개를 recommendation 테이블에 저장했습니다.")
-            else:
-                print("⚠️ 저장할 검색 결과가 없습니다 (중복 제거 후).")
-                
-        except Exception as e:
-            print(f"❌ 검색 결과 저장 중 오류: {e}")
-            # 저장 실패해도 검색은 계속 진행
-        """
     
     def enhance_search_with_llm(self, user_input: str, search_result: SearchResult, 
-                               context_summaries: List[str]) -> str:
+                               context_summaries: List[str], query: SearchQuery = None) -> str:
         """
         LLM을 사용하여 검색 결과를 향상시킨 메시지 생성
         """
@@ -196,21 +151,42 @@ class SearchAgent:
         if context_summaries:
             context_str = f"\n이전 대화 요약: {' | '.join(context_summaries[-3:])}"
         
-        system_prompt = f"""당신은 의류 추천 전문가입니다.
-사용자의 검색 요청에 대한 상품 추천 결과를 자연스럽고 친근한 톤으로 설명해주세요.
+        # 실제 상품 정보를 프롬프트에 포함
+        products_info = ""
+        for i, product in enumerate(search_result.products, 1):
+            product_name = product.get('상품명', '상품명 없음')
+            brand = product.get('한글브랜드명', '브랜드 없음')
+            price = product.get('원가', 0)
+            
+            products_info += f"\n{i}. 상품명: {product_name}\n   브랜드: {brand}\n   가격: {price:,}원\n"
+        
+        system_prompt = f"""당신은 친근하고 전문적인 의류 상담사입니다.
+사용자의 검색 요청에 맞는 상품들을 구체적이고 유용하게 설명해주세요.
 
 사용자 요청: {user_input}
 검색 결과: {len(search_result.products)}개 상품 발견
 적용된 필터: {search_result.applied_filters}
 {context_str}
 
-다음 형식으로 응답해주세요:
-1. 친근한 인사 및 검색 결과 요약
-2. 추천 이유 설명
-3. 상품별 간단한 설명과 어울리는 상황
-4. 추가 추천이나 스타일링 팁
+**실제 상품 정보:**
+{products_info}
 
-톤: 친근하고 전문적, 이모지 적절히 사용"""
+**응답 형식:**
+1. **인사 및 요약** (1-2줄): "안녕하세요! [요청]에 맞는 [개수]개 상품을 찾았어요! 😊"
+2. **추천 이유** (1줄): "이 상품들을 추천하는 이유는 [색상/스타일/상황]에 최적이기 때문이에요."
+3. **상품별 설명** (상품당 2-3줄): 위의 실제 상품명과 브랜드를 사용하여 각 상품의 특징과 어울리는 상황을 구체적으로 설명
+4. **스타일링 팁** (1-2줄): 전체적인 코디 조합이나 추가 아이템 제안
+
+**중요 규칙:**
+- 반드시 위에 제공된 실제 상품명과 브랜드를 그대로 사용하세요
+- 가상의 상품명이나 브랜드를 만들어내지 마세요
+- 각 상품의 설명은 해당 상품의 실제 정보를 바탕으로 작성하세요
+
+**톤 가이드라인:**
+- 친근하지만 전문적인 의류 상담사처럼 응답
+- 이모지 적절히 사용 (상품별 📍, 가격 💰, 스타일 ✨)
+- 간결하고 명확한 설명 (전체 8-12줄)
+- 사용자가 실제로 구매할 수 있도록 도움이 되는 정보 제공"""
 
         try:
             response = self.client.chat.completions.create(
@@ -224,19 +200,6 @@ class SearchAgent:
             )
             
             enhanced_message = response.choices[0].message.content.strip()
-            
-            # 상품 정보 추가
-            enhanced_message += "\n\n📋 **추천 상품 목록**\n"
-            for i, product in enumerate(search_result.products, 1):
-                product_name = product.get('상품명', '상품명 없음')
-                brand = product.get('한글브랜드명', '브랜드 없음')
-                price = product.get('원가', 0)
-                
-                enhanced_message += f"**{i}. {product_name}**\n"
-                enhanced_message += f"   📍 브랜드: {brand}\n"
-                if price:
-                    enhanced_message += f"   💰 가격: {price:,}원\n"
-                enhanced_message += "\n"
             
             return enhanced_message
             

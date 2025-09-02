@@ -102,6 +102,7 @@ class MainAnalyzer:
         "styles": ["추출된 스타일들"],
         "brands": ["추출된 브랜드들"],
         "locations": ["지역명들"]
+        "price_range": ["추출된 가격 범위들"]
     }},
     "analysis_summary": "분석 결과 요약"
 }}
@@ -115,7 +116,8 @@ Intent 분류 기준:
 
 필터링 조건 추출 기준:
 - colors: 색상 관련 ("빨간색", "파란색", "검은색", "흰색", "베이지", "네이비", "카키", "민트", "와인", "올리브" 등)
-- categories: 대분류/소분류 ("상의", "바지", "스커트", "원피스", "긴소매", "반소매", "후드티", "니트/스웨터", "셔츠/블라우스", "피케/카라", "슬리브리스", "데님팬츠", "코튼팬츠", "슈트팬츠/슬랙스", "카고팬츠", "트레이닝/조거팬츠", "숏팬츠", "롱스커트", "미니스커트", "미디스커트", "맥시원피스", "미니원피스", "미디원피스")
+- categories: 소분류 ("긴소매", "반소매", "후드티", "니트/스웨터", "셔츠/블라우스", "피케/카라", "슬리브리스", "데님팬츠", "코튼팬츠", "슈트팬츠/슬랙스", "카고팬츠", "트레이닝/조거팬츠", "숏팬츠", "롱스커트", "미니스커트", "미디스커트", "맥시원피스", "미니원피스", "미디원피스")
+- price_range: 가격 범위 (예: "5만원에서 10만원사이" → [50000, 100000], "3만원 이하" → [0, 30000], "10만원 이상" → [100000, 999999])
 - brands: 브랜드명 ("나이키", "아디다스", "유니클로", "ZARA", "H&M" 등)
 - situations: 상황/장소 ("데이트", "면접", "파티", "운동", "여행", "출근", "캐주얼" 등)
 - styles: 스타일 ("캐주얼", "정장", "스포티", "빈티지", "미니멀" 등)
@@ -476,36 +478,3 @@ class LLMService:
         print("ℹ️ WeatherAgent: 추천 저장은 챗봇 라우터에서 처리됩니다.")
         return
         
-        # 기존 코드 (주석 처리)
-        """
-        try:
-            from crud.recommendation_crud import create_multiple_recommendations, get_user_recommendations
-            
-            # 최근 추천 기록 조회하여 중복 체크
-            recent_recommendations = get_user_recommendations(db, user_id, limit=20)
-            recent_item_ids = {rec.item_id for rec in recent_recommendations}
-            
-            recommendations_data = []
-            for product in products:
-                item_id = product.get("상품코드", 0)
-                if item_id and item_id not in recent_item_ids:
-                    recommendations_data.append({
-                        "item_id": item_id,
-                        "query": f"날씨 기반 추천 ({weather_desc})",
-                        "reason": f"{weather_desc}에 적합한 의류"
-                    })
-                    recent_item_ids.add(item_id)  # 중복 방지를 위해 추가
-            
-            if recommendations_data:
-                create_multiple_recommendations(db, user_id, recommendations_data)
-                print(f"✅ 날씨 기반 추천 {len(recommendations_data)}개를 recommendation 테이블에 저장했습니다.")
-            else:
-                print("⚠️ 저장할 날씨 추천이 없습니다 (중복 제거 후).")
-                
-        except Exception as e:
-            print(f"❌ 날씨 추천 저장 중 오류: {e}")
-            # 저장 실패해도 추천은 계속 진행
-        """
-    
-    # Legacy methods 완전 제거됨 - LangGraph 에이전트 시스템으로 대체
-    # 모든 처리가 _agent_execution_node에서 통합 처리됨

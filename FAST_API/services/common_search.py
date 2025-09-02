@@ -12,6 +12,7 @@ import random
 
 from utils.safe_utils import safe_lower, safe_str
 
+
 load_dotenv()
 
 @dataclass
@@ -227,39 +228,226 @@ class CommonSearchModule:
             filtered = category_filtered
             print(f"카테고리 필터링 적용: {query.categories} -> {len(filtered)}개")
         
-        # 브랜드 필터링 (언어별 검색)
+        # 브랜드 필터링 (LLM 필터링 실패 시 brand_matcher 사용)
         if query.brands:
             brand_filtered = []
             for product in filtered:
-                한글브랜드명 = safe_lower(product.get("한글브랜드명", ""))
-                영어브랜드명 = safe_lower(product.get("영어브랜드명", ""))
+                한글브랜드명 = product.get("한글브랜드명", "")
+                영어브랜드명 = product.get("영어브랜드명", "")
                 
                 brand_matched = False
                 for query_brand in query.brands:
-                    query_brand_lower = safe_lower(query_brand)
-                    
-                    # 한글 브랜드명 검색
-                    if query_brand_lower in 한글브랜드명:
+                    # 1. 정확한 매칭 시도 (기존 로직)
+                    if (safe_lower(query_brand) == safe_lower(한글브랜드명) or 
+                        safe_lower(query_brand) == safe_lower(영어브랜드명)):
                         brand_matched = True
                         break
                     
-                    # 영어 브랜드명 검색
-                    if query_brand_lower in 영어브랜드명:
+                    # 2. 포함 관계 시도 (기존 로직)
+                    if (safe_lower(query_brand) in safe_lower(한글브랜드명) or 
+                        safe_lower(query_brand) in safe_lower(영어브랜드명)):
                         brand_matched = True
                         break
+                
+                # 3. 기존 로직으로 매칭 안 되면 brand_matcher 사용
+                if not brand_matched:
+                    try:
+                        from services.brand_matcher import brand_matcher
+                        
+                        # 한글/영어 브랜드명 모두에 대해 유사도 계산
+                        max_similarity = 0.0
+                        if 한글브랜드명:
+                            similarity_kr = brand_matcher.calculate_brand_similarity(query_brand, 한글브랜드명)
+                            max_similarity = max(max_similarity, similarity_kr)
+                        
+                        if 영어브랜드명:
+                            similarity_en = brand_matcher.calculate_brand_similarity(query_brand, 영어브랜드명)
+                            max_similarity = max(max_similarity, similarity_en)
+                        
+                        # 0.6 이상 유사하면 매칭으로 간주
+                        if max_similarity >= 0.6:
+                            brand_matched = True
+                            
+                            # 실제로 매칭된 브랜드명 찾기
+                            if max_similarity == similarity_kr:
+                                matched_brand = 한글브랜드명
+                            elif max_similarity == similarity_en:
+                                matched_brand = 영어브랜드명
+                            else:
+                                matched_brand = 한글브랜드명 or 영어브랜드명
+                            
+                            print(f"Brand Matcher 매칭: '{query_brand}' ↔ '{matched_brand}' (유사도: {max_similarity:.2f})")
                     
-                    # 언어별 우선 검색
-                    if any(ord(char) > 127 for char in query_brand):  # 영어 문자가 포함된 경우
-                        if query_brand_lower in 영어브랜드명:
-                            brand_matched = True
-                            break
-                    else:  # 한글만 있는 경우
-                        if query_brand_lower in 한글브랜드명:
-                            brand_matched = True
-                            break
+                    except ImportError:
+                        print("⚠️ brand_matcher 모듈을 불러올 수 없습니다.")
+                        pass
                 
                 if brand_matched:
                     brand_filtered.append(product)
+            
+            filtered = brand_filtered
+            print(f"브랜드 필터링 적용: {query.brands} -> {len(filtered)}개")
+        
+        # 가격 필터링
+        if query.price_range:
+            min_price, max_price = query.price_range
+            price_filtered = []
+            for product in filtered:
+                price = product.get("원가", 0)
+                if isinstance(price, (int, float)) and min_price <= price <= max_price:
+                    price_filtered.append(product)
+            filtered = price_filtered
+            print(f"가격 필터링 적용: {min_price}-{max_price}원 -> {len(filtered)}개")
+        
+        return filtered
+    
+    def _apply_required_filters(self, products: List[Dict], query: SearchQuery) -> List[Dict]:
+        """필수 필터 적용 (색상, 카테고리, 브랜드, 가격)"""
+        filtered = products.copy()
+        
+        # 색상 필터링
+        if query.colors:
+            color_filtered = []
+            for product in filtered:
+                product_color = safe_lower(product.get("색상", ""))
+                product_name = safe_lower(product.get("상품명", ""))
+                
+                color_matched = False
+                for color in query.colors:
+                    color_variants = self.color_keywords.get(color, [color])
+                    if any(safe_lower(variant) == product_color for variant in color_variants):
+                        color_matched = True
+                        break
+                    # 상품명에서도 색상 검색
+                    if any(safe_lower(variant) in product_name for variant in color_variants):
+                        color_matched = True
+                        break
+                
+                if color_matched:
+                    color_filtered.append(product)
+            
+            filtered = color_filtered
+            print(f"색상 필터링 적용: {query.colors} -> {len(filtered)}개")
+        
+        # 카테고리 필터링 (대분류/소분류 기반)
+        if query.categories:
+            category_filtered = []
+            for product in filtered:
+                대분류 = safe_lower(product.get("대분류", ""))
+                소분류 = safe_lower(product.get("소분류", ""))
+                
+                category_matched = False
+                for category in query.categories:
+                    # 카테고리 매핑 데이터에서 변형어 가져오기
+                    category_variants = self.category_keywords.get(category, [category])
+                    
+                    # 대분류에서 정확한 매칭
+                    if any(safe_lower(variant) == 대분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                    
+                    # 소분류에서 정확한 매칭
+                    if any(safe_lower(variant) == 소분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                    
+                    # 소분류에서 부분 매칭 (긴소매셔츠 -> 긴소매 매칭)
+                    if any(safe_lower(variant) in 소분류 for variant in category_variants):
+                        category_matched = True
+                        break
+                
+                if category_matched:
+                    category_filtered.append(product)
+            
+            filtered = category_filtered
+            print(f"카테고리 필터링 적용: {query.categories} -> {len(filtered)}개")
+        
+        # 브랜드 필터링 (LLM 필터링 실패 시 brand_matcher 사용)
+        if query.brands:
+            brand_filtered = []
+            for query_brand in query.brands:
+                # 1. 정확한 매칭 시도 (기존 로직)
+                exact_matches = []
+                fuzzy_matches = []
+                
+                for product in filtered:
+                    한글브랜드명 = product.get("한글브랜드명", "")
+                    영어브랜드명 = product.get("영어브랜드명", "")
+                    
+                    # 정확한 매칭 확인
+                    if (safe_lower(query_brand) == safe_lower(한글브랜드명) or 
+                        safe_lower(query_brand) == safe_lower(영어브랜드명)):
+                        exact_matches.append(product)
+                        continue
+                
+                # 2. 정확한 매칭이 있으면 그것만 사용
+                if exact_matches:
+                    brand_filtered.extend(exact_matches)
+                    print(f"정확한 브랜드 매칭: '{query_brand}' -> {len(exact_matches)}개")
+                    continue
+                
+                # 3. 정확한 매칭이 없으면 모든 브랜드와 유사도 계산 후 최고 점수 선택
+                try:
+                    from services.brand_matcher import brand_matcher
+                    
+                    best_matches = []
+                    best_similarity = 0.0
+                    
+                    for product in filtered:
+                        한글브랜드명 = product.get("한글브랜드명", "")
+                        영어브랜드명 = product.get("영어브랜드명", "")
+                        
+                        # 한글/영어 브랜드명 모두에 대해 유사도 계산
+                        max_similarity = 0.0
+                        if 한글브랜드명:
+                            similarity_kr = brand_matcher.calculate_brand_similarity(query_brand, 한글브랜드명)
+                            max_similarity = max(max_similarity, similarity_kr)
+                        
+                        if 영어브랜드명:
+                            similarity_en = brand_matcher.calculate_brand_similarity(query_brand, 영어브랜드명)
+                            max_similarity = max(max_similarity, similarity_en)
+                        
+                        # 최고 유사도 업데이트
+                        if max_similarity > best_similarity:
+                            best_similarity = max_similarity
+                            best_matches = [product]
+                        elif max_similarity == best_similarity:
+                            best_matches.append(product)
+                    
+                    # 0.6 이상 유사하면 최고 점수 브랜드들 매칭
+                    if best_similarity >= 0.6:
+                        brand_filtered.extend(best_matches)
+                        
+                        # 실제로 매칭된 브랜드명 찾기
+                        matched_brand = ""
+                        for product in best_matches:
+                            한글브랜드명 = product.get("한글브랜드명", "")
+                            영어브랜드명 = product.get("영어브랜드명", "")
+                            
+                            # 한글/영어 브랜드명과 유사도 계산하여 매칭된 브랜드 찾기
+                            if 한글브랜드명:
+                                similarity_kr = brand_matcher.calculate_brand_similarity(query_brand, 한글브랜드명)
+                                if abs(similarity_kr - best_similarity) < 0.01:  # 유사도가 거의 같으면
+                                    matched_brand = 한글브랜드명
+                                    break
+                            
+                            if 영어브랜드명:
+                                similarity_en = brand_matcher.calculate_brand_similarity(query_brand, 영어브랜드명)
+                                if abs(similarity_en - best_similarity) < 0.01:  # 유사도가 거의 같으면
+                                    matched_brand = 영어브랜드명
+                                    break
+                        
+                        # 매칭된 브랜드가 없으면 첫 번째 제품의 브랜드 표시
+                        if not matched_brand:
+                            matched_brand = best_matches[0].get('한글브랜드명') or best_matches[0].get('영어브랜드명')
+                        
+                        print(f"Brand Matcher 최고 유사도 매칭: '{query_brand}' ↔ '{matched_brand}' (유사도: {best_similarity:.2f}) -> {len(best_matches)}개")
+                    else:
+                        print(f"브랜드 매칭 실패: '{query_brand}' (최고 유사도: {best_similarity:.2f})")
+                
+                except ImportError:
+                    print("⚠️ brand_matcher 모듈을 불러올 수 없습니다.")
+                    pass
             
             filtered = brand_filtered
             print(f"브랜드 필터링 적용: {query.brands} -> {len(filtered)}개")
@@ -458,120 +646,7 @@ class CommonSearchModule:
     
 
     
-    def _apply_required_filters(self, products: List[Dict], query: SearchQuery) -> List[Dict]:
-        """필수 필터링 적용 (색상, 카테고리, 브랜드, 가격)"""
-        filtered = products.copy()
-        
-        # 색상 필터링 (매핑 데이터 포함)
-        if query.colors:
-            color_filtered = []
-            for product in filtered:
-                product_color = safe_lower(product.get("색상", ""))
-                product_name = safe_lower(product.get("상품명", ""))
-                
-                color_matched = False
-                for color in query.colors:
-                    # 색상 매핑 데이터에서 변형어 가져오기
-                    color_variants = self.color_keywords.get(color, [color])
-                    
-                    # 색상 필드에서 정확한 매칭
-                    if any(safe_lower(variant) == product_color for variant in color_variants):
-                        color_matched = True
-                        break
-                    
-                    # 상품명에서 색상 키워드 포함 여부 확인
-                    if any(safe_lower(variant) in product_name for variant in color_variants):
-                        color_matched = True
-                        break
-                
-                if color_matched:
-                    color_filtered.append(product)
-            
-            filtered = color_filtered
-            print(f"색상 필터링 적용: {query.colors} -> {len(filtered)}개")
-        
-        # 카테고리 필터링 (대분류/소분류 기반)
-        if query.categories:
-            category_filtered = []
-            for product in filtered:
-                대분류 = safe_lower(product.get("대분류", ""))
-                소분류 = safe_lower(product.get("소분류", ""))
-                
-                category_matched = False
-                for category in query.categories:
-                    # 카테고리 매핑 데이터에서 변형어 가져오기
-                    category_variants = self.category_keywords.get(category, [category])
-                    
-                    # 대분류에서 정확한 매칭
-                    if any(safe_lower(variant) == 대분류 for variant in category_variants):
-                        category_matched = True
-                        break
-                    
-                    # 소분류에서 정확한 매칭
-                    if any(safe_lower(variant) == 소분류 for variant in category_variants):
-                        category_matched = True
-                        break
-                    
-                    # 소분류에서 부분 매칭 (긴소매셔츠 -> 긴소매 매칭)
-                    if any(safe_lower(variant) in 소분류 for variant in category_variants):
-                        category_matched = True
-                        break
-                
-                if category_matched:
-                    category_filtered.append(product)
-            
-            filtered = category_filtered
-            print(f"카테고리 필터링 적용: {query.categories} -> {len(filtered)}개")
-        
-        # 브랜드 필터링 (언어별 검색)
-        if query.brands:
-            brand_filtered = []
-            for product in filtered:
-                한글브랜드명 = safe_lower(product.get("한글브랜드명", ""))
-                영어브랜드명 = safe_lower(product.get("영어브랜드명", ""))
-                
-                brand_matched = False
-                for query_brand in query.brands:
-                    query_brand_lower = safe_lower(query_brand)
-                    
-                    # 한글 브랜드명 검색
-                    if query_brand_lower in 한글브랜드명:
-                        brand_matched = True
-                        break
-                    
-                    # 영어 브랜드명 검색
-                    if query_brand_lower in 영어브랜드명:
-                        brand_matched = True
-                        break
-                    
-                    # 언어별 우선 검색
-                    if any(ord(char) > 127 for char in query_brand):  # 영어 문자가 포함된 경우
-                        if query_brand_lower in 영어브랜드명:
-                            brand_matched = True
-                            break
-                    else:  # 한글만 있는 경우
-                        if query_brand_lower in 한글브랜드명:
-                            brand_matched = True
-                            break
-                
-                if brand_matched:
-                    brand_filtered.append(product)
-            
-            filtered = brand_filtered
-            print(f"브랜드 필터링 적용: {query.brands} -> {len(filtered)}개")
-        
-        # 가격 필터링
-        if query.price_range:
-            min_price, max_price = query.price_range
-            price_filtered = []
-            for product in filtered:
-                price = product.get("원가", 0)
-                if isinstance(price, (int, float)) and min_price <= price <= max_price:
-                    price_filtered.append(product)
-            filtered = price_filtered
-            print(f"가격 필터링 적용: {min_price}-{max_price}원 -> {len(filtered)}개")
-        
-        return filtered
+
     
     def _apply_flexible_search(self, products: List[Dict], query: SearchQuery) -> List[Dict]:
         """유연한 검색 (필수 필터가 너무 제한적일 때)"""

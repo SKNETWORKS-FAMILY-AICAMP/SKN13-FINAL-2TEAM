@@ -12,6 +12,7 @@ import random
 
 from services.common_search import CommonSearchModule, SearchQuery, SearchResult
 
+
 load_dotenv()
 
 @dataclass
@@ -148,7 +149,8 @@ class ConversationAgent:
             "category": "상의|하의",
             "color": "구체적인 색상",
             "type": "구체적인 의류 종류",
-            "reason": "추천 이유"
+            "reason": "추천 이유",
+            "brands": "추출된 브랜드들",
         }}
     ],
     "styling_tips": "전체적인 스타일링 팁",
@@ -160,8 +162,8 @@ class ConversationAgent:
 2. 색상 조합이 조화롭게
 3. 상황에 맞는 스타일
 4. 의류 종류는 다음 중에서만 사용:
-   - 상의: 후드티, 셔츠블라우스, 긴소매, 반소매, 피케카라, 니트스웨터, 슬리브리스, 애슬레저
-   - 하의: 데님 팬츠, 트레이닝/조거 팬츠, 코튼 팬츠, 슈트 팬츠/슬랙스, 숏 팬츠, 레깅스, 카고팬츠 
+   - 상의: 후드티, 셔츠/블라우스, 긴소매, 반소매, 피케/카라, 니트/스웨터, 슬리브리스
+   - 하의: 데님팬츠, 트레이닝/조거팬츠, 코튼팬츠, 슈트팬츠/슬랙스, 숏팬츠, 카고팬츠 
    - 스커트 : 미니스커트, 미디스커트, 롱스커트
    - 원피스 : 미니원피스, 미디원피스, 맥시원피스
 5. 색상은 기본 색상명 사용 (블랙, 화이트, 그레이, 네이비, 베이지, 브라운, 카키 등)
@@ -267,11 +269,21 @@ class ConversationAgent:
                 elif category == "하의":
                     mapped_keywords.extend(["하의", "바텀", "bottom", "바지", "팬츠"])
                 
+                # 브랜드 정보 추출
+                brands = []
+                if rec.get("brands"):
+                    # brands가 문자열인 경우 리스트로 변환
+                    if isinstance(rec["brands"], str):
+                        brands = [rec["brands"]]
+                    elif isinstance(rec["brands"], list):
+                        brands = rec["brands"]
+                
                 query = SearchQuery(
                     colors=[color],
                     categories=mapped_keywords,  # 매핑된 키워드들을 카테고리로 사용
                     situations=[],
-                    styles=[]
+                    styles=[],
+                    brands=brands  # 브랜드 정보 추가
                 )
                 queries.append(query)
         
@@ -419,35 +431,3 @@ class ConversationAgent:
         # 중복 저장 방지를 위해 ConversationAgent에서는 저장하지 않음
         print("ℹ️ ConversationAgent: 추천 저장은 챗봇 라우터에서 처리됩니다.")
         return
-        
-        # 기존 코드 (주석 처리)
-        """
-        try:
-            from crud.recommendation_crud import create_multiple_recommendations, get_user_recommendations
-            
-            # 최근 추천 기록 조회하여 중복 체크
-            recent_recommendations = get_user_recommendations(db, user_id, limit=20)
-            recent_item_ids = {rec.item_id for rec in recent_recommendations}
-            
-            recommendations_data = []
-            for product in products:
-                item_id = product.get("상품코드", 0)
-                if item_id and item_id not in recent_item_ids:
-                    recommendations_data.append({
-                        "item_id": item_id,
-                        "query": query,
-                        "reason": "상황별 추천"
-                    })
-                    recent_item_ids.add(item_id)  # 중복 방지를 위해 추가
-            
-            if recommendations_data:
-                create_multiple_recommendations(db, user_id, recommendations_data)
-                print(f"✅ 추천 결과 {len(recommendations_data)}개를 데이터베이스에 저장했습니다.")
-            else:
-                print("⚠️ 저장할 추천 결과가 없습니다 (중복 제거 후).")
-                
-        except Exception as e:
-            print(f"❌ 추천 결과 저장 중 오류: {e}")
-            
-            # 저장 실패해도 추천은 계속 진행
-        """

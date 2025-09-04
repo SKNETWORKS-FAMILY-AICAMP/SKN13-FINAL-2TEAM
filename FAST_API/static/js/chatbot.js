@@ -813,9 +813,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 box-shadow: 0 20px 60px rgba(0,0,0,0.15);
             ">
                 <h3 style="margin: 0 0 16px 0; color: #2c3e50; font-size: 1.2rem;">
-                    💬 ${productName}에 대한 코멘트
+                    💬 상품추천이 마음에 드셨나요?
                 </h3>
-                <textarea id="comment-text" placeholder="이 상품에 대한 의견을 자유롭게 작성해주세요..." style="
+                <textarea id="comment-text" placeholder="추천에 대한 의견을 자유롭게 작성해주세요..." style="
                     width: 100%;
                     padding: 12px;
                     border: 2px solid #e9ecef;

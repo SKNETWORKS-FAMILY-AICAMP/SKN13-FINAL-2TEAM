@@ -493,14 +493,28 @@
     transform: translateY(-1px);
 }
 
-/* 비활성화된 피드백 버튼 */
-.feedback-like-btn:disabled,
-.feedback-dislike-btn:disabled,
+/* 비활성화된 피드백 버튼 - 각각 원래 색상 유지 */
+.feedback-like-btn:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    background: #27ae60 !important;  /* 좋아요: 녹색 유지 */
+    color: white !important;
+}
+
+.feedback-dislike-btn:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    background: #e74c3c !important;  /* 싫어요: 빨간색 유지 */
+    color: white !important;
+}
+
 .feedback-comment-btn:disabled {
     opacity: 0.6 !important;
     cursor: not-allowed !important;
     transform: none !important;
-    background: #27ae60 !important;
+    background: #3498db !important;  /* 코멘트: 파란색 유지 */
     color: white !important;
 }
 
@@ -508,7 +522,6 @@
 .feedback-like-btn:disabled::after,
 .feedback-dislike-btn:disabled::after,
 .feedback-comment-btn:disabled::after {
-    content: ' ✅';
     margin-left: 2px;
 }
 

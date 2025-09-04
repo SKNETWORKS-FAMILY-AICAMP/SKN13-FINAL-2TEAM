@@ -163,6 +163,77 @@ class CommonSearchModule:
             applied_filters=applied_filters
         )
     
+    def _search_by_combinations(self, query: SearchQuery, available_products: List[Dict], 
+                               context_filters: Optional[Dict] = None) -> SearchResult:
+        """개별 조합별로 상품 검색 (색상 + 카테고리 조합)"""
+        print(f"🔍 색상 {len(query.colors)}개 + 카테고리 {len(query.categories)}개 = {len(query.colors) * len(query.categories)}개 조합 검색")
+        
+        all_products = []
+        total_combinations = 0
+        
+        # 각 조합별로 검색
+        for color in query.colors:
+            for category in query.categories:
+                total_combinations += 1
+                print(f"  🔍 조합 {total_combinations}: {category} + {color}")
+                
+                # 개별 조합별 검색 쿼리 생성
+                combination_query = SearchQuery(
+                    colors=[color],
+                    categories=[category],
+                    situations=query.situations,
+                    styles=query.styles,
+                    locations=query.locations,
+                    price_range=query.price_range,
+                    brands=query.brands
+                )
+                
+                # 해당 조합으로 필터링
+                combination_products = self._apply_required_filters(available_products, combination_query)
+                
+                if combination_products:
+                    # 각 조합당 최대 2개씩 추가
+                    selected_products = combination_products[:2]
+                    all_products.extend(selected_products)
+                    print(f"    ✅ {category} + {color}: {len(selected_products)}개 상품 발견")
+                else:
+                    print(f"    ⚠️ {category} + {color}: 검색 결과 없음")
+        
+        # 중복 제거 (상품코드 기준)
+        seen_ids = set()
+        unique_products = []
+        for product in all_products:
+            product_id = product.get("상품코드", "")
+            if product_id and product_id not in seen_ids:
+                seen_ids.add(product_id)
+                unique_products.append(product)
+        
+        print(f"🎯 개별 조합별 검색 완료: 총 {len(unique_products)}개 (중복 제거 후)")
+        
+        # 컨텍스트 기반 추가 필터링
+        if context_filters and unique_products:
+            unique_products = self._apply_context_filters(unique_products, context_filters)
+            print(f"컨텍스트 필터링 후: {len(unique_products)}개")
+        
+        # 검색 요약 생성
+        search_summary = f"개별 조합별 검색으로 {len(unique_products)}개 상품을 찾았습니다."
+        
+        applied_filters = {
+            "colors": query.colors,
+            "categories": query.categories,
+            "situations": query.situations,
+            "combination_search": True,
+            "total_combinations": total_combinations,
+            "context_applied": bool(context_filters)
+        }
+        
+        return SearchResult(
+            products=unique_products,
+            total_count=len(unique_products),
+            search_summary=search_summary,
+            applied_filters=applied_filters
+        )
+    
     def _apply_basic_filters(self, products: List[Dict], query: SearchQuery) -> List[Dict]:
         """기본 필터링 적용 - 개선된 버전"""
         filtered = products.copy()
@@ -286,7 +357,7 @@ class CommonSearchModule:
                     brand_filtered.append(product)
             
             filtered = brand_filtered
-            print(f"브랜드 필터링 적용: {query.brands} -> {len(filtered)}개")
+            print(f"🏷️ 브랜드 필터링: {query.brands} → {len(filtered)}개")
         
         # 가격 필터링
         if query.price_range:
@@ -297,7 +368,7 @@ class CommonSearchModule:
                 if isinstance(price, (int, float)) and min_price <= price <= max_price:
                     price_filtered.append(product)
             filtered = price_filtered
-            print(f"가격 필터링 적용: {min_price}-{max_price}원 -> {len(filtered)}개")
+            print(f"💰 가격 필터링: {min_price:,}-{max_price:,}원 → {len(filtered)}개")
         
         return filtered
     
@@ -327,7 +398,7 @@ class CommonSearchModule:
                     color_filtered.append(product)
             
             filtered = color_filtered
-            print(f"색상 필터링 적용: {query.colors} -> {len(filtered)}개")
+            print(f"🎨 색상 필터링: {query.colors} → {len(filtered)}개")
         
         # 카테고리 필터링 (대분류/소분류 기반)
         if query.categories:
@@ -338,8 +409,8 @@ class CommonSearchModule:
                 
                 category_matched = False
                 for category in query.categories:
-                    # 카테고리 매핑 데이터에서 변형어 가져오기
-                    category_variants = self.category_keywords.get(category, [category])
+                    # 카테고리 매핑 없이 원본 카테고리 그대로 사용
+                    category_variants = [category]
                     
                     # 대분류에서 정확한 매칭
                     if any(safe_lower(variant) == 대분류 for variant in category_variants):
@@ -360,7 +431,7 @@ class CommonSearchModule:
                     category_filtered.append(product)
             
             filtered = category_filtered
-            print(f"카테고리 필터링 적용: {query.categories} -> {len(filtered)}개")
+            print(f"📁 카테고리 필터링: {query.categories} → {len(filtered)}개")
         
         # 브랜드 필터링 (LLM 필터링 실패 시 brand_matcher 사용)
         if query.brands:
@@ -727,3 +798,5 @@ class CommonSearchModule:
                 return False
         
         return True
+    
+

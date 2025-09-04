@@ -33,8 +33,7 @@ class ConversationAgent:
     
     def process_conversation_request(self, user_input: str, extracted_info: Dict,
                                    available_products: List[Dict],
-                                   context_summaries: Optional[List[str]] = None,
-                                   db=None, user_id=None) -> ConversationAgentResult:
+                                   context_summaries: Optional[List[str]] = None) -> ConversationAgentResult:
         """
         대화형 추천 요청 처리
         
@@ -43,8 +42,6 @@ class ConversationAgent:
             extracted_info: 추출된 정보 (상황, 스타일 등)
             available_products: 추천할 상품 목록
             context_summaries: 이전 대화 요약들
-            db: 데이터베이스 세션
-            user_id: 사용자 ID
         
         Returns:
             ConversationAgentResult: 추천 결과
@@ -55,8 +52,12 @@ class ConversationAgent:
         print(f"컨텍스트 요약: {context_summaries}")
         
         try:
+            # extracted_info가 비어있으면 내부 분석 수행
+            if not extracted_info:
+                extracted_info = self._analyze_conversation_request(user_input)
+            
             # 1. 날씨 관련 요청인지 확인
-            weather_context = self._check_weather_context(user_input, extracted_info)
+            weather_context = self._check_weather_context(user_input)
             
             # 2. LLM으로 상황별 추천 스펙 생성
             recommendation_spec = self._generate_recommendation_spec(user_input, extracted_info, context_summaries, weather_context)
@@ -81,9 +82,7 @@ class ConversationAgent:
                 user_input, recommendation_spec, balanced_products, context_summaries
             )
             
-            # 6. 추천 결과 저장 (옵션)
-            if db and user_id and balanced_products:
-                self._save_recommendations_to_db(db, user_id, user_input, balanced_products)
+
             
             return ConversationAgentResult(
                 success=len(balanced_products) > 0,
@@ -106,7 +105,7 @@ class ConversationAgent:
                 metadata={"error": str(e), "agent_type": "conversation"}
             )
     
-    def _check_weather_context(self, user_input: str, extracted_info: Dict) -> Optional[str]:
+    def _check_weather_context(self, user_input: str) -> Optional[str]:
         """날씨 관련 요청인지 확인하고 날씨 정보 제공"""
         weather_keywords = ["날씨", "weather", "기온", "온도", "현재", "오늘"]
         
@@ -193,65 +192,8 @@ class ConversationAgent:
             return None
     
     def _convert_spec_to_queries(self, recommendation_spec: Dict) -> List[SearchQuery]:
-        """추천 스펙을 검색 쿼리들로 변환 (DB 카테고리에 맞게 매핑)"""
+        """추천 스펙을 검색 쿼리들로 변환"""
         queries = []
-        
-        # 아이템 타입을 실제 DB 카테고리/키워드로 매핑 (확장됨)
-        type_mapping = {
-            # 상의 관련 - 니트/스웨터류
-            "라운드넥 니트": ["니트", "스웨터", "knit", "sweater", "니트스웨터"],
-            "니트": ["니트", "스웨터", "knit", "sweater", "니트스웨터"],
-            "스웨터": ["니트", "스웨터", "knit", "sweater", "니트스웨터"],
-            "카디건": ["카디건", "니트", "cardigan"],
-            
-            # 상의 관련 - 아우터류
-            "가벼운 트렌치코트": ["코트", "재킷", "아우터", "coat", "jacket", "트렌치"],
-            "트렌치코트": ["코트", "재킷", "아우터", "coat", "jacket", "트렌치"],
-            "재킷": ["재킷", "코트", "아우터", "jacket", "coat"],
-            "코트": ["코트", "재킷", "아우터", "coat", "jacket"],
-            "블레이저": ["블레이저", "재킷", "정장", "blazer"],
-            
-            # 상의 관련 - 셔츠류
-            "셔츠": ["셔츠", "블라우스", "shirt", "blouse", "셔츠블라우스"],
-            "블라우스": ["블라우스", "셔츠", "blouse", "shirt", "셔츠블라우스"],
-            "와이셔츠": ["셔츠", "와이셔츠", "정장셔츠", "shirt"],
-            
-            # 상의 관련 - 티셔츠류
-            "티셔츠": ["티셔츠", "반팔", "tshirt", "t-shirt", "반소매"],
-            "반팔 티셔츠": ["티셔츠", "반팔", "tshirt", "t-shirt", "반소매"],
-            "긴팔 티셔츠": ["티셔츠", "긴팔", "tshirt", "긴소매"],
-            
-            # 상의 관련 - 후드/맨투맨
-            "후드티": ["후드", "후드티", "hood", "hoodie"],
-            "맨투맨": ["맨투맨", "스웨트셔츠", "sweat"],
-            "슬리브리스": ["슬리브리스", "민소매", "나시", "tank", "sleeveless"],
-            
-            # 하의 관련 - 청바지/데님
-            "슬림핏 청바지": ["청바지", "데님", "jeans", "denim", "데님팬츠"],
-            "청바지": ["청바지", "데님", "jeans", "denim", "데님팬츠"],
-            "데님 팬츠": ["청바지", "데님", "jeans", "denim", "데님팬츠"],
-            "스키니진": ["청바지", "데님", "스키니", "skinny", "jeans"],
-            
-            # 하의 관련 - 팬츠류
-            "면 치노 팬츠": ["팬츠", "바지", "치노", "chino", "pants", "코튼팬츠"],
-            "치노팬츠": ["팬츠", "바지", "치노", "chino", "pants", "코튼팬츠"],
-            "코튼 팬츠": ["팬츠", "바지", "코튼", "cotton", "pants", "코튼팬츠"],
-            "와이드 팬츠": ["팬츠", "바지", "와이드", "wide", "pants"],
-            "슬랙스": ["슬랙스", "정장바지", "slacks", "dress pants", "슈트팬츠슬랙스"],
-            "조거팬츠": ["조거", "트레이닝", "jogger", "training", "트레이닝조거팬츠"],
-            "트레이닝 팬츠": ["조거", "트레이닝", "jogger", "training", "트레이닝조거팬츠"],
-            
-            # 하의 관련 - 짧은 하의
-            "반바지": ["반바지", "숏팬츠", "shorts", "short", "숏팬츠"],
-            "숏팬츠": ["반바지", "숏팬츠", "shorts", "short", "숏팬츠"],
-            
-            # 여성 전용
-            "스커트": ["스커트", "skirt"],
-            "미니스커트": ["스커트", "미니", "skirt", "mini"],
-            "원피스": ["원피스", "dress"],
-            "미니원피스": ["원피스", "미니", "dress", "mini"],
-            "레깅스": ["레깅스", "leggings"]
-        }
         
         for rec in recommendation_spec.get("recommendations", []):
             category = rec.get("category", "")
@@ -260,19 +202,9 @@ class ConversationAgent:
             
             # 필수 정보가 있는 경우만 쿼리 생성
             if category and color and item_type:
-                # 아이템 타입을 DB 친화적인 키워드로 변환
-                mapped_keywords = type_mapping.get(item_type, [item_type])
-                
-                # 기본 카테고리 키워드 추가
-                if category == "상의":
-                    mapped_keywords.extend(["상의", "탑", "top"])
-                elif category == "하의":
-                    mapped_keywords.extend(["하의", "바텀", "bottom", "바지", "팬츠"])
-                
                 # 브랜드 정보 추출
                 brands = []
                 if rec.get("brands"):
-                    # brands가 문자열인 경우 리스트로 변환
                     if isinstance(rec["brands"], str):
                         brands = [rec["brands"]]
                     elif isinstance(rec["brands"], list):
@@ -280,10 +212,10 @@ class ConversationAgent:
                 
                 query = SearchQuery(
                     colors=[color],
-                    categories=mapped_keywords,  # 매핑된 키워드들을 카테고리로 사용
+                    categories=[item_type],  # 원본 타입 그대로 사용
                     situations=[],
                     styles=[],
-                    brands=brands  # 브랜드 정보 추가
+                    brands=brands
                 )
                 queries.append(query)
         
@@ -425,9 +357,43 @@ class ConversationAgent:
             metadata={"fallback": True, "agent_type": "conversation"}
         )
     
-    def _save_recommendations_to_db(self, db, user_id: int, query: str, products: List[Dict]):
-        """추천 결과를 데이터베이스에 저장 - 챗봇 라우터에서만 저장하도록 비활성화"""
-        # 챗봇 라우터에서만 추천을 저장하도록 비활성화
-        # 중복 저장 방지를 위해 ConversationAgent에서는 저장하지 않음
-        print("ℹ️ ConversationAgent: 추천 저장은 챗봇 라우터에서 처리됩니다.")
-        return
+
+    
+    def _analyze_conversation_request(self, user_input: str) -> Dict:
+        """사용자 입력을 분석하여 대화형 추천 정보 추출 (내부 LLM 분석)"""
+        system_prompt = """당신은 대화형 의류 추천 시스템의 분석기입니다.
+사용자의 입력을 분석하여 다음 정보를 추출해주세요.
+
+**응답 형식 (JSON):**
+{
+    "situations": ["추출된 상황들"],
+    "styles": ["추출된 스타일들"],
+    "colors": ["추출된 색상들"],
+    "categories": ["추출된 카테고리들"]
+}
+
+**중요 규칙:**
+1. 상황: 데이트, 출근, 하객, 야외활동, 운동, 여행, 파티, 면접, 캐주얼 등
+2. 스타일: 캐주얼, 정장, 스포티, 빈티지, 미니멀, 우아한, 섹시한 등
+3. 색상: 빨간색, 파란색, 검은색, 흰색, 베이지, 네이비, 카키, 민트, 와인, 올리브 등
+4. 카테고리: 후드티, 셔츠, 청바지, 원피스, 스커트 등"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"사용자 입력: {user_input}"}
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                max_tokens=300
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+            
+        except Exception as e:
+            print(f"대화형 추천 요청 분석 오류: {e}")
+            # 오류 시 기본값 반환
+            return {"situations": [], "styles": [], "colors": [], "categories": []}

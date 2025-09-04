@@ -23,7 +23,7 @@ from crud.chat_crud import (
 )
 from models.recommendation import Recommendation
 from services.llm_service import LLMService, LLMResponse
-from services.clothing_recommender import recommend_clothing_by_weather
+# clothing_recommender는 삭제되었으므로 WeatherAgent의 메서드 사용
 from utils.safe_utils import safe_lower, safe_str
 from image_recommender import recommend_by_image
 
@@ -137,18 +137,74 @@ async def chat_recommend(
                     
                     if weather_description and temperature is not None:
                         # 의류 추천 생성
-                        recommended_clothing = recommend_clothing_by_weather(weather_description, user_gender)
+                        # WeatherAgent를 통해 의류 추천 (개선된 메서드 사용)
+                        from services.agents.weather_agent import WeatherAgent
+                        weather_agent = WeatherAgent()
+                        # 날씨 데이터가 없는 경우 기본 추천
+                        recommended_clothing = await weather_agent.recommend_clothing_by_weather(
+                            weather_description, 
+                            user_gender,
+                            weather_data=None,  # 챗봇에서는 날씨 데이터가 제한적
+                            location="현재 위치"
+                        )
                         
-                        # 추천 메시지 추가
+                        # 추천 메시지 추가 (새로운 JSON 구조 지원)
                         if recommended_clothing and any(recommended_clothing.values()):
-                            clothing_parts = []
-                            for category, items in recommended_clothing.items():
-                                if items:
-                                    clothing_parts.append(f"{category}: {', '.join(items)}")
+                            # 새로운 JSON 구조 확인
+                            recommendations = recommended_clothing.get("recommendations", [])
                             
-                            if clothing_parts:
-                                clothing_message = f"\n\n🎯 **오늘 날씨 추천**\n{', '.join(clothing_parts)}을(를) 추천해 드려요!"
+                            if recommendations:
+                                # 새로운 구조: 의미적으로 연결된 조합
+                                clothing_message = f"\n\n🎯 **오늘 날씨 추천**\n"
+                                for i, rec in enumerate(recommendations, 1):
+                                    item = rec.get("item", "")
+                                    style = rec.get("style", "")
+                                    color = rec.get("color", "")
+                                    reason = rec.get("reason", "")
+                                    
+                                    clothing_message += f"**{i}. {item}**\n"
+                                    if style:
+                                        clothing_message += f"   🎨 스타일: {style}\n"
+                                    if color:
+                                        clothing_message += f"   🌈 색상: {color}\n"
+                                    if reason:
+                                        clothing_message += f"   💡 이유: {reason}\n"
+                                    clothing_message += "\n"
+                                
                                 message += clothing_message
+                            else:
+                                # 기존 구조 지원 (fallback)
+                                clothing_parts = []
+                                
+                                # 카테고리 표시
+                                categories = recommended_clothing.get("categories", [])
+                                if categories:
+                                    clothing_parts.append(f"카테고리: {', '.join(categories)}")
+                                
+                                # 구체적인 아이템 표시
+                                specific_items = recommended_clothing.get("specific_items", [])
+                                if specific_items:
+                                    clothing_parts.append(f"추천 아이템: {', '.join(specific_items)}")
+                                
+                                # 색상 표시
+                                colors = recommended_clothing.get("colors", [])
+                                if colors:
+                                    clothing_parts.append(f"추천 색상: {', '.join(colors)}")
+                                
+                                # 스타일 표시
+                                styles = recommended_clothing.get("styles", [])
+                                if styles:
+                                    clothing_parts.append(f"추천 스타일: {', '.join(styles)}")
+                                
+                                # 추천이유 추출
+                                recommendation_reasons = recommended_clothing.get("추천이유", [])
+                                reason_text = ""
+                                if recommendation_reasons:
+                                    reason_text = f"\n💡 **추천 이유**: {' '.join(recommendation_reasons)}"
+                                
+                                if clothing_parts:
+                                    clothing_message = f"\n\n🎯 **오늘 날씨 추천**{reason_text}\n{', '.join(clothing_parts)}을(를) 추천해 드려요!"
+                                    message += clothing_message
                 
                 except Exception:
                     # 오류가 있어도 기본 날씨 정보는 제공
@@ -241,8 +297,6 @@ async def chat_recommend(
             "recommendation_id": recommendation_ids  # 추천 ID 추가
         }
         
-        print(f"챗봇 응답 데이터: {response_data}")
-        print(f"recommendation_id 값: {response_data.get('recommendation_id')}")
         return JSONResponse(content=response_data)
         
     except Exception:

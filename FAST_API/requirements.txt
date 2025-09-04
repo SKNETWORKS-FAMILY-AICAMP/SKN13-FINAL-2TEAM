@@ -8,9 +8,11 @@ pydantic_core==2.33.2
 # Database & ORM
 SQLAlchemy==1.4.54
 psycopg2==2.9.10
+qdrant-client==1.15.1
 
 # AI & OpenAI
 openai==1.97.1
+ultralytics==8.3.192
 
 # AWS & Cloud
 boto3==1.40.2
@@ -23,6 +25,7 @@ numpy==2.3.2
 # HTTP & Networking
 httpx==0.28.1
 httpcore==1.0.9
+requests==2.32.5
 
 # Authentication & Security
 Authlib==1.6.1
@@ -34,12 +37,16 @@ PyJWT==2.10.1
 python-dotenv==1.1.1
 python-multipart==0.0.20
 Jinja2==3.1.6
+pillow==11.3.0
 
 # Text Processing & Fuzzy Matching
 rapidfuzz==3.5.2
 
 # Monitoring & Metrics
 prometheus-client==0.19.0
+
+# Image & visions
+fashion-clip==0.2.2
 
 # Core dependencies (automatically installed with above packages)
 # - typing-extensions

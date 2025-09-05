@@ -8,7 +8,6 @@ import os
 
 # 프로젝트 루트 경로를 시스템 경로에 추가
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.staticfiles import StaticFiles
@@ -84,6 +83,16 @@ app.include_router(cache_admin_router, prefix="/admin/api", tags=["Cache Admin A
 app.include_router(google_oauth_router, prefix="/auth", tags=["oauth-google"])
 app.include_router(kakao_oauth_router, prefix="/auth", tags=["oauth-kakao"])
 
+# 헬스 체크 라우트
+@app.get("/health", tags=["Health Check"])
+async def health_check():
+    return {"status": "ok"}
+
+# Prometheus metrics
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 # 404 에러 핸들러
 @app.exception_handler(StarletteHTTPException)
 async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
@@ -117,7 +126,7 @@ async def startup_event():
             {"id": "q-survey-purpose", "category": "recommendation", "question": "스타일 설문은 왜 해야 하나요?", "answer": "스타일 설문은 고객님의 취향과 체형을 파악하여 더욱 정확하고 개인화된 의류를 추천해 드리기 위함입니다."},
             {"id": "q-chatbot-usage", "category": "general", "question": "챗봇은 어떻게 이용하나요?", "answer": "화면 우측 하단의 챗봇 아이콘을 클릭하여 챗봇과 대화할 수 있습니다. 코디 추천이나 궁금한 점을 물어보세요."},
             {"id": "q-jjim-location", "category": "account", "question": "찜 목록은 어디서 확인하나요?", "answer": "로그인 후 마이페이지에서 '찜 목록' 메뉴를 통해 확인하실 수 있습니다."}
-        ]
+            ]
         for faq_item in initial_faq_data:
             create_faq(db_session, question=faq_item["question"], answer=faq_item["answer"])
         db_session.close()
@@ -130,7 +139,7 @@ async def startup_event():
     from data_store import clothing_data, processed_clothing_data
     from routers.router_products import process_product_data
 
-    s3_file_key = os.getenv("S3_FILE_KEY", "product_info.csv")
+    s3_file_key = os.getenv("S3_PRODUCTS_FILE_KEY", "product_info.csv")
 
     print("🚀 애플리케이션 시작: S3 데이터 로드를 시작합니다...")
     loaded_data = get_product_data_from_s3(s3_file_key)

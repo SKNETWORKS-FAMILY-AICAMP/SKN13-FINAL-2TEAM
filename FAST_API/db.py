@@ -1,5 +1,6 @@
 import os
 from typing import Generator
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -12,7 +13,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 def _build_database_url() -> str:
     """환경변수에서 PostgreSQL 연결 URL을 구성합니다."""
     db_user = os.getenv("DB_USER", "postgres")
-    db_password = os.getenv("DB_PASSWORD", "1234")
+    db_password = quote_plus(os.getenv("DB_PASSWORD", "1234")) # 비밀번호 URL 인코딩
     db_host = os.getenv("DB_HOST", "localhost")
     db_port = os.getenv("DB_PORT", "5432")
     db_name = os.getenv("DB_NAME", "musinsa")
@@ -22,7 +23,7 @@ def _build_database_url() -> str:
 DATABASE_URL: str = os.getenv("DATABASE_URL", _build_database_url())
 
 # SQLAlchemy 기본 객체들
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL, connect_args={"sslmode": "require"}, pool_pre_ping=True) # SSL 강제
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 Base = declarative_base()
 
@@ -241,5 +242,3 @@ def _migrate_chat_tables() -> None:
                     print("✅ 제약 조건 재설정 완료 (새 트랜잭션)")
             except Exception as e2:
                 print(f"제약 조건 재설정 실패: {e2}")
-
-

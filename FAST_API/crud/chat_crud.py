@@ -138,7 +138,7 @@ def cleanup_old_sessions_if_needed(db: Session, user_id: int, max_sessions: int 
     return 0
 
 
-def create_chat_message(db: Session, session_id: str, message_type: str, text: str, summary: Optional[str] = None, recommendation_id: Optional[List[str]] = None, products_data: Optional[List[Dict]] = None) -> ChatMessage:
+def create_chat_message(db: Session, session_id: str, message_type: str, text: str, summary: Optional[str] = None, recommendation_id: Optional[List[str]] = None, products_data: Optional[List[Dict]] = None, image_filename: Optional[str] = None) -> ChatMessage:
     """챗봇 메시지를 생성합니다."""
     try:
         session_uuid = uuid.UUID(session_id)
@@ -155,7 +155,8 @@ def create_chat_message(db: Session, session_id: str, message_type: str, text: s
             text=text,
             summary=summary,
             recommendation_id=recommendation_id_json,
-            products_data=products_data
+            products_data=products_data,
+            image_filename=image_filename
         )
         db.add(message)
         db.commit()

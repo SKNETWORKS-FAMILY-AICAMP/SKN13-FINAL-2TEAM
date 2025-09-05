@@ -5,7 +5,6 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - /etc/letsencrypt:/etc/letsencrypt:ro
@@ -17,22 +16,19 @@ services:
 
   fastapi-app:
     build: .
-    deploy:
-      replicas: 2  # 1개 -> 2개로 확장
-    expose:
-      - "8000"
+    # deploy:
+    #   replicas: 2  # 1개 -> 2개로 확장
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    expose: ["8000"]
     environment:
       # FASTAPI용 SSL 인증서는 유지
-      - FASTAPI_SSL_CERT_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/fullchain.pem
-      - FASTAPI_SSL_KEY_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/privkey.pem
+      # - FASTAPI_SSL_CERT_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/fullchain.pem
+      # - FASTAPI_SSL_KEY_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/privkey.pem
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
-      - CURL_CA_BUNDLE=""
-      - REQUESTS_CA_BUNDLE=""
-      - PYTHONHTTPSVERIFY=0
       # OpenAI용으로는 SSL 인증서 비활성화
-      - OPENAI_SSL_CERT_FILE=""
-      - OPENAI_SSL_KEY_FILE=""
+      # - OPENAI_SSL_CERT_FILE=""
+      # - OPENAI_SSL_KEY_FILE=""
       # 환경 변수 기본값 설정 (개발용)
       - GOOGLEMAP_API_KEY=${GOOGLEMAP_API_KEY:-}
       - WEATHER_API_KEY=${WEATHER_API_KEY:-}
@@ -41,10 +37,10 @@ services:
       - .env
     volumes:
       - ./cache:/app/cache
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8000/health'); sys.exit(0)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -78,6 +74,16 @@ services:
     networks:
       - app-network
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - /opt/qdrant_storage:/qdrant/storage
+    networks:
+      - app-network
+
   # Optional: Add PostgreSQL service for local development
   # postgres:
   #   image: postgres:15
@@ -97,5 +103,6 @@ networks:
     driver: bridge
 volumes:
   grafana-storage:
+  qdrant_storage:
 # volumes:
 #   postgres_data:

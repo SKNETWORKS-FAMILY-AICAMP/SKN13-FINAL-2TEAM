@@ -176,16 +176,7 @@ def _normalize_pattern_value(p: str) -> str:
     p = PATTERN_ALIASES.get(p, p)
     return p if p in ALLOWED_PATTERN else "unknown"
 
-def run_async(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-    if loop and loop.is_running():
-        import nest_asyncio; nest_asyncio.apply()
-        return loop.run_until_complete(coro)
-    else:
-        return asyncio.run(coro)
+
 
 
 # ================== 도우미 함수 ==================
@@ -478,7 +469,7 @@ def process_batch(items: List[Tup[str, str, str, str]], gpt_concurrency: int = 4
 # =========================================================
 # 공개 단일 API: process_single_item (FastAPI용)
 # =========================================================
-def process_single_item(image_bytes: bytes, product_id: str, category_kr: str, type_kr: str) -> Dict | None:
+async def process_single_item(image_bytes: bytes, product_id: str, category_kr: str, type_kr: str) -> Dict | None:
     """
     단일 이미지 바이트를 입력받아 임베딩을 생성.
     """
@@ -500,7 +491,7 @@ def process_single_item(image_bytes: bytes, product_id: str, category_kr: str, t
         return normalize_caption_pants16(caption)
 
     try:
-        cap16 = run_async(_gpt_tag_single_bytes(image_bytes))
+        cap16 = await _gpt_tag_single_bytes(image_bytes)
     except Exception as e:
         cap16 = ",".join([f'{k}=unknown' for k in TOK_KEYS])
 

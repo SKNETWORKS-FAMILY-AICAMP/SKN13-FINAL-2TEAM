@@ -108,16 +108,7 @@ TOK_KEYS = [
 ]
 
 # ----------------------- 유틸 ----------------------
-def run_async(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-    if loop and loop.is_running():
-        import nest_asyncio; nest_asyncio.apply()
-        return loop.run_until_complete(coro)
-    else:
-        return asyncio.run(coro)
+
 
 def image_to_b64(image_path: str, max_side: int = MAX_SIDE, jpeg_quality: int = JPEG_QUALITY):
     im = Image.open(image_path).convert("RGB")
@@ -366,7 +357,7 @@ def process_batch(items: List[Tup[str,str,str,str]], gpt_concurrency:int=4) -> L
 # =========================================================
 # 공개 단일 API: process_single_item (FastAPI용)
 # =========================================================
-def process_single_item(image_bytes: bytes, product_id: str, category_kr: str, type_kr: str) -> Dict | None:
+async def process_single_item(image_bytes: bytes, product_id: str, category_kr: str, type_kr: str) -> Dict | None:
     """
     단일 이미지 바이트를 입력받아 임베딩을 생성.
     - image_bytes: 크롭된 이미지의 raw bytes
@@ -389,7 +380,7 @@ def process_single_item(image_bytes: bytes, product_id: str, category_kr: str, t
         return normalize_caption_top18(caption)
 
     try:
-        cap18 = run_async(_gpt_tag_single_bytes(image_bytes))
+        cap18 = await _gpt_tag_single_bytes(image_bytes)
     except Exception as e:
         # GPT 태깅 실패 시, unknown으로 채워서 진행
         cap18 = ",".join([f'{k}=unknown' for k in TOK_KEYS])

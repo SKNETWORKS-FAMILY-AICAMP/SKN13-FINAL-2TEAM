@@ -16,7 +16,7 @@ from services.agents.followup_agent import FollowUpAgent, FollowUpAgentResult
 
 # Legacy imports for compatibility
 # Legacy IntentAnalyzer 제거됨 - 현재 MainAnalyzer만 사용
-from services.clothing_recommender import recommend_clothing_by_weather
+# clothing_recommender는 삭제되었으므로 WeatherAgent의 메서드 사용
 # Legacy imports 완전 제거됨 - 모든 기능이 에이전트로 통합됨
 from crud.chat_crud import (get_recent_qa_summaries, get_qa_pair_for_summary, 
                            update_message_summary, get_chat_history_for_llm)
@@ -78,14 +78,11 @@ class MainAnalyzer:
         self.model = "gpt-4o-mini"
     
     def analyze_with_prompt(self, user_input: str, context: str = "", session_summary: str = "") -> Dict:
-        """프롬프트 기반으로 종합적인 분석 수행"""
+        """프롬프트 기반으로 intent 분류만 수행"""
         
-        system_prompt = """당신은 의류 추천 시스템의 메인 분석기입니다.
-사용자의 입력을 종합적으로 분석하여 다음을 수행해주세요:
-
-1. Intent 분류: search, conversation, weather, general
-2. 필터링 조건 추출
-3. 분석 요약 생성
+        system_prompt = """당신은 의류 추천 시스템의 intent 분류기입니다.
+사용자의 입력을 분석하여 intent만 분류해주세요.
+**날씨와 상황이 합쳐진 의도도 weather로 분류하세요.**
 
 컨텍스트 정보:
 - 이전 대화 내용: {context}
@@ -94,17 +91,7 @@ class MainAnalyzer:
 다음 JSON 형식으로 응답:
 {{
     "intent": "search|conversation|followup|weather|general",
-    "confidence": 0.0-1.0,
-    "filtering_conditions": {{
-        "colors": ["추출된 색상들"],
-        "categories": ["추출된 카테고리들"],
-        "situations": ["추출된 상황들"],
-        "styles": ["추출된 스타일들"],
-        "brands": ["추출된 브랜드들"],
-        "locations": ["지역명들"]
-        "price_range": ["추출된 가격 범위들"]
-    }},
-    "analysis_summary": "분석 결과 요약"
+    "analysis_summary": "intent 분류 근거"
 }}
 
 Intent 분류 기준:
@@ -114,16 +101,10 @@ Intent 분류 기준:
 - weather: 날씨 관련 ("오늘 날씨", "서울 날씨")
 - general: 일반 대화 ("안녕", "고마워")
 
-필터링 조건 추출 기준:
-- colors: 색상 관련 ("빨간색", "파란색", "검은색", "흰색", "베이지", "네이비", "카키", "민트", "와인", "올리브" 등)
-- categories: 소분류 ("긴소매", "반소매", "후드티", "니트/스웨터", "셔츠/블라우스", "피케/카라", "슬리브리스", "데님팬츠", "코튼팬츠", "슈트팬츠/슬랙스", "카고팬츠", "트레이닝/조거팬츠", "숏팬츠", "롱스커트", "미니스커트", "미디스커트", "맥시원피스", "미니원피스", "미디원피스")
-- price_range: 가격 범위 (예: "5만원에서 10만원사이" → [50000, 100000], "3만원 이하" → [0, 30000], "10만원 이상" → [100000, 999999])
-- brands: 브랜드명 ("나이키", "아디다스", "유니클로", "ZARA", "H&M" 등)
-- situations: 상황/장소 ("데이트", "면접", "파티", "운동", "여행", "출근", "캐주얼" 등)
-- styles: 스타일 ("캐주얼", "정장", "스포티", "빈티지", "미니멀" 등)
-
 **중요**: 
 1. 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요.
+2. 필터링 조건 추출은 하지 마세요. intent 분류만 수행하세요.
+3. 날씨와 상황이 합쳐진 의도도 weather로 분류하세요.
 """
         messages = [
             {"role": "system", "content": system_prompt.format(
@@ -149,7 +130,6 @@ Intent 분류 기준:
             # 오류 시 기본값 반환
             return {
                 "intent": "general",
-                "confidence": 0.0,
                 "filtering_conditions": {},
                 "analysis_summary": "분석 중 오류 발생"
             }
@@ -231,7 +211,7 @@ class LLMService:
         return state
     
     async def _intent_analysis_node(self, state: LangGraphState, db) -> LangGraphState:
-        """의도 분석 노드 - 항상 메모리 기반 분석 사용"""
+        """의도 분석 노드 - intent 분류만 수행"""
         context_str = " | ".join(state.context_summaries) if state.context_summaries else "이전 대화 없음"
         
         analysis_result = self.main_analyzer.analyze_with_prompt(
@@ -239,7 +219,8 @@ class LLMService:
         )
         
         state.intent = analysis_result.get("intent", "general")
-        state.extracted_info = analysis_result.get("filtering_conditions", {})
+        # extracted_info는 빈 딕셔너리로 초기화 (필터링 조건은 각 Agent에서 처리)
+        state.extracted_info = {}
         
         return state
     
@@ -262,7 +243,6 @@ class LLMService:
                 # Search Agent 실행
                 result = self.search_agent.process_search_request(
                     state.user_input, 
-                    state.extracted_info, 
                     available_products,
                     context_info={"previous_summaries": state.context_summaries} if state.context_summaries else None,
                     db=db,
@@ -287,20 +267,20 @@ class LLMService:
                 state.products = result.products
                 
             elif state.intent == "weather":
-                # Weather Agent 실행
+                # Weather Agent 실행 (사용자 성별 정보 필요)
+                # TODO: 실제 사용자 정보에서 성별 가져오기
+                user_gender = "남성"  # 임시로 "남성" 사용
+                
                 result = await self.weather_agent.process_weather_request(
                     state.user_input,
                     state.extracted_info,
                     latitude=state.latitude,
-                    longitude=state.longitude
+                    longitude=state.longitude,
+                    user_gender=user_gender
                 )
                 state.agent_result = result
                 state.final_message = result.message
                 state.products = result.products
-                
-                # 날씨 응답에 의류 추천 추가
-                if result.success:
-                    state = await self._enhance_weather_with_clothing(state, db)
                 
             else:  # general
                 # General Agent 실행
@@ -364,117 +344,5 @@ class LLMService:
         
         return state
     
-    async def _enhance_weather_with_clothing(self, state: LangGraphState, db) -> LangGraphState:
-        """날씨 응답에 실제 상품 추천 추가 (CommonSearch 사용)"""
-        try:
-            # 날씨 정보에서 기온 추출
-            weather_info = self.weather_agent.extract_weather_info_from_message(state.final_message)
-            
-            if weather_info and weather_info.get("temperature") is not None:
-                # 사용자 성별 정보 가져오기 (임시로 "남성" 사용)
-                user_gender = "남성"  # TODO: 실제 사용자 정보에서 가져오기
-                
-                # 의류 카테고리 추천 생성
-                recommended_clothing = recommend_clothing_by_weather(
-                    weather_info["weather_description"], 
-                    user_gender
-                )
-                
-                # CommonSearch를 사용해 실제 상품 검색
-                if recommended_clothing and any(recommended_clothing.values()):
-                    weather_products = await self._search_weather_products(
-                        recommended_clothing, state, db
-                    )
-                    
-                    if weather_products:
-                        # 기존 상품 목록에 추가
-                        state.products.extend(weather_products[:3])  # 최대 3개 추가
-                        
-                        # 날씨 기반 추천도 recommendation 테이블에 저장
-                        self._save_weather_recommendations(db, state.user_id, weather_info["weather_description"], weather_products[:3])
-                        
-                        # 추천 메시지에 실제 상품 정보 추가
-                        clothing_message = f"\n\n🎯 **오늘 날씨 맞춤 상품**\n"
-                        for i, product in enumerate(weather_products[:3], 1):
-                            product_name = product.get('상품명', '상품명 없음')
-                            brand = product.get('한글브랜드명', '브랜드 없음')
-                            price = product.get('원가', 0)
-                            
-                            clothing_message += f"**{i}. {product_name}**\n"
-                            clothing_message += f"   📍 브랜드: {brand}\n"
-                            if price:
-                                clothing_message += f"   💰 가격: {price:,}원\n"
-                            clothing_message += "\n"
-                        
-                        state.final_message += clothing_message
-                    else:
-                        # 실제 상품이 없으면 기존 카테고리 추천만 표시
-                        clothing_parts = []
-                        for category, items in recommended_clothing.items():
-                            if items:
-                                clothing_parts.append(f"{category}: {', '.join(items)}")
-                        
-                        if clothing_parts:
-                            clothing_message = f"\n\n🎯 **오늘 날씨 추천**\n{', '.join(clothing_parts)}을(를) 추천해 드려요!"
-                            state.final_message += clothing_message
-                        
-        except Exception as e:
-            print(f"날씨 의류 추천 오류: {e}")
-        
-        return state
-    
-    async def _search_weather_products(self, recommended_clothing: Dict, state: LangGraphState, db) -> List[Dict]:
-        """날씨 기반 추천 의류의 실제 상품 검색"""
-        try:
-            from services.common_search import CommonSearchModule, SearchQuery
-            from data_store import clothing_data
-            
-            search_module = CommonSearchModule()
-            all_products = []
-            
-            # 각 카테고리별로 검색
-            for category, items in recommended_clothing.items():
-                if not items:
-                    continue
-                    
-                # 검색 쿼리 구성
-                search_query = SearchQuery(
-                    categories=[category] + items,  # 카테고리와 아이템들을 모두 카테고리로 사용
-                    colors=[],  # 색상 제한 없음
-                    situations=["날씨"],
-                    styles=[]
-                )
-                
-                # 상품 검색
-                if clothing_data:
-                    search_result = search_module.search_products(
-                        query=search_query,
-                        available_products=clothing_data
-                    )
-                    
-                    if search_result.products:
-                        all_products.extend(search_result.products[:2])  # 카테고리당 최대 2개
-            
-            # 중복 제거
-            seen_ids = set()
-            unique_products = []
-            for product in all_products:
-                product_id = product.get("상품코드", "")
-                if product_id and product_id not in seen_ids:
-                    seen_ids.add(product_id)
-                    unique_products.append(product)
-            
-            print(f"날씨 기반 상품 검색 결과: {len(unique_products)}개")
-            return unique_products[:4]  # 최대 4개 반환
-            
-        except Exception as e:
-            print(f"날씨 상품 검색 오류: {e}")
-            return []
-    
-    def _save_weather_recommendations(self, db, user_id: int, weather_desc: str, products: List[Dict]):
-        """날씨 기반 추천을 recommendation 테이블에 저장 - 챗봇 라우터에서만 저장하도록 비활성화"""
-        # 챗봇 라우터에서만 추천을 저장하도록 비활성화
-        # 중복 저장 방지를 위해 WeatherAgent에서는 저장하지 않음
-        print("ℹ️ WeatherAgent: 추천 저장은 챗봇 라우터에서 처리됩니다.")
-        return
+    # 날씨 관련 기능들은 WeatherAgent로 이동됨
         

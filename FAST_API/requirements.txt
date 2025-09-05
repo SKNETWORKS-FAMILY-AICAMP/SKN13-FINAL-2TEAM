@@ -5,7 +5,7 @@ torch==2.8.0+cpu
 torchvision==0.23.0+cpu
 
 # YOLO/비전
-ultralytics>=8.3.155   # numpy 2.x와 호환되는 버전권장
+ultralytics>=8.3.155
 opencv-python-headless==4.10.* 
 fashion-clip==0.2.2
 
@@ -23,6 +23,7 @@ qdrant-client==1.8.0
 
 # OpenAI
 openai==1.97.1
+ultralytics==8.3.192
 
 # AWS
 boto3==1.40.2
@@ -55,3 +56,6 @@ rapidfuzz==3.5.2
 
 # Monitoring
 prometheus-client==0.19.0
+
+# Image & visions
+fashion-clip==0.2.2

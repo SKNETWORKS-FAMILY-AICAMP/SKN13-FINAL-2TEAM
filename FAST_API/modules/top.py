@@ -320,6 +320,7 @@ def process_batch(items: List[Tup[str,str,str,str]], gpt_concurrency:int=4) -> L
         try:
             major_en, type_en = map_categories_to_en(category_kr, type_kr)
             combined_text = tokens_to_combined_text(cap18, major_en, type_en)
+            print(f"Combined Text: {combined_text}") # ADDED LOG
             im = Image.open(image_path).convert("RGB")
         except Exception:
             # 이미지 로딩 실패 시 이 항목 스킵

@@ -414,6 +414,7 @@ async def process_single_item(image_bytes: bytes, product_id: str, category_kr: 
     # 2) combined_text 생성 및 이미지 로드
     major_en, type_en = map_categories_to_en(category_kr, type_kr)
     combined_text = tokens_to_combined_text(cap17, major_en, type_en)
+    print(f"Combined Text: {combined_text}") # ADDED LOG
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     except Exception:

@@ -35,16 +35,24 @@ yolo_model = None
 qdrant_client = None
 
 # === 카테고리 매핑 ===
-EN_TO_KO_MAP = {'top': '상의', 'pants': '하의', 'dress': '원피스'}
+EN_TO_KO_MAP = {
+    'top': '상의',
+    'pants': '하의',
+    'dress': '원피스',
+    'skirt' : '스커트',
+    }
 
 # 각 모듈의 한글 소분류 리스트 (GPT 프롬프트용)
 TOP_SUB_CATS_KO = ['후드티', '셔츠블라우스', '긴소매', '반소매', '피케카라', '니트스웨터', '슬리브리스']
-PANTS_SUB_CATS_KO = ['데님팬츠', '트레이닝조거팬츠', '코튼팬츠', '슈트팬츠슬랙스', '슈트슬랙스', '숏팬츠', '레깅스', '카고팬츠']
+PANTS_SUB_CATS_KO = ['데님팬츠', '트레이닝조거팬츠', '코튼팬츠', '슈트팬츠슬랙스', '슈트슬랙스', '숏팬츠', '카고팬츠']
 DRESS_SUB_CATS_KO = ['미니원피스', '미디원피스', '맥시원피스']
+SKIRT_SUB_CATS_KO = ['미니스커트', '미디스커트', '롱스커트']
+
 MAJOR_TO_SUB_CAT_MAP_KO = {
     "top": TOP_SUB_CATS_KO,
     "pants": PANTS_SUB_CATS_KO,
     "dress": DRESS_SUB_CATS_KO,
+    'skirt' : SKIRT_SUB_CATS_KO,
 }
 
 def get_s3_client():
@@ -104,10 +112,10 @@ async def get_subcategory_from_gpt(image_bytes: bytes, major_category_en: str) -
             max_tokens=50,
             temperature=0.0,
         )
-        result = response.choices[0].message.content.strip()
+        result = response.choices[0].message.content.strip().lower()
         logger.info(f"GPT 소분류 추론 결과: {result}")
         # 간단한 유효성 검사
-        return result if result in sub_cat_list_ko else ""
+        return result if result in [s.lower() for s in sub_cat_list_ko] else ""
 
     except Exception as e:
         logger.error(f"GPT 소분류 추론 실패: {e}")
@@ -120,7 +128,7 @@ def crop_image_with_yolo(image_bytes: bytes, category: str) -> bytes | None:
     model = get_yolo_model()
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-    LABEL_MAP = {"top": "top", "pants": "pants", "dress": "dress"}
+    LABEL_MAP = {"top": "top", "pants": "pants", "dress": "dress",'skirt':'skirt'}
     target_label = LABEL_MAP.get(category)
     if not target_label:
         return None
@@ -152,7 +160,12 @@ def crop_image_with_yolo(image_bytes: bytes, category: str) -> bytes | None:
 async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: str, category_ko: str, type_ko: str) -> dict:
     """크롭된 이미지와 텍스트 정보를 바탕으로 임베딩을 생성합니다."""
     logger.info(f"임베딩 생성 시작 (카테고리: {category_en}, 타입: {type_ko})")
-    MODULE_MAP = {"top": "modules.top", "pants": "modules.pants", "dress": "modules.dress"}
+    MODULE_MAP = {
+        "top": "modules.top", 
+        "pants": "modules.pants", 
+        "dress": "modules.dress",
+        "skirt": "modules.skirt",
+        }
     
     module_name = MODULE_MAP.get(category_en)
     if not module_name: raise ValueError(f"지원하지 않는 카테고리입니다: {category_en}")
@@ -203,7 +216,7 @@ def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
             enriched_results.append(enriched_item)
         else:
             logger.warning(f"ID {product_id}에 해당하는 상품을 데이터 저장소에서 찾을 수 없습니다. Qdrant 페이로드를 사용합니다.")
-            enriched_results.append({"id": point.id, "score": point.score, **point.payload})
+            enriched_results.append({"id": point.id, "score": point.score, **(point.payload or {}) })
             
     return enriched_results
 

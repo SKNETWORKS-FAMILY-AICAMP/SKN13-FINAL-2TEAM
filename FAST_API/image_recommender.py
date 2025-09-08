@@ -86,7 +86,7 @@ async def get_subcategory_from_gpt(image_bytes: bytes, major_category_en: str) -
     Return only the single, most appropriate minor category name from the list, exactly as it appears in the list.
     Example response: "후드티"
     """
-    
+
     b64_image = base64.b64encode(image_bytes).decode("utf-8")
 
     try:
@@ -126,7 +126,7 @@ def crop_image_with_yolo(image_bytes: bytes, category: str) -> bytes | None:
         return None
 
     results = model(img, conf=0.5, iou=0.45, verbose=False)
-    
+
     best_detection = None
     for res in results:
         if res.boxes is None: continue
@@ -143,7 +143,7 @@ def crop_image_with_yolo(image_bytes: bytes, category: str) -> bytes | None:
     _, best_box = best_detection
     # PIL crop은 튜플을 기대하므로, map 객체를 튜플로 변환합니다.
     cropped_img = img.crop(tuple(map(int, best_box.tolist())))
-    
+
     buffer = io.BytesIO()
     cropped_img.save(buffer, format="JPEG", quality=95)
     return buffer.getvalue()
@@ -153,10 +153,10 @@ async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: st
     """크롭된 이미지와 텍스트 정보를 바탕으로 임베딩을 생성합니다."""
     logger.info(f"임베딩 생성 시작 (카테고리: {category_en}, 타입: {type_ko})")
     MODULE_MAP = {"top": "modules.top", "pants": "modules.pants", "dress": "modules.dress"}
-    
+
     module_name = MODULE_MAP.get(category_en)
     if not module_name: raise ValueError(f"지원하지 않는 카테고리입니다: {category_en}")
-        
+
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
     try:
@@ -166,7 +166,7 @@ async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: st
         embedding_result = await module.process_single_item(cropped_bytes, "user_upload", category_ko, type_ko)
         logger.info("임베딩 생성 완료.")
         return embedding_result
-        
+
     except Exception as e:
         logger.error(f"임베딩 생성 중 오류 발생: {e}")
         raise
@@ -178,7 +178,7 @@ def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
     """Qdrant에서 유사한 아이템을 검색하고, 중앙 조회 테이블에서 전체 상품 정보로 보강합니다."""
     logger.info("Qdrant 유사도 검색 시작...")
     client = get_qdrant_client()
-    
+
     query_vector = embeddings.get("multi") or embeddings.get("text")
     if not query_vector: raise ValueError("유효한 쿼리 벡터가 없습니다.")
 
@@ -188,23 +188,30 @@ def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
         limit=limit,
         with_payload=True
     )
-    
+
     logger.info(f"Qdrant 유사도 검색 완료. {len(search_result)}개 결과 수신.")
-    
+
     # 데이터 보강: Qdrant 결과의 ID를 사용하여 중앙 조회 테이블에서 전체 상품 정보 조회
     enriched_results = []
     for point in search_result:
         product_id = str(point.id)
         full_product_data = get_product_by_id(product_id)
-        
+
         if full_product_data:
             enriched_item = full_product_data.copy()
             enriched_item['score'] = point.score
             enriched_results.append(enriched_item)
         else:
             logger.warning(f"ID {product_id}에 해당하는 상품을 데이터 저장소에서 찾을 수 없습니다. Qdrant 페이로드를 사용합니다.")
-            enriched_results.append({"id": point.id, "score": point.score, **point.payload})
-            
+            # 데이터 구조 일관성을 위해 '상품코드' 키를 명시적으로 추가
+            fallback_item = {
+                "상품코드": str(point.id),
+                "id": str(point.id), # 호환성을 위해 id도 유지
+                "score": point.score,
+                **point.payload
+            }
+            enriched_results.append(fallback_item)
+
     return enriched_results
 
 # === 메인 파이프라인 함수 ===
@@ -228,7 +235,7 @@ async def recommend_by_image(image_bytes: bytes, category_en: str, sub_category_
 
         # 3. Qdrant에서 유사 아이템 검색
         recommendations = search_similar_items_in_qdrant(embeddings)
-        
+
         return {"recommendations": recommendations, "information": embeddings.get("information")}
 
     except Exception as e:

@@ -8,18 +8,20 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - fastapi-app
     restart: unless-stopped
     networks:
       - app-network
 
+
   fastapi-app:
     build: .
     # deploy:
     #   replicas: 2  # 1개 -> 2개로 확장
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     expose: ["8000"]
     environment:
       # FASTAPI용 SSL 인증서는 유지
@@ -37,6 +39,7 @@ services:
     env_file:
       - .env
     volumes:
+      - .:/app
       - ./cache:/app/cache
       - ./static:/app/static   # **추가**
       # - /etc/letsencrypt:/etc/letsencrypt:ro

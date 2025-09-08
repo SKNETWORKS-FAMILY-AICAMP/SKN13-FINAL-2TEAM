@@ -30,15 +30,15 @@
             {% for product in jjim_products %}
             <div class="jjim-product-card" data-product-id="{{ product['상품ID'] }}">
                 <input type="checkbox" class="jjim-product-checkbox" data-product-id="{{ product['상품ID'] }}">
-                
+
                 <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product['상품명'] }}">
                 <!-- Hidden details for JS -->
                 <div class="product-details"
-                     data-name="{{ product.get('제품이름', '이름 없음') }}"
-                     data-brand="{{ product.get('브랜드', '정보 없음') }}"
+                     data-name="{{ product.get('상품명', '이름 없음') }}"
+                     data-brand="{{ product.get('한글브랜드명', '정보 없음') }}"
                      data-price="{{ product.get('가격', '정보 없음') }}"
-                     data-rating="{{ product.get('평점', 0) or 0 | round(1) }}"
-                     data-material="{{ product.get('제품소재', '정보 없음') }}"
+                     data-rating="{{ (product.get('평점') or 0) | round(1) }}"
+                     data-material="{{ product.get('소재', '정보 없음') }}"
                      data-description="{{ product.get('description', '설명 없음') }}"
                      data-product-link="{{ product.get('상품링크', '#') }}"
                      data-site="{{ product.get('사이트명', '정보 없음') }}"> <!-- Added site -->
@@ -86,12 +86,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const emptySlot = slots.find(slot => !slot.querySelector('.jjim-product-card'));
             if (emptySlot) {
                 emptySlot.innerHTML = ''; // placeholder 제거
-                
+
                 // 카드를 복제하고 이름 정보 추가
                 const cardClone = card.cloneNode(true);
                 const details = cardClone.querySelector('.product-details');
                 const productName = details ? details.dataset.name : '상품명 없음';
-                
+
                 // img 요소가 제대로 복사되었는지 확인
                 const imgElement = cardClone.querySelector('img');
                 if (!imgElement || !imgElement.src) {
@@ -105,29 +105,29 @@ document.addEventListener("DOMContentLoaded", () => {
                         cardClone.insertBefore(defaultImg, cardClone.firstChild);
                     }
                 }
-                
+
                 // 카드에 이름 정보 div 추가
                 const nameDiv = document.createElement('div');
                 nameDiv.className = 'product-card-info';
                 nameDiv.innerHTML = `<h3>${productName}</h3>`;
                 cardClone.appendChild(nameDiv);
-                
+
                 emptySlot.appendChild(cardClone);
                 emptySlot.classList.add('filled');
-                
+
                 // 원본 카드는 wishlist에서 제거
                 card.remove();
             }
         } else {
             const parentSlot = card.parentElement;
-            
+
             // 카드를 다시 wishlist로 이동할 때는 이름 정보 제거
             const cardClone = card.cloneNode(true);
             const nameInfo = cardClone.querySelector('.product-card-info');
             if (nameInfo) {
                 nameInfo.remove();
             }
-            
+
             // img 요소가 제대로 있는지 확인
             const imgElement = cardClone.querySelector('img');
             if (!imgElement || !imgElement.src) {
@@ -140,12 +140,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     cardClone.insertBefore(defaultImg, cardClone.firstChild);
                 }
             }
-            
+
             wishlistGrid.appendChild(cardClone);
             parentSlot.classList.remove('filled');
             parentSlot.innerHTML = `<span>상품 ${parentSlot.dataset.slotId}을 선택하세요</span>`;
         }
-        
+
         updateCompareButton(); // 즉시 상태 업데이트
     }
 
@@ -166,10 +166,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const productsData = productsInSlots.map(card => {
             const details = card.querySelector('.product-details');
             const imgElement = card.querySelector('img');
-            
+
             // img 요소가 없거나 src가 없는 경우 기본 이미지 사용
             const imgSrc = imgElement && imgElement.src ? imgElement.src : 'https://via.placeholder.com/150';
-            
+
             return {
                 id: card.dataset.productId,
                 img: imgSrc,
@@ -224,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         modalContainer.innerHTML = tableHtml;
         modalOverlay.classList.add('visible');
-        
+
         // 새로 생긴 닫기 버튼에 이벤트 리스너 다시 할당
         modalContainer.querySelector('.close-button').addEventListener('click', hideModal);
     }
@@ -234,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     compareBtn.addEventListener("click", showModal);
-    
+
     modalOverlay.addEventListener("click", (e) => {
         if (e.target === modalOverlay) {
             hideModal();

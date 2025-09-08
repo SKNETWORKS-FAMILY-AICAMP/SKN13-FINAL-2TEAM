@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/preference.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', path='css/preference_custom.css') }}">
+<link rel="stylesheet" href="https://43.201.185.192/static/css/preference.css">
+<link rel="stylesheet" href="https://43.201.185.192/static/css/preference_custom.css">
 {% endblock %}
 
 {% block content %}
@@ -10,9 +10,9 @@
     <div class="card-stack-container" id="card-stack">
         {% for item in recommended_items %}
         <div class="preference-card" 
-             data-product-id="{{ item.get('상품ID') }}"
-             data-product-name="{{ item.get('제품이름') }}"
-             data-product-brand="{{ item.get('브랜드') or item.get('한글브랜드명') }}"
+             data-product-id="{{ item.get('상품코드') }}"
+             data-product-name="{{ item.get('상품명') }}"
+             data-product-brand="{{ item.get('한글브랜드명') }}"
              data-product-category="{{ item.get('대분류') }}"
              data-product-subcategory="{{ item.get('소분류') }}"
              data-product-color="{{ item.get('색상') }}"
@@ -20,10 +20,10 @@
              data-product-image="{{ item.get('사진') or item.get('대표이미지URL') }}"
              data-product-link="{{ item.get('상품링크') }}"
              data-product-site="{{ item.get('사이트명') }}">
-            <img class="card-image" src="{{ item.get('사진') or item.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ item['제품이름'] }}">
+            <img class="card-image" src="{{ item.get('사진') or item.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ item['상품명'] }}">
             <div class="card-info">
-                <h3 class="card-title">{{ item['제품이름'] }}</h3>
-                <p class="card-brand">{{ item['브랜드'] }}</p>
+                <h3 class="card-title">{{ item['상품명'] }}</h3>
+                <p class="card-brand">{{ item['한글브랜드명'] }}</p>
             </div>
             <!-- Feedback Overlays -->
             <div class="card-feedback like">LIKE</div>
@@ -222,11 +222,11 @@
 
                     newItems.forEach(item => {
                         const cardHtml = `
-                            <div class="preference-card" data-product-id="${item.상품ID}">
+                            <div class="preference-card" data-product-id="${item.상품코드}">
                                 <img class="card-image" src="${item.사진 || item.대표이미지URL || 'https://via.placeholder.com/150'}" alt="${item.상품명}">
                                 <div class="card-info">
                                     <h3 class="card-title">${item.상품명}</h3>
-                                    <p class="card-brand">${item.브랜드}</p>
+                                    <p class="card-brand">${item.한글브랜드명}</p>
                                 </div>
                                 <div class="card-feedback like">LIKE</div>
                                 <div class="card-feedback dislike">NOPE</div>

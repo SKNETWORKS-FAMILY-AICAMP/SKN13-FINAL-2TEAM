@@ -39,18 +39,23 @@ def process_product_data(products):
             else:
                 processed_product['processed_price'] = 0
         
-        # 성별 판단 (상품명과 브랜드 기반) - 새로운 컬럼명 사용
+        # 성별 및 의류 타입 판단을 위해 상품명을 미리 정의
         product_name = safe_lower(product.get('상품명', ''))
-        brand = safe_lower(product.get('한글브랜드명', product.get('브랜드', '')))
-        
-        if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
-            processed_product['성별'] = '여성'
-        elif any(word in product_name for word in ['남성', 'men', 'man', '남자']):
-            processed_product['성별'] = '남성'
-        elif any(word in product_name for word in ['unisex', '유니섹스']):
-            processed_product['성별'] = '유니섹스'
+
+        # 성별 판단 (원본 데이터 우선, 없을 시 상품명 기반) - 새로운 컬럼명 사용
+        original_gender = safe_str(product.get('성별', '')).strip()
+        if original_gender in ['남성', '여성', '공용']:
+            processed_product['성별'] = original_gender
         else:
-            processed_product['성별'] = '여성'  # 기본값
+            # 키워드 기반 추측 (Fallback)
+            if any(word in product_name for word in ['우먼', 'women', '여성', 'lady', '여자']):
+                processed_product['성별'] = '여성'
+            elif any(word in product_name for word in ['남성', 'men', 'man', '남자']):
+                processed_product['성별'] = '남성'
+            elif any(word in product_name for word in ['unisex', '유니섹스', '공용']):
+                processed_product['성별'] = '공용'
+            else:
+                processed_product['성별'] = '공용'  # 기본값을 '공용'으로 변경
         
         # 의류 타입 판단
         if any(word in product_name for word in ['티셔츠', 't-shirt', 'tshirt', '티', 'shirt']):
@@ -106,7 +111,7 @@ def process_product_data(products):
             processed_product['평점'] = None
 
         # 필터 호환을 위한 영어 키 추가 (gender/type/subcategory)
-        gender_map = {"여성": "female", "남성": "male", "유니섹스": "unisex"}
+        gender_map = {"여성": "female", "남성": "male", "공용": "unisex", "유니섹스": "unisex"}
         type_map = {"상의": "top", "하의": "bottom", "스커트": "skirt"}
         sub_map = {
             # 상의

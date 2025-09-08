@@ -46,8 +46,8 @@
                     <div style="position: relative; display: inline-block; cursor: pointer;" 
                           class="home-product-card" 
                           data-product-id="{{ item.get('상품코드') }}"
-                          data-product-name="{{ item.get('제품이름') }}"
-                          data-product-brand="{{ item.get('브랜드') or item.get('한글브랜드명') }}"
+                          data-product-name="{{ item.get('상품명') }}"
+                          data-product-brand="{{ item.get('한글브랜드명') }}"
                           data-product-category="{{ item.get('대분류') }}"
                           data-product-subcategory="{{ item.get('소분류') }}"
                           data-product-color="{{ item.get('색상') }}"
@@ -55,7 +55,7 @@
                           data-product-image="{{ item.get('사진') }}"
                           data-product-link="{{ item.get('상품링크') }}"
                           data-product-site="{{ item.get('사이트명') }}">
-                        <img alt="{{ item['제품이름'] }}" src="{{ item['사진'] }}" title="{{ item['제품이름'] }}: {{ item['브랜드'] }}"/>
+                        <img alt="{{ item['상품명'] }}" src="{{ item['사진'] }}" title="{{ item['상품명'] }}: {{ item['한글브랜드명'] }}"/>
                         {% if item.get('jjim_count', 0) > 0 %}
                         <div style="position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
                             <span style="font-size: 10px;">❤️</span>
@@ -63,8 +63,8 @@
                         </div>
                         {% endif %}
                         <div class="product-info-overlay">
-                            <div class="product-name">{{ item.get('제품이름', '상품명 없음') }}</div>
-                            <div class="product-brand">{{ item.get('브랜드') or item.get('한글브랜드명') or '브랜드 정보 없음' }}</div>
+                            <div class="product-name">{{ item.get('상품명', '상품명 없음') }}</div>
+                            <div class="product-brand">{{ item.get('한글브랜드명') or '브랜드 정보 없음' }}</div>
                         </div>
                     </div>
                     {% endfor %}

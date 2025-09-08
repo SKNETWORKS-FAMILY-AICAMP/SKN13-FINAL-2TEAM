@@ -70,15 +70,23 @@ class S3DataLoader:
         return ""
 
     def load_product_data(self, file_key: str, use_cache: bool = True) -> List[Dict]:
-        """제품 데이터를 S3에서 로드하고 가공하여 반환 (캐싱 지원 및 고정 스키마 사용)"""
+        """제품 데이터를 S3에서 로드하고 가공하여 반환 (중앙 조회 테이블 생성 포함)"""
         from cache_manager import cache_manager
-        # 스키마가 변경되었으므로 캐시 버전 업데이트
-        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v8"
+        from data_store import product_lookup_table
+
+        # 캐시 키 버전을 v9로 업데이트하여 강제로 캐시 무효화
+        cache_identifier = f"s3_products_{self.bucket_name}_{file_key}_v9"
         
         if use_cache:
             cached_data = cache_manager.get(cache_identifier)
             if cached_data:
-                print(f"✅ 캐시(v8)에서 '{cache_identifier}' 데이터를 가져왔습니다.")
+                print(f"✅ 캐시(v9)에서 '{cache_identifier}' 데이터를 가져왔습니다.")
+                # 캐시된 데이터로 조회 테이블 채우기
+                if not product_lookup_table:
+                    for product in cached_data:
+                        if product_id := product.get("상품코드"):
+                            product_lookup_table[str(product_id)] = product
+                    print(f"✅ 캐시된 데이터로 중앙 조회 테이블을 생성했습니다: {len(product_lookup_table)}개 항목")
                 return cached_data
         
         print(f"ℹ️ 캐시에 데이터가 없어 S3에서 직접 로드합니다: {file_key}")
@@ -92,21 +100,15 @@ class S3DataLoader:
             
             clothing_data = []
             for item in raw_data:
-                # --- Provided Fixed Schema --- 
-                price_val = item.get("원가") # 사용자가 명시한 '원가' 사용
+                price_val = item.get("원가")
                 price = int(price_val) if isinstance(price_val, (int, float)) and pd.notna(price_val) else 0
-
                 image_url = self.fix_image_url(item.get("이미지URL") or "")
 
-                # --- Build the dictionary with the fixed schema ---
                 mapped_item = {
-                    # Frontend-facing keys (as expected by chatbot.js)
                     "사진": image_url,
                     "상품명": item.get("상품명") or "상품 정보 없음",
                     "한글브랜드명": item.get("한글브랜드명") or "브랜드 정보 없음",
                     "가격": price,
-
-                    # Backend-specific and additional data from the fixed schema
                     "상품코드": str(item.get("상품코드")) if item.get("상품코드") else "",
                     "대분류": item.get("대분류", ""),
                     "소분류": item.get("소분류", ""),
@@ -124,7 +126,14 @@ class S3DataLoader:
                 clothing_data.append(mapped_item)
             
             print(f"✅ 제품 데이터 가공 완료: {len(clothing_data)}개 상품")
-            
+
+            # 중앙 조회 테이블 생성
+            product_lookup_table.clear() # 기존 데이터 초기화
+            for product in clothing_data:
+                if product_id := product.get("상품코드"):
+                    product_lookup_table[str(product_id)] = product
+            print(f"✅ 중앙 조회 테이블 생성 완료: {len(product_lookup_table)}개 항목")
+
             if use_cache and clothing_data:
                 cache_manager.set(cache_identifier, clothing_data)
                 print(f"💾 가공된 데이터를 캐시에 저장했습니다: '{cache_identifier}'")

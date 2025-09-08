@@ -37,6 +37,7 @@ services:
       - .env
     volumes:
       - ./cache:/app/cache
+      - ./static:/app/static   # **추가**
       # - /etc/letsencrypt:/etc/letsencrypt:ro
     restart: unless-stopped
     healthcheck:

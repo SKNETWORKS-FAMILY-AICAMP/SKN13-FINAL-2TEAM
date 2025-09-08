@@ -95,6 +95,12 @@ async def chat_recommend(
     user_name: str = Depends(login_required)
 ):
     """챗봇 메인 API (이미지 처리 기능 통합)"""
+    # 1. 기본값 초기화
+    message = "죄송합니다. 요청을 처리하는 중 오류가 발생했습니다."
+    products: list = []
+    analysis_info: dict = {}
+    recommendation_ids: list = []
+    
     user = get_user_by_username(db, user_name)
     if not user:
         return JSONResponse(content={"message": "사용자 정보를 찾을 수 없습니다.", "products": []})
@@ -106,206 +112,13 @@ async def chat_recommend(
         try:
             cleanup_user_expired_sessions(db, user.id, days=30)
             cleanup_old_sessions_if_needed(db, user.id, max_sessions=50)
-            llm_response: LLMResponse = await llm_service.process_user_input(
-                user_input=user_input,
-                session_id=str(chat_session.id),
-                user_id=user.id,
-                available_products=clothing_data if clothing_data else [],
-                db=db,
-                latitude=latitude,
-                longitude=longitude
-            )
-            
-            message = llm_response.final_message
-            products = llm_response.products
-            analysis_info = {
-                "intent": llm_response.analysis_result.intent,
-                "always_uses_context": True,
-                "confidence": getattr(llm_response.analysis_result, 'confidence', 1.0),
-                "analysis_summary": getattr(llm_response.analysis_result, 'analysis_summary', 'N/A'),
-                "filtering_conditions": getattr(llm_response.analysis_result, 'filtering_conditions', {}),
-                "summary_info": {
-                    "has_summary": bool(llm_response.summary_result and llm_response.summary_result.success),
-                    "action_taken": llm_response.summary_result.action_taken if llm_response.summary_result else None,
-                    "summary_text": llm_response.summary_result.summary_text if llm_response.summary_result else None
-                } if llm_response.summary_result else {"has_summary": False}
-            }
-            
-            # 날씨 의도 처리 및 의류 추천 통합 (기존 로직 유지)
-            if llm_response.analysis_result.intent == "weather":
-                try:
-                    # 날씨 정보에서 기온 추출
-                    temperature = None
-                    weather_description = None
-                    
-                    # 메시지에서 기온 정보 추출
-                    import re
-                    temp_match = re.search(r'(\d+(?:\.\d+)?)°C', message)
-                    if temp_match:
-                        temperature = float(temp_match.group(1))
-                    
-                    # 날씨 상황 추출
-                    weather_match = re.search(r'날씨 상황\*\*: (.+)', message)
-                    if weather_match:
-                        weather_description = weather_match.group(1).strip()
-                    
-                    # 사용자 성별 처리
-                    raw_gender = user.gender if hasattr(user, 'gender') else None
-                    user_gender = "남성" if raw_gender == "male" else "여성" if raw_gender == "female" else "남성"
-                    
-                    if weather_description and temperature is not None:
-                        # 의류 추천 생성
-                        # WeatherAgent를 통해 의류 추천 (개선된 메서드 사용)
-                        from services.agents.weather_agent import WeatherAgent
-                        weather_agent = WeatherAgent()
-                        # 날씨 데이터가 없는 경우 기본 추천
-                        recommended_clothing = await weather_agent.recommend_clothing_by_weather(
-                            weather_description, 
-                            user_gender,
-                            weather_data=None,  # 챗봇에서는 날씨 데이터가 제한적
-                            location="현재 위치"
-                        )
-                        
-                        # 추천 메시지 추가 (새로운 JSON 구조 지원)
-                        if recommended_clothing and any(recommended_clothing.values()):
-                            # 새로운 JSON 구조 확인
-                            recommendations = recommended_clothing.get("recommendations", [])
-                            
-                            if recommendations:
-                                # 새로운 구조: 의미적으로 연결된 조합
-                                clothing_message = f"\n\n🎯 **오늘 날씨 추천**\n"
-                                for i, rec in enumerate(recommendations, 1):
-                                    item = rec.get("item", "")
-                                    style = rec.get("style", "")
-                                    color = rec.get("color", "")
-                                    reason = rec.get("reason", "")
-                                    
-                                    clothing_message += f"**{i}. {item}**\n"
-                                    if style:
-                                        clothing_message += f"   🎨 스타일: {style}\n"
-                                    if color:
-                                        clothing_message += f"   🌈 색상: {color}\n"
-                                    if reason:
-                                        clothing_message += f"   💡 이유: {reason}\n"
-                                    clothing_message += "\n"
-                                
-                                message += clothing_message
-                            else:
-                                # 기존 구조 지원 (fallback)
-                                clothing_parts = []
-                                
-                                # 카테고리 표시
-                                categories = recommended_clothing.get("categories", [])
-                                if categories:
-                                    clothing_parts.append(f"카테고리: {', '.join(categories)}")
-                                
-                                # 구체적인 아이템 표시
-                                specific_items = recommended_clothing.get("specific_items", [])
-                                if specific_items:
-                                    clothing_parts.append(f"추천 아이템: {', '.join(specific_items)}")
-                                
-                                # 색상 표시
-                                colors = recommended_clothing.get("colors", [])
-                                if colors:
-                                    clothing_parts.append(f"추천 색상: {', '.join(colors)}")
-                                
-                                # 스타일 표시
-                                styles = recommended_clothing.get("styles", [])
-                                if styles:
-                                    clothing_parts.append(f"추천 스타일: {', '.join(styles)}")
-                                
-                                # 추천이유 추출
-                                recommendation_reasons = recommended_clothing.get("추천이유", [])
-                                reason_text = ""
-                                if recommendation_reasons:
-                                    reason_text = f"\n💡 **추천 이유**: {' '.join(recommendation_reasons)}"
-                                
-                                if clothing_parts:
-                                    clothing_message = f"\n\n🎯 **오늘 날씨 추천**{reason_text}\n{', '.join(clothing_parts)}을(를) 추천해 드려요!"
-                                    message += clothing_message
-                
-                except Exception:
-                    # 오류가 있어도 기본 날씨 정보는 제공
-                    pass
-            
-        except Exception:
-            # 오류 시 기본 응답
-            message = f"'{user_input}'에 대한 추천을 처리하는 중 오류가 발생했습니다. 다시 시도해주세요."
-            products = []
-            analysis_info = {
-                "intent": "error",
-                "always_uses_context": True,
-                "confidence": 0.0,
-                "analysis_summary": "처리 중 오류 발생",
-                "filtering_conditions": {}
-            }
-        
-        # 통합 서머리 결과를 사용한 챗봇 응답 저장
-        try:
-            # LLM 응답에서 서머리 결과 추출
-            summary_text = None
-            if llm_response.summary_result and llm_response.summary_result.success:
-                summary_text = llm_response.summary_result.summary_text
-            
-            # 추천 결과가 있으면 Recommendation 테이블에 저장 (기존 방식 유지)
-            recommendation_ids = []
-            if products and len(products) > 0:
-                try:
-                    from crud.recommendation_crud import create_multiple_recommendations, update_recommendation_feedback, get_user_recommendations
-                    
-                    # 최근 추천 기록 조회하여 중복 체크 (더 많은 기록 조회)
-                    recent_recommendations = get_user_recommendations(db, user.id, limit=50)
-                    recent_item_ids = {rec.item_id for rec in recent_recommendations}
-                    
-                    recommendations_data = []
-                    for product in products:
-                        item_id = product.get("상품코드", product.get("상품ID", 0))
-                        if item_id and item_id not in recent_item_ids:
-                            recommendations_data.append({
-                                "item_id": item_id,
-                                "query": user_input,
-                                "reason": f"챗봇 추천 - {user_input}"
-                            })
-                            recent_item_ids.add(item_id)  # 중복 방지를 위해 추가
-                        else:
-                            print(f"ℹ️ 상품 {item_id}는 이미 추천되어 저장하지 않습니다.")
-                    
-                    if recommendations_data:
-                        created_recommendations = create_multiple_recommendations(db, user.id, recommendations_data)
-                        # 각 상품별로 개별적인 추천 ID를 생성
-                        if created_recommendations:
-                            # 각 상품에 개별적인 추천 ID 할당
-                            for i, product in enumerate(products):
-                                if i < len(created_recommendations):
-                                    product['recommendation_id'] = created_recommendations[i].id
-                            
-                            # 모든 추천 ID를 리스트로 수집
-                            recommendation_ids = [str(rec.id) for rec in created_recommendations]
-                            print(f"✅ 추천 결과 {len(created_recommendations)}개를 저장하고 각 상품별로 개별 추천 ID를 할당했습니다.")
-                    else:
-                        print("⚠️ 저장할 추천 결과가 없습니다 (중복 제거 후).")
-                        recommendation_ids = []
-                except Exception as e:
-                    print(f"❌ 추천 결과 저장 중 오류: {e}")
-                    recommendation_ids = []
-            
-            # 챗봇 응답 저장 (상품 데이터와 추천 ID 함께)
-            bot_message = create_chat_message(
-                db, 
-                str(chat_session.id), 
-                "bot", 
-                message, 
-                summary_text, 
-                recommendation_ids,  # 리스트 형태로 전달
-                products if products else None  # 상품 데이터를 JSON으로 저장
-            )
-            
+            session_name_prefix = user_input or "새 대화"
+            session_name = f"{session_name_prefix[:20]}{'...' if len(session_name_prefix) > 20 else ''}"
+            chat_session = create_chat_session(db, user.id, session_name)
         except Exception as e:
-            print(f"세션 정리 중 오류: {e}")
-        session_name_prefix = user_input or "이미지 추천"
-        session_name = f"{session_name_prefix[:20]}{'...' if len(session_name_prefix) > 20 else ''}"
-        chat_session = create_chat_session(db, user.id, session_name)
-    
+            print(f"세션 생성 오류: {e}")
+            return JSONResponse(content={"message": "채팅 세션을 시작하는 데 실패했습니다.", "products": []})
+
     session_id = str(chat_session.id)
 
     # --- 로직 분기 ---
@@ -315,10 +128,12 @@ async def chat_recommend(
         create_chat_message(db, session_id, "user", user_input or "(이미지 업로드)")
 
         if user_input:
-            # Case 1a: Image + Text
             response_data = await handle_image_recommendation(image_bytes, user_input, db, user.id, session_id)
+            message = response_data.get("message", "이미지 분석 결과입니다.")
+            products = response_data.get("products", [])
+            analysis_info = response_data.get("analysis", {})
+            recommendation_ids = response_data.get("recommendation_id", [])
         else:
-            # Case 1b: Image only -> Ask for category
             temp_dir = tempfile.gettempdir()
             temp_path = os.path.join(temp_dir, f"{session_id}_{uuid.uuid4()}.jpg")
             with open(temp_path, "wb") as f:
@@ -327,20 +142,13 @@ async def chat_recommend(
             chat_session.pending_image_path = temp_path
             db.commit()
             
-            response_data = {"message": "어떤 종류의 의류를 추천해 드릴까요? (예: 상의, 후드티, 드레스)", "products": []}
+            message = "어떤 종류의 의류를 추천해 드릴까요? (예: 상의, 후드티, 드레스)"
         
-        create_chat_message(db, session_id, "bot", response_data["message"], products_data=response_data.get("products"))
-        response_data["session_id"] = session_id
-        # 응답 구성
-        response_data = {
-            "message": message,
-            "products": products,
-            "session_id": str(chat_session.id),
-            "session_name": chat_session.session_name,
-            "analysis": analysis_info,
-            "recommendation_id": recommendation_ids  # 추천 ID 추가
-        }
-        return JSONResponse(content=response_data)
+        create_chat_message(db, session_id, "bot", message, products_data=products, recommendation_ids=recommendation_ids)
+        return JSONResponse(content={
+            "message": message, "products": products, "session_id": session_id, 
+            "analysis": analysis_info, "recommendation_id": recommendation_ids
+        })
 
     # Case 2: 텍스트만 입력된 경우
     if not user_input:
@@ -348,23 +156,20 @@ async def chat_recommend(
 
     create_chat_message(db, session_id, "user", user_input)
 
-    # Case 2a: Text is a response to an image query
     if chat_session.pending_image_path and os.path.exists(chat_session.pending_image_path):
         image_path = chat_session.pending_image_path
         with open(image_path, "rb") as f:
             image_bytes = f.read()
         
         response_data = await handle_image_recommendation(image_bytes, user_input, db, user.id, session_id)
-        
-        chat_session.pending_image_path = None # Clear path after use
+        chat_session.pending_image_path = None
         db.commit()
-        os.remove(image_path) # Clean up temp file
+        os.remove(image_path)
 
-        create_chat_message(db, session_id, "bot", response_data["message"], products_data=response_data.get("products"))
+        create_chat_message(db, session_id, "bot", response_data.get("message"), products_data=response_data.get("products"), recommendation_ids=response_data.get("recommendation_id", []))
         response_data["session_id"] = session_id
         return JSONResponse(content=response_data)
     
-    # Case 2b: Normal text chat
     try:
         llm_response: LLMResponse = await llm_service.process_user_input(
             user_input=user_input, session_id=session_id, user_id=user.id,
@@ -374,17 +179,42 @@ async def chat_recommend(
         products = llm_response.products
         analysis_info = {"intent": llm_response.analysis_result.intent, "confidence": getattr(llm_response.analysis_result, 'confidence', 1.0)}
         
+        if products:
+            from crud.recommendation_crud import create_multiple_recommendations, get_user_recommendations
+            recent_recommendations = get_user_recommendations(db, user.id, limit=50)
+            recent_item_ids = {rec.item_id for rec in recent_recommendations}
+            
+            new_recs_data = [
+                {"item_id": p.get("상품코드") or p.get("id"), "query": user_input, "reason": f"챗봇 추천 - {user_input}"}
+                for p in products if (p.get("상품코드") or p.get("id")) and (p.get("상품코드") or p.get("id")) not in recent_item_ids
+            ]
+            
+            if new_recs_data:
+                created_recs = create_multiple_recommendations(db, user.id, new_recs_data)
+                rec_map = {rec.item_id: rec.id for rec in created_recs}
+                for p in products:
+                    item_id = p.get("상품코드") or p.get("id")
+                    if item_id in rec_map:
+                        p['recommendation_id'] = rec_map[item_id]
+                recommendation_ids = [str(rec_id) for rec_id in rec_map.values()]
+                print(f"✅ {len(created_recs)}개의 새로운 추천을 저장했습니다.")
+            else:
+                message += "\n\nℹ️ 이전에 추천해 드렸던 상품들이 포함되어 있네요. 새로운 상품을 원하시면 더 구체적으로 말씀해주세요!"
+                print("⚠️ 저장할 새로운 추천 상품이 없습니다 (모두 중복).")
+
         summary_text = llm_response.summary_result.summary_text if llm_response.summary_result and llm_response.summary_result.success else None
-        create_chat_message(db, session_id, "bot", message, summary=summary_text, products_data=products)
+        create_chat_message(db, session_id, "bot", message, summary=summary_text, products_data=products, recommendation_ids=recommendation_ids)
+        
         return JSONResponse(content={
-            "message": message, "products": products, "session_id": session_id, "analysis": analysis_info
+            "message": message, "products": products, "session_id": session_id, 
+            "analysis": analysis_info, "recommendation_id": recommendation_ids
         })
 
     except Exception as e:
-        logger.error(f"텍스트 챗봇 오류: {e}")
-        message = "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요."
-        create_chat_message(db, session_id, "bot", message)
-        return JSONResponse(content={"message": message, "products": [], "session_id": session_id})
+        print(f"텍스트 챗봇 오류: {e}")
+        error_message = "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요."
+        create_chat_message(db, session_id, "bot", error_message)
+        return JSONResponse(content={"message": error_message, "products": [], "session_id": session_id})
 
 
 @router.get("/session/{session_id}/messages", response_class=JSONResponse)

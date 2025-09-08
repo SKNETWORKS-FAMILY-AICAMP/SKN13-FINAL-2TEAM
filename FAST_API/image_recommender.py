@@ -172,8 +172,13 @@ async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: st
         raise
 
 
+from data_store import get_all_products
+
+# === 데이터 저장소 초기화 ===
+product_lookup = {str(p.get("상품코드")): p for p in get_all_products()}
+
 def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
-    """Qdrant에서 유사한 아이템을 검색합니다."""
+    """Qdrant에서 유사한 아이템을 검색하고, 전체 상품 정보로 보강합니다."""
     logger.info("Qdrant 유사도 검색 시작...")
     client = get_qdrant_client()
     
@@ -189,7 +194,24 @@ def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
     
     logger.info(f"Qdrant 유사도 검색 완료. {len(search_result)}개 결과 수신.")
     
-    return [{"id": point.id, "score": point.score, **point.payload} for point in search_result]
+    # 데이터 보강: Qdrant 결과의 ID를 사용하여 전체 상품 정보 조회
+    enriched_results = []
+    for point in search_result:
+        product_id = str(point.id)
+        full_product_data = product_lookup.get(product_id)
+        
+        if full_product_data:
+            # Qdrant 페이로드보다 전체 데이터 저장소의 정보를 우선 사용
+            # 점수(score)는 Qdrant 결과에서 가져옴
+            enriched_item = full_product_data.copy()
+            enriched_item['score'] = point.score
+            enriched_results.append(enriched_item)
+        else:
+            # fallback: 조회 실패 시 Qdrant 페이로드 사용
+            logger.warning(f"ID {product_id}에 해당하는 상품을 데이터 저장소에서 찾을 수 없습니다. Qdrant 페이로드를 사용합니다.")
+            enriched_results.append({"id": point.id, "score": point.score, **point.payload})
+            
+    return enriched_results
 
 # === 메인 파이프라인 함수 ===
 

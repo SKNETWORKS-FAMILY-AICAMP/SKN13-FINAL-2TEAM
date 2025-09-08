@@ -37,7 +37,7 @@
                      data-name="{{ product.get('제품이름', '이름 없음') }}"
                      data-brand="{{ product.get('브랜드', '정보 없음') }}"
                      data-price="{{ product.get('가격', '정보 없음') }}"
-                     data-rating="{{ product.get('평점', 0) | round(1) }}"
+                     data-rating="{{ product.get('평점', 0) or 0 | round(1) }}"
                      data-material="{{ product.get('제품소재', '정보 없음') }}"
                      data-description="{{ product.get('description', '설명 없음') }}"
                      data-product-link="{{ product.get('상품링크', '#') }}"

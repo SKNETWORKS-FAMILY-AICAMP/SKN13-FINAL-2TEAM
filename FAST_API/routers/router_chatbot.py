@@ -144,7 +144,7 @@ async def chat_recommend(
             
             message = "어떤 종류의 의류를 추천해 드릴까요? (예: 상의, 후드티, 드레스)"
         
-        create_chat_message(db, session_id, "bot", message, products_data=products, recommendation_ids=recommendation_ids)
+        create_chat_message(db, session_id, "bot", message, products_data=products, recommendation_id=recommendation_ids)
         return JSONResponse(content={
             "message": message, "products": products, "session_id": session_id, 
             "analysis": analysis_info, "recommendation_id": recommendation_ids
@@ -166,7 +166,7 @@ async def chat_recommend(
         db.commit()
         os.remove(image_path)
 
-        create_chat_message(db, session_id, "bot", response_data.get("message"), products_data=response_data.get("products"), recommendation_ids=response_data.get("recommendation_id", []))
+        create_chat_message(db, session_id, "bot", response_data.get("message"), products_data=response_data.get("products"), recommendation_id=response_data.get("recommendation_id", []))
         response_data["session_id"] = session_id
         return JSONResponse(content=response_data)
     
@@ -203,7 +203,7 @@ async def chat_recommend(
                 print("⚠️ 저장할 새로운 추천 상품이 없습니다 (모두 중복).")
 
         summary_text = llm_response.summary_result.summary_text if llm_response.summary_result and llm_response.summary_result.success else None
-        create_chat_message(db, session_id, "bot", message, summary=summary_text, products_data=products, recommendation_ids=recommendation_ids)
+        create_chat_message(db, session_id, "bot", message, summary=summary_text, products_data=products, recommendation_id=recommendation_ids)
         
         return JSONResponse(content={
             "message": message, "products": products, "session_id": session_id, 

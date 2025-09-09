@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const noResults = document.getElementById('no-results');
         const applyFiltersBtn = document.getElementById('apply-filters');
         const clearFiltersBtn = document.getElementById('clear-filters');
+        const majorCategoryOptionsDiv = document.getElementById('major-category-options');
+        const minorCategoryOptionsDiv = document.getElementById('minor-category-options');
 
         if (!productGrid) {
             console.error("product-grid 요소를 찾을 수 없습니다.");
@@ -16,11 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // 필터 값 가져오기
         function getFilterValues() {
             const selectedGenders = Array.from(document.querySelectorAll('input[name="gender"]:checked')).map(cb => cb.value);
-            const selectedTypes = Array.from(document.querySelectorAll('input[name="clothing_type"]:checked')).map(cb => cb.value);
-            
+            const selectedMajorCategories = Array.from(document.querySelectorAll('input[name="major_category"]:checked')).map(cb => cb.value);
+            const selectedMinorCategories = Array.from(document.querySelectorAll('input[name="minor_category"]:checked')).map(cb => cb.value);
+
             return {
                 gender: selectedGenders.length > 0 ? selectedGenders.join(',') : null,
-                clothing_type: selectedTypes.length > 0 ? selectedTypes.join(',') : null,
+                major_category: selectedMajorCategories.length > 0 ? selectedMajorCategories.join(',') : null,
+                minor_category: selectedMinorCategories.length > 0 ? selectedMinorCategories.join(',') : null,
                 min_price: document.getElementById('min-price').value || null,
                 max_price: document.getElementById('max-price').value || null,
                 sort: document.getElementById('sort-select').value !== 'default' ? document.getElementById('sort-select').value : null
@@ -30,10 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // API를 통한 상품 가져오기
         async function fetchProducts(page = 1) {
             console.log(`Fetching products for page: ${page}`);
-            
+
             // 로딩 상태 표시
             showLoading();
-            
+
             const filters = getFilterValues();
             const params = new URLSearchParams();
             params.append('page', page);
@@ -60,7 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (data.products.length === 0) {
                     showNoResults();
-                } else {
+                }
+                else {
                     hideNoResults();
                 }
 
@@ -96,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         function createProductCard(product) {
             const card = document.createElement('div');
             card.className = 'product-card';
-            
+
             // 데이터 속성 설정
             card.dataset.productId = product.상품코드 || '';
             card.dataset.productName = product.상품명 || '';
@@ -107,14 +112,14 @@ document.addEventListener('DOMContentLoaded', function() {
             card.dataset.productPrice = product.원가 || '0';
             card.dataset.productImage = product.이미지URL || product.대표이미지URL || '';
             card.dataset.productLink = product.상품링크 || '';
-            card.dataset.type = product.의류타입 || product.대분류 || '';
+            card.dataset.type = product.의류타입 || product.대분류 || ''; // Keep for backward compatibility if needed
 
             // 가격 포맷팅 (원가 사용)
             const price = product.원가 || 0;
             const formattedPrice = price.toLocaleString('ko-KR');
 
             card.innerHTML = `
-                <img src="${product.이미지URL || product.대표이미지URL || ''}" 
+                <img src="${product.이미지URL || product.대표이미지URL || ''}"
                      alt="${product.상품명 || ''}"
                      title="${product.상품명 || ''}: ${product.한글브랜드명 || product.브랜드 || ''}">
             `;
@@ -142,9 +147,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 페이지네이션 렌더링
         function renderPagination(currentPage, totalPages, totalProducts) {
             if (!paginationContainer) return;
-            
+
             paginationContainer.innerHTML = '';
-            
+
             if (totalPages <= 1) {
                 return;
             }
@@ -178,7 +183,8 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
                     paginationDiv.appendChild(createPageLink(i, i.toString(), true));
-                } else {
+                }
+                else {
                     paginationDiv.appendChild(createPageLink(i, i.toString()));
                 }
             }
@@ -200,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isCurrent) link.classList.add('current');
             link.textContent = text;
             link.dataset.page = page;
-            
+
             link.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (!isCurrent) {
@@ -208,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.scrollTo(0, 0);
                 }
             });
-            
+
             return link;
         }
 
@@ -284,8 +290,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             productDetails.innerHTML = `
                 <div style="display:flex; gap:20px; margin-bottom:20px;">
-                    <img src="${productImage || 'https://via.placeholder.com/200'}" 
-                         alt="${productName}" 
+                    <img src="${productImage || 'https://via.placeholder.com/200'}"
+                         alt="${productName}"
                          style="width:200px; height:200px; object-fit:cover; border-radius:8px;">
                     <div style="flex:1;">
                         <h4 style="margin:0 0 15px 0; color:#333; font-size:18px; font-weight:600;">${productName}</h4>
@@ -293,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">브랜드:</strong> <span style="color:#34495e;">${productBrand || 'N/A'}</span></p>
                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">카테고리:</strong> <span style="color:#34495e;">${productType || productCategory || 'N/A'} > ${productSubcategory || 'N/A'}</span></p>
                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">색상:</strong> <span style="color:#34495e;">${productColor || 'N/A'}</span></p>
-                            <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">가격:</strong> <span style="color:#e74c3c; font-weight:600; font-size:16px;">${formatPrice(productPrice)}</span></p>
+                            <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#e74c3c; font-weight:600; font-size:16px;">가격:</strong> <span style="color:#e74c3c; font-weight:600; font-size:16px;">${formatPrice(productPrice)}</span></p>
                             <p style="margin:8px 0; color:#333; font-size:14px;"><strong style="color:#2c3e50;">사이트:</strong> <span style="color:#34495e;">${productSite || 'N/A'}</span></p>
                         </div>
                         <div style="display:flex; gap:12px;">
@@ -322,6 +328,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('max-price').value = '';
                 // 정렬 초기화
                 document.getElementById('sort-select').value = 'default';
+                // 대분류/소분류 선택 초기화
+                // 대분류/소분류 선택 초기화
+                document.querySelectorAll('input[name="major_category"]').forEach(cb => cb.checked = false);
+                document.querySelectorAll('input[name="minor_category"]').forEach(cb => cb.checked = false);
+                minorCategoryOptionsDiv.innerHTML = ''; // Clear minor categories
                 // 필터 적용
                 fetchProducts(1);
             });
@@ -340,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', function() {
                 const minPrice = this.dataset.min;
                 const maxPrice = this.dataset.max;
-                
+
                 document.getElementById('min-price').value = minPrice;
                 document.getElementById('max-price').value = maxPrice;
             });
@@ -349,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 모달 닫기 이벤트
         const modal = document.getElementById('product-modal');
         const closeBtn = document.getElementById('close-modal');
-        
+
         if (closeBtn) {
             closeBtn.addEventListener('click', function() {
                 if (modal) modal.style.display = 'none';
@@ -396,8 +407,85 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
+        // 대분류 로드 함수
+        async function loadMajorCategories() {
+            try {
+                const response = await fetch('/products/categories/major');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                majorCategoryOptionsDiv.innerHTML = ''; // Clear existing options
+                data.major_categories.forEach(category => {
+                    const label = document.createElement('label');
+                    label.className = 'filter-option';
+                    label.innerHTML = `
+                        <input type="checkbox" name="major_category" value="${category}" class="filter-checkbox"
+                               ${(new URLSearchParams(window.location.search)).get('major_category') === category ? 'checked' : ''}>
+                        <span class="checkmark"></span>
+                        ${category}
+                    `;
+                    majorCategoryOptionsDiv.appendChild(label);
+
+                    // Add event listener to update minor categories when major category selection changes
+                    label.querySelector('input[type="checkbox"]').addEventListener('change', updateMinorCategoriesDisplay);
+                });
+
+                // Check if a major category is already selected in the URL and load minor categories
+                // This will now be handled by updateMinorCategoriesDisplay after major categories are rendered
+
+            } catch (error) {
+                console.error('Error loading major categories:', error);
+            }
+        }
+
+        // 소분류 로드 및 표시 함수 (여러 대분류 처리)
+        async function updateMinorCategoriesDisplay() {
+            const selectedMajorCategories = Array.from(document.querySelectorAll('input[name="major_category"]:checked')).map(cb => cb.value);
+            minorCategoryOptionsDiv.innerHTML = ''; // Clear existing options
+
+            if (selectedMajorCategories.length === 0) {
+                return; // No major categories selected, clear minor options
+            }
+
+            const allMinorCategories = new Set();
+            const currentMinorCategorySelections = (new URLSearchParams(window.location.search)).get('minor_category');
+            const preSelectedMinorCategories = currentMinorCategorySelections ? currentMinorCategorySelections.split(',') : [];
+
+            for (const majorCategory of selectedMajorCategories) {
+                try {
+                    const response = await fetch(`/products/categories/minor?major_category=${encodeURIComponent(majorCategory)}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    data.minor_categories.forEach(category => allMinorCategories.add(category));
+                } catch (error) {
+                    console.error(`Error loading minor categories for ${majorCategory}:`, error);
+                }
+            }
+
+            // Sort minor categories alphabetically
+            const sortedMinorCategories = Array.from(allMinorCategories).sort();
+
+            sortedMinorCategories.forEach(category => {
+                const label = document.createElement('label');
+                label.className = 'filter-option';
+                const isChecked = preSelectedMinorCategories.includes(category);
+                label.innerHTML = `
+                    <input type="checkbox" name="minor_category" value="${category}" class="filter-checkbox"
+                           ${isChecked ? 'checked' : ''}>
+                    <span class="checkmark"></span>
+                    ${category}
+                `;
+                minorCategoryOptionsDiv.appendChild(label);
+            });
+        }
+
         // 초기 로드
-        fetchProducts(1);
+        loadMajorCategories(); // Load major categories first
+        updateMinorCategoriesDisplay(); // Then update minor categories based on initial selection
+        fetchProducts(1); // Then fetch products
 
     } catch (error) {
         console.error("스크립트 초기화 중 심각한 오류 발생:", error);

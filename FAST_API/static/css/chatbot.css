@@ -162,10 +162,12 @@
     animation-delay: 0.4s;
 }
 
+
 @keyframes bounce {
     from { transform: translateY(0); }
     to { transform: translateY(-5px); }
 }
+
 
 /* 추천 상품 스타일 - 새로운 디자인 */
 .recommendations-container {
@@ -549,12 +551,6 @@
     background: #3498db !important;
 }
 
-/* 애니메이션 */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
 /* 코멘트 모달 스타일 */
 .comment-modal {
     backdrop-filter: blur(8px);
@@ -666,12 +662,57 @@
 
 
 
-/* 상품 이미지 로딩 애니메이션 */
-.product-card img {
+/* 챗봇 추천 상품 카드 기본 스타일 */
+.chatbot-product-card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 1px solid #e9ecef;
+}
+
+.chatbot-product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.chatbot-product-info {
+    margin-top: 8px;
+}
+
+.chatbot-product-brand {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.chatbot-product-name {
+    font-size: 0.85rem;
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.chatbot-product-price {
+    font-size: 0.9rem;
+    color: #667eea;
+    font-weight: 700;
+}
+
+/* 챗봇 상품 이미지 로딩 애니메이션 */
+.chatbot-product-card img {
     transition: opacity 0.3s ease;
 }
 
-.product-card img[src*="placeholder"] {
+.chatbot-product-card img[src*="placeholder"] {
     opacity: 0.7;
 }
 
@@ -776,26 +817,26 @@
     }
 }
 
-/* --- 이미지 첨부 및 추천 결과 이미지 스타일 추가 --- */
+/* --- 새로 추가된 이미지 첨부 및 추천 결과 이미지 스타일 --- */
 
 /* 입력창 위의 첨부 파일 미리보기 */
-#widget-attachment-preview {
+#chatbot-image-attachment-preview {
     padding: 0 15px 10px 15px;
 }
 
-.attachment-item {
+.chatbot-image-attachment-item {
     position: relative;
     display: inline-block;
 }
 
-.attachment-item img {
+.chatbot-image-attachment-item img {
     max-width: 80px;
     max-height: 80px;
     border-radius: 8px;
     border: 1px solid #e9ecef;
 }
 
-.remove-attachment-btn {
+.chatbot-image-remove-btn {
     position: absolute;
     top: -5px;
     right: -5px;
@@ -814,19 +855,19 @@
 }
 
 /* 사용자가 보낸 메시지 안의 이미지 */
-.message-image-preview {
+.chatbot-user-image-message {
     max-width: 150px;
     border-radius: 12px;
     cursor: pointer;
     transition: transform 0.2s;
 }
 
-.message-image-preview:hover {
+.chatbot-user-image-message:hover {
     transform: scale(1.05);
 }
 
 /* 봇이 보낸 추천 상품 이미지 */
-.recommendation-img {
+.chatbot-recommendation-image {
     width: 100%; /* 카드의 너비에 맞춤 */
     height: auto; /* 비율 유지 */
     aspect-ratio: 1 / 1; /* 1:1 비율 강제 */
@@ -834,22 +875,14 @@
     border-radius: 8px;
 }
 
-.product-card img {
-    /* 기존의 고정 크기 대신 recommendation-img 클래스 사용하도록 유도 */
-    /* 이 규칙은 recommendation-img에 의해 오버라이드 될 수 있음 */
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 8px;
-}
 
-.recommendations-grid .product-card .recommendation-img {
+.chatbot-recommendations-grid .chatbot-product-card .chatbot-recommendation-image {
     width: 100%;
     height: 120px; /* 높이를 고정하여 그리드 정렬을 맞춤 */
     object-fit: cover;
 }
 
-.recommendations-grid {
+.chatbot-recommendation-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;

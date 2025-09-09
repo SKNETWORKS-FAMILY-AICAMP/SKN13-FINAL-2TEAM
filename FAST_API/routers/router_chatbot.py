@@ -232,15 +232,33 @@ async def submit_feedback(recommendation_id: List[str] = Form(...), feedback_rat
     user = get_user_by_username(db, user_name)
     if not user:
         return JSONResponse(content={"success": False, "message": "사용자 정보를 찾을 수 없습니다."})
+    
     from crud.recommendation_crud import update_recommendation_feedback
     success_count = 0
+    error_details = []
+    
     for rec_id in recommendation_id:
         try:
-            success = update_recommendation_feedback(db, int(rec_id), user.id, feedback_rating, feedback_reason)
-            if success: success_count += 1
-        except ValueError:
+            rec_id_int = int(rec_id)
+            success = update_recommendation_feedback(db, rec_id_int, user.id, feedback_rating, feedback_reason)
+            if success: 
+                success_count += 1
+            else:
+                error_details.append(f"추천 ID {rec_id} 처리 실패")
+        except ValueError as e:
+            error_details.append(f"추천 ID {rec_id} 형식 오류: {e}")
             continue
+        except Exception as e:
+            error_details.append(f"추천 ID {rec_id} 처리 중 오류: {e}")
+            continue
+    
     if success_count > 0:
-        return JSONResponse(content={"success": True, "message": f"{success_count}개의 추천 결과에 피드백이 저장되었습니다."})
+        message = f"{success_count}개의 추천 결과에 피드백이 저장되었습니다."
+        if error_details:
+            message += f" (오류: {', '.join(error_details)})"
+        return JSONResponse(content={"success": True, "message": message})
     else:
-        return JSONResponse(content={"success": False, "message": "피드백 저장에 실패했습니다."})
+        error_message = "피드백 저장에 실패했습니다."
+        if error_details:
+            error_message += f" 상세: {', '.join(error_details)}"
+        return JSONResponse(content={"success": False, "message": error_message})

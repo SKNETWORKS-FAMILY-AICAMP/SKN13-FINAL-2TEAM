@@ -31,7 +31,6 @@ class ChatMessage(Base):
     summary = Column(Text, nullable=True)  # Q/A 쌍별 요약 저장
     recommendation_id = Column(Text, nullable=True)  # 추천 결과 연결 (Integer → Text로 변경, ForeignKey 제거)
     products_data = Column(JSON, nullable=True)  # 상품 데이터를 JSON으로 저장
-    image_filename = Column(String(255), nullable=True)  # 이미지 파일명 저장
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # 체크 제약 조건 추가

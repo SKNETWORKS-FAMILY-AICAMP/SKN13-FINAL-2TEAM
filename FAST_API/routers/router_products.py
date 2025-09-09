@@ -168,7 +168,7 @@ async def get_major_categories():
 @router.get("/categories/minor", response_class=JSONResponse)
 async def get_minor_categories(major_category: str = Query(...)):
     minor_category_map_user_defined = {
-        "바지": ['데님팬츠', '숏팬츠', '슈트팬츠/슬랙스', '카고팬츠', '코튼팬츠', '트레이닝/조거팬츠', '슈트 팬츠/슬랙스'],
+        "바지": ['데님팬츠', '숏팬츠', '슈트팬츠/슬랙스', '카고팬츠', '코튼팬츠', '트레이닝/조거팬츠'],
         "상의": ['긴소매', '니트/스웨터', '반소매', '셔츠/블라우스', '슬리브리스', '피케/카라', '후드티'],
         "스커트": ['롱스커트', '미니스커트', '미디스커트'],
         "원피스": ['맥시원피스', '미니원피스', '미디원피스']

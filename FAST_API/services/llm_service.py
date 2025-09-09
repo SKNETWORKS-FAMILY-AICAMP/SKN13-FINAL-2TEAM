@@ -75,14 +75,16 @@ class MainAnalyzer:
     
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = "gpt-4o-mini"
+        self.model = "gpt-4o"
     
     def analyze_with_prompt(self, user_input: str, context: str = "", session_summary: str = "") -> Dict:
         """프롬프트 기반으로 intent 분류만 수행"""
         
+        print(f"🔍 Intent 분류 시작: '{user_input}'")
+        print(f"📝 컨텍스트: {context[:100]}..." if context else "📝 컨텍스트: 없음")
+        
         system_prompt = """당신은 의류 추천 시스템의 intent 분류기입니다.
 사용자의 입력을 분석하여 intent만 분류해주세요.
-**날씨와 상황이 합쳐진 의도도 weather로 분류하세요.**
 
 컨텍스트 정보:
 - 이전 대화 내용: {context}
@@ -95,16 +97,18 @@ class MainAnalyzer:
 }}
 
 Intent 분류 기준:
-- search: 구체적인 상품 검색 ("파란색 셔츠", "청바지 추천", "나이키 운동화")
-- conversation: 상황별 추천 ("데이트룩", "면접복", "파티룩")  
-- followup: 이전 추천에 대한 후속 질문 ("이것들중에 제일 싼거", "더 비싼 것도 있어?", "첫 번째가 좋을까?")
-- weather: 날씨 관련 ("오늘 날씨", "서울 날씨")
-- general: 일반 대화 ("안녕", "고마워")
+- search: 구체적인 상품 검색 ("파란색 셔츠", "청바지 추천", "나이키 운동화", "빨간색 티셔츠", "검은색 바지")
+- conversation: 상황별 추천 ("데이트룩", "면접복", "파티룩", "결혼식 갈 때 옷 추천", "출근복") 
+- followup: 이전 추천에 대한 후속 질문 ("이것들중에 제일 싼거", "더 비싼 것도 있어?", "첫 번째가 좋을까?", "다른 색상은?")
+- weather: 날씨 관련 ("오늘 날씨", "서울 날씨", "비 올 때 입을 옷")
+- general: 단순 인사/잡담 ("안녕", "고마워", "ㅎㅎ") → 추천/검색/날씨/후속질문이 전혀 아닐 때만 해당
 
 **중요**: 
-1. 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요.
-2. 필터링 조건 추출은 하지 마세요. intent 분류만 수행하세요.
-3. 날씨와 상황이 합쳐진 의도도 weather로 분류하세요.
+1. 의류/옷/패션과 관련된 모든 질문은 search, conversation, followup 중 하나로 분류하세요.
+2. 색상, 브랜드, 카테고리 등이 언급되면 search로 분류하세요.
+3. 상황이나 용도가 언급되면 conversation으로 분류하세요.
+4. 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요.
+5. general은 정말 단순한 인사나 의류와 전혀 관련 없는 질문일 때만 사용하세요.
 """
         messages = [
             {"role": "system", "content": system_prompt.format(
@@ -118,20 +122,31 @@ Intent 분류 기준:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.2,
-                max_tokens=800
+                temperature=0.1,  # 더 일관된 결과를 위해 낮춤
+                max_tokens=500,
+                response_format={"type": "json_object"}  # JSON 형식 강제
             )
             
-            result = json.loads(response.choices[0].message.content)
+            raw_response = response.choices[0].message.content
+            print(f"🤖 LLM 원본 응답: {raw_response}")
+            
+            result = json.loads(raw_response)
+            print(f"✅ Intent 분류 결과: {result.get('intent', 'unknown')} - {result.get('analysis_summary', '')}")
+            
             return result
             
-        except Exception as e:
-            print(f"메인 분석 오류: {e}")
-            # 오류 시 기본값 반환
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON 파싱 오류: {e}")
+            print(f"원본 응답: {raw_response}")
             return {
-                "intent": "general",
-                "filtering_conditions": {},
-                "analysis_summary": "분석 중 오류 발생"
+                "intent": "search",  # 오류 시 search로 fallback (더 유용함)
+                "analysis_summary": f"JSON 파싱 오류: {str(e)}"
+            }
+        except Exception as e:
+            print(f"❌ 메인 분석 오류: {e}")
+            return {
+                "intent": "search",  # 오류 시 search로 fallback
+                "analysis_summary": f"분석 중 오류 발생: {str(e)}"
             }
 
 
@@ -214,11 +229,17 @@ class LLMService:
         """의도 분석 노드 - intent 분류만 수행"""
         context_str = " | ".join(state.context_summaries) if state.context_summaries else "이전 대화 없음"
         
+        print(f"🎯 Intent 분석 노드 시작")
+        print(f"   사용자 입력: '{state.user_input}'")
+        print(f"   컨텍스트: {context_str[:100]}..." if context_str != "이전 대화 없음" else "   컨텍스트: 없음")
+        
         analysis_result = self.main_analyzer.analyze_with_prompt(
             state.user_input, context_str, ""
         )
         
         state.intent = analysis_result.get("intent", "general")
+        print(f"🎯 최종 Intent: {state.intent}")
+        
         # extracted_info는 빈 딕셔너리로 초기화 (필터링 조건은 각 Agent에서 처리)
         state.extracted_info = {}
         
@@ -226,8 +247,11 @@ class LLMService:
     
     async def _agent_execution_node(self, state: LangGraphState, available_products: List[Dict], db) -> LangGraphState:
         """Agent 실행 노드 - 의도에 따라 적절한 Agent 호출"""
+        print(f"🤖 Agent 실행 노드 시작 - Intent: {state.intent}")
+        
         try:
             if state.intent == "followup":
+                print("📞 FollowUp Agent 실행")
                 result = self.followup_agent.process_follow_up_question(
                     state.user_input, 
                     db, 
@@ -240,6 +264,7 @@ class LLMService:
                 state.products = result.products
                 
             elif state.intent == "search":
+                print("🔍 Search Agent 실행")
                 # Search Agent 실행
                 result = self.search_agent.process_search_request(
                     state.user_input, 
@@ -253,6 +278,7 @@ class LLMService:
                 state.products = result.products
                 
             elif state.intent == "conversation":
+                print("💬 Conversation Agent 실행")
                 # Conversation Agent 실행 (순수 상황별 추천만)
                 result = self.conversation_agent.process_conversation_request(
                     state.user_input,
@@ -265,8 +291,10 @@ class LLMService:
                 state.agent_result = result
                 state.final_message = result.message
                 state.products = result.products
+                print(f"✅ Conversation Agent 완료: {len(result.products)}개 상품")
                 
             elif state.intent == "weather":
+                print("🌤️ Weather Agent 실행")
                 # Weather Agent 실행 (사용자 성별 정보 필요)
                 # TODO: 실제 사용자 정보에서 성별 가져오기
                 user_gender = "남성"  # 임시로 "남성" 사용
@@ -283,6 +311,7 @@ class LLMService:
                 state.products = result.products
                 
             else:  # general
+                print("💭 General Agent 실행")
                 # General Agent 실행
                 result = self.general_agent.process_general_request(
                     state.user_input,
@@ -294,7 +323,14 @@ class LLMService:
                 state.products = result.products
                 
         except Exception as e:
+            print(f"❌ Agent 실행 오류: {e}")
+            print(f"   Intent: {state.intent}")
+            print(f"   오류 타입: {type(e).__name__}")
+            import traceback
+            print(f"   스택 트레이스: {traceback.format_exc()}")
+            
             # 오류 발생 시 일반 에이전트로 fallback
+            print("🔄 General Agent로 fallback")
             try:
                 result = self.general_agent.process_general_request(
                     state.user_input,
@@ -304,7 +340,8 @@ class LLMService:
                 state.agent_result = result
                 state.final_message = result.message
                 state.products = result.products
-            except Exception:
+            except Exception as fallback_error:
+                print(f"❌ Fallback도 실패: {fallback_error}")
                 state.final_message = "죄송합니다. 요청을 처리하는 중 오류가 발생했습니다."
                 state.products = []
         

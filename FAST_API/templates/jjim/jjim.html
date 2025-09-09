@@ -28,8 +28,8 @@
         </div>
         <div class="product-grid" id="jjimGrid">
             {% for product in jjim_products %}
-            <div class="jjim-product-card" data-product-id="{{ product['상품ID'] }}">
-                <input type="checkbox" class="jjim-product-checkbox" data-product-id="{{ product['상품ID'] }}">
+            <div class="jjim-product-card" data-product-id="{{ product['상품코드'] }}">
+                <input type="checkbox" class="jjim-product-checkbox" data-product-id="{{ product['상품코드'] }}">
 
                 <img src="{{ product.get('사진') or product.get('대표이미지URL', 'https://via.placeholder.com/150') }}" alt="{{ product['상품명'] }}">
                 <!-- Hidden details for JS -->
@@ -60,15 +60,14 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // GSAP는 버튼과 모달 애니메이션에만 사용됩니다.
-
     const wishlistGrid = document.querySelector(".product-grid");
     const slots = gsap.utils.toArray(".comparison-slot");
     const compareBtn = document.querySelector(".compare-button");
     const modalOverlay = document.querySelector(".modal-overlay");
     const modalContainer = document.querySelector(".modal-content");
 
-    // --- 상태 관리 ---
+    const selectedProductIds = new Set();
+
     function updateCompareButton() {
         const filledSlots = slots.filter(slot => slot.querySelector('.jjim-product-card')).length;
         gsap.to(compareBtn, {
@@ -78,24 +77,31 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- 카드 이동 로직 (애니메이션 없음) ---
     function moveCard(card) {
+        const productId = card.dataset.productId;
         const isFromWishlist = card.parentElement.classList.contains('product-grid');
 
-        if (isFromWishlist) {
-            const emptySlot = slots.find(slot => !slot.querySelector('.jjim-product-card'));
-            if (emptySlot) {
-                emptySlot.innerHTML = ''; // placeholder 제거
+        console.log(`Clicked card ID: ${productId}, From Wishlist: ${isFromWishlist}`);
+        console.log(`Current selectedProductIds:`, Array.from(selectedProductIds));
 
-                // 카드를 복제하고 이름 정보 추가
+        if (isFromWishlist) {
+            if (selectedProductIds.has(productId)) {
+                console.log(`Product ${productId} already in comparison, doing nothing.`);
+                return;
+            }
+
+            const emptySlot = slots.find(slot => !slot.querySelector('.jjim-product-card'));
+            console.log(`Found empty slot:`, emptySlot);
+
+            if (emptySlot) {
+                emptySlot.innerHTML = '';
+
                 const cardClone = card.cloneNode(true);
                 const details = cardClone.querySelector('.product-details');
                 const productName = details ? details.dataset.name : '상품명 없음';
 
-                // img 요소가 제대로 복사되었는지 확인
                 const imgElement = cardClone.querySelector('img');
                 if (!imgElement || !imgElement.src) {
-                    // img 요소가 없거나 src가 없는 경우 기본 이미지로 교체
                     const defaultImg = document.createElement('img');
                     defaultImg.src = 'https://via.placeholder.com/150';
                     defaultImg.alt = productName;
@@ -106,7 +112,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
 
-                // 카드에 이름 정보 div 추가
                 const nameDiv = document.createElement('div');
                 nameDiv.className = 'product-card-info';
                 nameDiv.innerHTML = `<h3>${productName}</h3>`;
@@ -115,59 +120,60 @@ document.addEventListener("DOMContentLoaded", () => {
                 emptySlot.appendChild(cardClone);
                 emptySlot.classList.add('filled');
 
-                // 원본 카드는 wishlist에서 제거
-                card.remove();
+                card.classList.add('selected-for-comparison');
+                card.style.pointerEvents = 'none';
+
+                selectedProductIds.add(productId);
+                console.log(`Added ${productId} to comparison. New selectedProductIds:`, Array.from(selectedProductIds));
             }
         } else {
+            console.log(`Moving ${productId} from comparison slot back to wishlist.`);
             const parentSlot = card.parentElement;
 
-            // 카드를 다시 wishlist로 이동할 때는 이름 정보 제거
-            const cardClone = card.cloneNode(true);
-            const nameInfo = cardClone.querySelector('.product-card-info');
-            if (nameInfo) {
-                nameInfo.remove();
-            }
-
-            // img 요소가 제대로 있는지 확인
-            const imgElement = cardClone.querySelector('img');
-            if (!imgElement || !imgElement.src) {
-                const defaultImg = document.createElement('img');
-                defaultImg.src = 'https://via.placeholder.com/150';
-                defaultImg.alt = '상품 이미지';
-                if (imgElement) {
-                    imgElement.replaceWith(defaultImg);
-                } else {
-                    cardClone.insertBefore(defaultImg, cardClone.firstChild);
-                }
-            }
-
-            wishlistGrid.appendChild(cardClone);
             parentSlot.classList.remove('filled');
             parentSlot.innerHTML = `<span>상품 ${parentSlot.dataset.slotId}을 선택하세요</span>`;
+
+            const originalCard = wishlistGrid.querySelector(`.jjim-product-card[data-product-id="${productId}"]`);
+            if (originalCard) {
+                originalCard.classList.remove('selected-for-comparison');
+                originalCard.style.pointerEvents = 'auto';
+                console.log(`Original card ${productId} ungrayed and clickable.`);
+            }
+
+            selectedProductIds.delete(productId);
+            console.log(`Removed ${productId} from comparison. New selectedProductIds:`, Array.from(selectedProductIds));
         }
 
-        updateCompareButton(); // 즉시 상태 업데이트
+        updateCompareButton();
     }
 
-    // --- 통합 클릭 리스너 ---
     document.querySelector('.jjim-page-container').addEventListener('click', e => {
+        // Check if the clicked element is a checkbox
+        if (e.target.classList.contains('jjim-product-checkbox')) {
+            // Stop event propagation to prevent the parent card's click listener from firing
+            e.stopPropagation();
+            return; // Exit the function as we've handled the checkbox click
+        }
+
         const card = e.target.closest('.jjim-product-card');
         if (card) {
-            moveCard(card);
+            if (card.style.pointerEvents !== 'none' || !card.parentElement.classList.contains('product-grid')) {
+                moveCard(card);
+            }
         }
     });
 
-    // --- 모달 제어 ---
     function showModal() {
         const productsInSlots = slots.map(slot => slot.querySelector('.jjim-product-card'));
-        if (productsInSlots.some(p => !p)) return;
+        if (productsInSlots.some(p => !p)) {
+            alert("비교할 상품 두 개를 모두 선택해주세요."); // Alert if not enough products
+            return;
+        }
 
-        // 데이터 추출 (숨겨진 div의 data-* 속성에서)
         const productsData = productsInSlots.map(card => {
             const details = card.querySelector('.product-details');
             const imgElement = card.querySelector('img');
 
-            // img 요소가 없거나 src가 없는 경우 기본 이미지 사용
             const imgSrc = imgElement && imgElement.src ? imgElement.src : 'https://via.placeholder.com/150';
 
             return {
@@ -184,7 +190,6 @@ document.addEventListener("DOMContentLoaded", () => {
             };
         });
 
-        // 비교 테이블 HTML 생성
         const tableHtml = `
             <button class="close-button" aria-label="Close modal">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -193,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <table class="comparison-table-modal">
                 <thead>
                     <tr>
-                        <th></th> <!-- Empty cell for attribute labels -->
+                        <th></th>
                         ${productsData.map(p => `
                             <th>
                                 <img src="${p.img}" alt="${p.name}">
@@ -225,7 +230,6 @@ document.addEventListener("DOMContentLoaded", () => {
         modalContainer.innerHTML = tableHtml;
         modalOverlay.classList.add('visible');
 
-        // 새로 생긴 닫기 버튼에 이벤트 리스너 다시 할당
         modalContainer.querySelector('.close-button').addEventListener('click', hideModal);
     }
 
@@ -241,44 +245,43 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- 삭제 기능 ---
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const productCheckboxes = document.querySelectorAll('.jjim-product-checkbox');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const jjimGrid = document.getElementById('jjimGrid');
 
     function updateSelectAllCheckbox() {
+        const productCheckboxes = document.querySelectorAll('.jjim-product-checkbox');
         const allChecked = Array.from(productCheckboxes).every(checkbox => checkbox.checked);
         selectAllCheckbox.checked = allChecked;
     }
 
     selectAllCheckbox.addEventListener('change', () => {
-        productCheckboxes.forEach(checkbox => {
+        document.querySelectorAll('.jjim-product-checkbox').forEach(checkbox => {
             checkbox.checked = selectAllCheckbox.checked;
         });
     });
 
-    productCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectAllCheckbox);
+    document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('jjim-product-checkbox')) {
+            updateSelectAllCheckbox();
+        }
     });
 
     deleteSelectedBtn.addEventListener('click', async () => {
-        const selectedProductIds = Array.from(productCheckboxes)
-            .filter(checkbox => checkbox.checked)
+        const selectedProductIdsToDelete = Array.from(document.querySelectorAll('.jjim-product-checkbox:checked'))
             .map(checkbox => checkbox.dataset.productId);
 
-        if (selectedProductIds.length === 0) {
+        if (selectedProductIdsToDelete.length === 0) {
             alert('삭제할 상품을 선택해주세요.');
             return;
         }
 
-        if (!confirm(`선택된 상품 ${selectedProductIds.length}개를 정말 삭제하시겠습니까?`)) {
+        if (!confirm(`선택된 상품 ${selectedProductIdsToDelete.length}개를 정말 삭제하시겠습니까?`)) {
             return;
         }
 
         try {
             const formData = new FormData();
-            formData.append('product_ids', selectedProductIds.join(','));
+            formData.append('product_ids', selectedProductIdsToDelete.join(','));
 
             const response = await fetch('/jjim/delete', {
                 method: 'POST',
@@ -289,16 +292,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (result.success) {
                 alert(`${result.deleted_count}개의 상품이 삭제되었습니다.`);
-                // 삭제된 상품들을 DOM에서 제거
-                selectedProductIds.forEach(id => {
+                selectedProductIdsToDelete.forEach(id => {
                     const cardToRemove = document.querySelector(`.jjim-product-card[data-product-id="${id}"]`);
                     if (cardToRemove) {
+                        const slotCard = slots.find(slot => slot.querySelector(`.jjim-product-card[data-product-id="${id}"]`));
+                        if (slotCard) {
+                            slotCard.classList.remove('filled');
+                            slotCard.innerHTML = `<span>상품 ${slotCard.dataset.slotId}을 선택하세요</span>`;
+                        }
                         cardToRemove.remove();
+                        selectedProductIds.delete(id);
                     }
                 });
-                // 체크박스 상태 초기화
+                updateCompareButton();
                 selectAllCheckbox.checked = false;
-                updateSelectAllCheckbox(); // 혹시 모를 경우를 대비해 다시 호출
+                updateSelectAllCheckbox();
             } else {
                 alert(`상품 삭제 실패: ${result.message}`);
             }

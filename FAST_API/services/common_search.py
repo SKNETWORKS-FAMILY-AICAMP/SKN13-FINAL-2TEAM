@@ -238,25 +238,19 @@ class CommonSearchModule:
         """기본 필터링 적용 - 개선된 버전"""
         filtered = products.copy()
         
-        # 색상 필터링 (매핑 데이터 포함)
+        # 색상 필터링 (색상 필드에서만 정확한 매칭)
         if query.colors:
             color_filtered = []
             for product in filtered:
                 product_color = safe_lower(product.get("색상", ""))
-                product_name = safe_lower(product.get("상품명", ""))
                 
                 color_matched = False
                 for color in query.colors:
                     # 색상 매핑 데이터에서 변형어 가져오기
                     color_variants = self.color_keywords.get(color, [color])
                     
-                    # 색상 필드에서 정확한 매칭
+                    # 색상 필드에서 정확한 매칭만
                     if any(safe_lower(variant) == product_color for variant in color_variants):
-                        color_matched = True
-                        break
-                    
-                    # 상품명에서 색상 키워드 포함 여부 확인
-                    if any(safe_lower(variant) in product_name for variant in color_variants):
                         color_matched = True
                         break
                 
@@ -299,8 +293,8 @@ class CommonSearchModule:
             filtered = category_filtered
             print(f"카테고리 필터링 적용: {query.categories} -> {len(filtered)}개")
         
-        # 브랜드 필터링 (LLM 필터링 실패 시 brand_matcher 사용)
-        if query.brands:
+        # 브랜드 필터링 (브랜드가 명시적으로 지정된 경우만)
+        if query.brands and len(query.brands) > 0:
             brand_filtered = []
             for product in filtered:
                 한글브랜드명 = product.get("한글브랜드명", "")
@@ -376,21 +370,18 @@ class CommonSearchModule:
         """필수 필터 적용 (색상, 카테고리, 브랜드, 가격)"""
         filtered = products.copy()
         
-        # 색상 필터링
+        # 색상 필터링 (색상 필드에서만 정확한 매칭)
         if query.colors:
             color_filtered = []
             for product in filtered:
                 product_color = safe_lower(product.get("색상", ""))
-                product_name = safe_lower(product.get("상품명", ""))
                 
                 color_matched = False
                 for color in query.colors:
                     color_variants = self.color_keywords.get(color, [color])
+                    
+                    # 색상 필드에서 정확한 매칭만
                     if any(safe_lower(variant) == product_color for variant in color_variants):
-                        color_matched = True
-                        break
-                    # 상품명에서도 색상 검색
-                    if any(safe_lower(variant) in product_name for variant in color_variants):
                         color_matched = True
                         break
                 
@@ -433,8 +424,8 @@ class CommonSearchModule:
             filtered = category_filtered
             print(f"📁 카테고리 필터링: {query.categories} → {len(filtered)}개")
         
-        # 브랜드 필터링 (LLM 필터링 실패 시 brand_matcher 사용)
-        if query.brands:
+        # 브랜드 필터링 (브랜드가 명시적으로 지정된 경우만)
+        if query.brands and len(query.brands) > 0:
             brand_filtered = []
             for query_brand in query.brands:
                 # 1. 정확한 매칭 시도 (기존 로직)
@@ -681,7 +672,7 @@ class CommonSearchModule:
             conditions.append(f"카테고리: {', '.join(query.categories)}")
         if query.situations:
             conditions.append(f"상황: {', '.join(query.situations)}")
-        if query.brands:
+        if query.brands and len(query.brands) > 0:
             conditions.append(f"브랜드: {', '.join(query.brands)}")
         if query.price_range:
             min_price, max_price = query.price_range
@@ -731,13 +722,13 @@ class CommonSearchModule:
             한글브랜드명 = safe_lower(product.get("한글브랜드명", ""))
             영어브랜드명 = safe_lower(product.get("영어브랜드명", ""))
             
-            # 색상 유연 검색 (상품명에서만)
+            # 색상 유연 검색 (색상 필드에서만)
             color_flexible = True
             if query.colors:
                 color_found = False
                 for color in query.colors:
                     color_variants = self.color_keywords.get(color, [color])
-                    if any(safe_lower(variant) in product_name for variant in color_variants):
+                    if any(safe_lower(variant) == product_color for variant in color_variants):
                         color_found = True
                         break
                 color_flexible = color_found
@@ -755,7 +746,7 @@ class CommonSearchModule:
             
             # 브랜드 유연 검색 (부분 매칭)
             brand_flexible = True
-            if query.brands:
+            if query.brands and len(query.brands) > 0:
                 brand_found = False
                 for query_brand in query.brands:
                     query_brand_lower = safe_lower(query_brand)

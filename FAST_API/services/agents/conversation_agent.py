@@ -33,7 +33,8 @@ class ConversationAgent:
     
     def process_conversation_request(self, user_input: str, extracted_info: Dict,
                                    available_products: List[Dict],
-                                   context_summaries: Optional[List[str]] = None) -> ConversationAgentResult:
+                                   context_summaries: Optional[List[str]] = None,
+                                   db=None, user_id: Optional[int] = None) -> ConversationAgentResult:
         """
         대화형 추천 요청 처리
         
@@ -42,6 +43,8 @@ class ConversationAgent:
             extracted_info: 추출된 정보 (상황, 스타일 등)
             available_products: 추천할 상품 목록
             context_summaries: 이전 대화 요약들
+            db: 데이터베이스 연결 (선택사항)
+            user_id: 사용자 ID (선택사항)
         
         Returns:
             ConversationAgentResult: 추천 결과
@@ -68,14 +71,13 @@ class ConversationAgent:
             # 2. 추천 스펙을 검색 쿼리로 변환
             search_queries = self._convert_spec_to_queries(recommendation_spec)
             
-            # 3. 각 쿼리별로 상품 검색
-            all_matched_products = []
+            # 3. 각 쿼리별로 상품 검색 (각 조건별로 1개씩만)
+            balanced_products = []
             for query in search_queries:
                 search_result = self.search_module.search_products(query, available_products)
-                all_matched_products.extend(search_result.products)
-            
-            # 4. 상의/하의 균형 맞추기
-            balanced_products = self._balance_products(all_matched_products)
+                if search_result.products:
+                    # 각 조건별로 첫 번째 상품만 선택
+                    balanced_products.append(search_result.products[0])
             
             # 5. 최종 메시지 생성
             final_message = self._generate_final_message(
@@ -91,7 +93,7 @@ class ConversationAgent:
                 metadata={
                     "recommendation_spec": recommendation_spec,
                     "queries_used": len(search_queries),
-                    "total_found": len(all_matched_products),
+                    "total_found": len(balanced_products),
                     "agent_type": "conversation"
                 }
             )
@@ -148,8 +150,7 @@ class ConversationAgent:
             "category": "상의|하의",
             "color": "구체적인 색상",
             "type": "구체적인 의류 종류",
-            "reason": "추천 이유",
-            "brands": "추출된 브랜드들",
+            "reason": "추천 이유"
         }}
     ],
     "styling_tips": "전체적인 스타일링 팁",
@@ -161,10 +162,10 @@ class ConversationAgent:
 2. 색상 조합이 조화롭게
 3. 상황에 맞는 스타일
 4. 의류 종류는 다음 중에서만 사용:
-   - 상의: 후드티, 셔츠/블라우스, 긴소매, 반소매, 피케/카라, 니트/스웨터, 슬리브리스
-   - 하의: 데님팬츠, 트레이닝/조거팬츠, 코튼팬츠, 슈트팬츠/슬랙스, 숏팬츠, 카고팬츠 
-   - 스커트 : 미니스커트, 미디스커트, 롱스커트
-   - 원피스 : 미니원피스, 미디원피스, 맥시원피스
+   - 후드티, 셔츠/블라우스, 긴소매, 반소매, 피케/카라, 니트/스웨터, 슬리브리스
+   - 데님팬츠, 트레이닝/조거팬츠, 코튼팬츠, 슈트팬츠/슬랙스, 숏팬츠, 카고팬츠 
+   - 미니스커트, 미디스커트, 롱스커트
+   - 미니원피스, 미디원피스, 맥시원피스
 5. 색상은 기본 색상명 사용 (블랙, 화이트, 그레이, 네이비, 베이지, 브라운, 카키 등)
 6. 이전 대화 내용이 있으면 연관성 고려"""
 
@@ -202,76 +203,18 @@ class ConversationAgent:
             
             # 필수 정보가 있는 경우만 쿼리 생성
             if category and color and item_type:
-                # 브랜드 정보 추출
-                brands = []
-                if rec.get("brands"):
-                    if isinstance(rec["brands"], str):
-                        brands = [rec["brands"]]
-                    elif isinstance(rec["brands"], list):
-                        brands = rec["brands"]
-                
+                # Conversation Agent에서는 브랜드 필터링 제외 (상황별 추천이므로)
                 query = SearchQuery(
                     colors=[color],
                     categories=[item_type],  # 원본 타입 그대로 사용
                     situations=[],
                     styles=[],
-                    brands=brands
+                    brands=[]  # 브랜드 필터링 제외
                 )
                 queries.append(query)
         
         return queries
     
-    def _balance_products(self, products: List[Dict]) -> List[Dict]:
-        """상의/하의 균형을 맞춰 최종 상품 선택"""
-        if not products:
-            return []
-        
-        # 상의/하의 분류
-        top_products = []
-        bottom_products = []
-        
-        for product in products:
-            대분류 = product.get("대분류", "").lower()
-            소분류 = product.get("소분류", "").lower()
-            
-            if any(keyword in 대분류 or keyword in 소분류 
-                  for keyword in ["상의", "탑", "top", "셔츠", "니트", "후드"]):
-                top_products.append(product)
-            elif any(keyword in 대분류 or keyword in 소분류 
-                    for keyword in ["하의", "바텀", "bottom", "바지", "팬츠", "pants"]):
-                bottom_products.append(product)
-        
-        # 균형 맞춰 선택
-        final_products = []
-        
-        if len(top_products) >= 2 and len(bottom_products) >= 2:
-            final_products.extend(random.sample(top_products, 2))
-            final_products.extend(random.sample(bottom_products, 2))
-        elif len(top_products) >= 2:
-            final_products.extend(random.sample(top_products, 2))
-            remaining = min(2, len(bottom_products))
-            if remaining > 0:
-                final_products.extend(random.sample(bottom_products, remaining))
-        elif len(bottom_products) >= 2:
-            final_products.extend(random.sample(bottom_products, 2))
-            remaining = min(2, len(top_products))
-            if remaining > 0:
-                final_products.extend(random.sample(top_products, remaining))
-        else:
-            # 균형이 안 맞으면 전체에서 4개 선택
-            count = min(4, len(products))
-            final_products = random.sample(products, count)
-        
-        # 중복 제거
-        seen_ids = set()
-        unique_products = []
-        for product in final_products:
-            product_id = product.get("상품코드", id(product))
-            if product_id not in seen_ids:
-                seen_ids.add(product_id)
-                unique_products.append(product)
-        
-        return unique_products[:4]
     
     def _generate_final_message(self, user_input: str, recommendation_spec: Dict,
                               products: List[Dict], context_summaries: Optional[List[str]]) -> str:
@@ -296,6 +239,13 @@ class ConversationAgent:
             else:
                 bottom_products.append(product)
         
+        # LLM 추천 스펙에서 reason 정보 추출 및 순서별 할당
+        recommendations = recommendation_spec.get("recommendations", [])
+        
+        # 상의/하의별 추천 이유 분리
+        top_recommendations = [rec for rec in recommendations if rec.get("category", "").lower() == "상의"]
+        bottom_recommendations = [rec for rec in recommendations if rec.get("category", "").lower() == "하의"]
+        
         # 상의 섹션
         if top_products:
             message += "👕 **상의 추천**\n"
@@ -304,10 +254,19 @@ class ConversationAgent:
                 brand = product.get('한글브랜드명', '브랜드 없음')
                 price = product.get('원가', 0)
                 
+                # 순서대로 추천 이유 할당 (안전하게)
+                reason = ""
+                if i <= len(top_recommendations):
+                    reason = top_recommendations[i-1].get("reason", "")
+                elif top_recommendations:  # 추천 이유가 있으면 마지막 것 사용
+                    reason = top_recommendations[-1].get("reason", "")
+                
                 message += f"**{i}. {product_name}**\n"
                 message += f"   📍 브랜드: {brand}\n"
                 if price:
                     message += f"   💰 가격: {price:,}원\n"
+                if reason:
+                    message += f"   💡 추천 이유: {reason}\n"
                 message += "\n"
         
         # 하의 섹션
@@ -318,10 +277,19 @@ class ConversationAgent:
                 brand = product.get('한글브랜드명', '브랜드 없음')
                 price = product.get('원가', 0)
                 
+                # 순서대로 추천 이유 할당 (안전하게)
+                reason = ""
+                if i <= len(bottom_recommendations):
+                    reason = bottom_recommendations[i-1].get("reason", "")
+                elif bottom_recommendations:  # 추천 이유가 있으면 마지막 것 사용
+                    reason = bottom_recommendations[-1].get("reason", "")
+                
                 message += f"**{i}. {product_name}**\n"
                 message += f"   📍 브랜드: {brand}\n"
                 if price:
                     message += f"   💰 가격: {price:,}원\n"
+                if reason:
+                    message += f"   💡 추천 이유: {reason}\n"
                 message += "\n"
         
         # 스타일링 팁 추가

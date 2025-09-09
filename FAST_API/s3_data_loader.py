@@ -99,17 +99,19 @@ class S3DataLoader:
             raw_data = df.to_dict("records")
             
             clothing_data = []
-            for item in raw_data:
+            for idx, item in enumerate(raw_data):
                 price_val = item.get("원가")
                 price = int(price_val) if isinstance(price_val, (int, float)) and pd.notna(price_val) else 0
                 image_url = self.fix_image_url(item.get("이미지URL") or "")
+
+                product_code = str(item.get("상품코드")) if item.get("상품코드") else f"generated_id_{idx}"
 
                 mapped_item = {
                     "사진": image_url,
                     "상품명": item.get("상품명") or "상품 정보 없음",
                     "한글브랜드명": item.get("한글브랜드명") or "브랜드 정보 없음",
                     "가격": price,
-                    "상품코드": str(item.get("상품코드")) if item.get("상품코드") else "",
+                    "상품코드": product_code,
                     "대분류": item.get("대분류", ""),
                     "소분류": item.get("소분류", ""),
                     "원가": price,

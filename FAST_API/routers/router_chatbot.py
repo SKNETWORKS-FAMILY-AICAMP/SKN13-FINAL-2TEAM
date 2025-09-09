@@ -56,10 +56,12 @@ async def handle_image_recommendation(
     recommendations = result.get("recommendations", [])
     products = [
         {
-            "상품코드": r.get("id"),
-            "상품명": r.get("payload", {}).get("product_name", "정보 없음"),
-            "가격": r.get("payload", {}).get("price", 0),
-            "사진": r.get("payload", {}).get("image_url", ""),
+            "상품코드": r.get("상품코드"),
+            "상품명": r.get("상품명", "상품명 없음"),
+            "한글브랜드명": r.get("한글브랜드명", "브랜드 없음"),
+            "가격": r.get("원가", 0),
+            "사진": r.get("사진", ""),
+            "상품링크": r.get("상품링크", ""),
         } for r in recommendations
     ]
     

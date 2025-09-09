@@ -166,7 +166,9 @@ async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: st
         "dress": "modules.dress",
         "skirt": "modules.skirt",
         }
-    if not module_name: raise ValueError(f"지원하지 않는 카테고리입니다: {category_en}")
+    module_name = MODULE_MAP.get(category_en)
+    if not module_name: 
+        raise ValueError(f"지원하지 않는 카테고리입니다: {category_en}")
 
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
@@ -183,10 +185,10 @@ async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: st
         raise
 
 
-from data_store import get_product_by_id
+from data_store import clothing_data
 
 def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
-    """Qdrant에서 유사한 아이템을 검색하고, 중앙 조회 테이블에서 전체 상품 정보로 보강합니다."""
+    """Qdrant에서 유사한 아이템을 검색하고, clothing_data에서 전체 상품 정보로 보강합니다."""
     logger.info("Qdrant 유사도 검색 시작...")
     client = get_qdrant_client()
 
@@ -202,18 +204,20 @@ def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
 
     logger.info(f"Qdrant 유사도 검색 완료. {len(search_result)}개 결과 수신.")
 
-    # 데이터 보강: Qdrant 결과의 ID를 사용하여 중앙 조회 테이블에서 전체 상품 정보 조회
+    # 데이터 보강: Qdrant 결과의 ID를 사용하여 clothing_data에서 전체 상품 정보 조회
     enriched_results = []
     for point in search_result:
         product_id = str(point.id)
-        full_product_data = get_product_by_id(product_id)
+        # clothing_data에서 직접 검색 (다른 곳에서 사용하는 방식과 동일)
+        full_product_data = next((p for p in clothing_data if str(p.get('상품코드')) == product_id), None)
 
         if full_product_data:
             enriched_item = full_product_data.copy()
             enriched_item['score'] = point.score
             enriched_results.append(enriched_item)
+            logger.info(f"✅ 상품 {product_id} 조회 성공: {full_product_data.get('상품명', '이름 없음')}")
         else:
-            logger.warning(f"ID {product_id}에 해당하는 상품을 데이터 저장소에서 찾을 수 없습니다. Qdrant 페이로드를 사용합니다.")
+            logger.warning(f"ID {product_id}에 해당하는 상품을 clothing_data에서 찾을 수 없습니다. Qdrant 페이로드를 사용합니다.")
             # 데이터 구조 일관성을 위해 '상품코드' 키를 명시적으로 추가
             fallback_item = {
                 "상품코드": str(point.id),
@@ -223,6 +227,7 @@ def search_similar_items_in_qdrant(embeddings: dict, limit: int = 5) -> list:
             }
             enriched_results.append(fallback_item)
 
+    logger.info(f"데이터 보강 완료: {len(enriched_results)}개 상품")
     return enriched_results
 
 # === 메인 파이프라인 함수 ===

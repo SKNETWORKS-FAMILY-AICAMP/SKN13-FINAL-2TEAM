@@ -492,9 +492,7 @@
     color: var(--text-secondary);
 }
 
-.no-products-message {
-    text-align: center;
-    padding: 5rem;
-    font-size: 1.2rem;
-    color: var(--text-secondary);
+.jjim-product-card.selected-for-comparison {
+    opacity: 0.5;
+    cursor: default;
 }

@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
             card.dataset.productImage = product.이미지URL || product.대표이미지URL || '';
             card.dataset.productLink = product.상품링크 || '';
             card.dataset.type = product.의류타입 || product.대분류 || ''; // Keep for backward compatibility if needed
+            card.dataset.productSite = product.사이트명 || '';
 
             // 가격 포맷팅 (원가 사용)
             const price = product.원가 || 0;

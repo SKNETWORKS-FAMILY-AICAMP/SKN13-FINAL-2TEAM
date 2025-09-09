@@ -5,6 +5,7 @@ import uuid
 import tempfile
 import os
 from typing import List, Dict, Optional
+import traceback # ADDED
 
 from db import get_db
 from dependencies import login_required, get_category_info
@@ -212,6 +213,7 @@ async def chat_recommend(
 
     except Exception as e:
         print(f"텍스트 챗봇 오류: {e}")
+        traceback.print_exc() # ADDED: Print full traceback
         error_message = "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요."
         create_chat_message(db, session_id, "bot", error_message)
         return JSONResponse(content={"message": error_message, "products": [], "session_id": session_id})

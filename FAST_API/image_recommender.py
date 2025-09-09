@@ -23,6 +23,7 @@ AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-2")
 S3_BUCKET = os.getenv("S3_BUCKET_NAME")
 MODEL_KEY = os.getenv("S3_MODEL_KEY", "best.pt")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://43.201.185.192:6333")
+print(f"DEBUG: QDRANT_URL from environment: {QDRANT_URL}") # ADDED DEBUG PRINT
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "ivlle")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -166,6 +167,7 @@ async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: st
         "dress": "modules.dress",
         "skirt": "modules.skirt",
         }
+    module_name = MODULE_MAP.get(category_en)
     if not module_name: raise ValueError(f"지원하지 않는 카테고리입니다: {category_en}")
 
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY

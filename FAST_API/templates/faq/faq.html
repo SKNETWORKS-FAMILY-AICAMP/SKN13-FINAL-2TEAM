@@ -5,177 +5,95 @@
 {% endblock %}
 
 {% block content %}
-<section class="faq-wrap">
-  <div class="faq-hero">
+<div class="faq-container">
+  <div class="faq-header">
     <h1>FAQ</h1>
-    <p>Ivle Malle에 대한 자주 묻는 질문을 모았습니다. 아래에서 검색하거나 카테고리로 빠르게 찾아보세요.</p>
-    <div class="cta">
-      <button class="btn-primary btn" id="inquire-btn">문의하기</button>
-      <button class="btn" id="expand-all">모두 펼치기</button>
-      <button class="btn" id="collapse-all">모두 접기</button>
-    </div>
+    <p>Ivle Malle에 대한 자주 묻는 질문을 모았습니다. 검색창에서 키워드를 입력해서 빠르게 찾아보세요.</p>
+  </div>
 
-    <div class="faq-tools">
-      <div class="searchbar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <input id="faq-search" type="text" placeholder="키워드로 검색 (예: 결제, 환불, 추천)" aria-label="FAQ 검색">
-      </div>
-      <div class="chips" id="faq-chips">
-        {% for cat in categories %}
-          <span class="chip {% if cat.key == 'all' %}active{% endif %}" data-cat="{{ cat.key }}">{{ cat.label }}</span>
-        {% endfor %}
-      </div>
+  <div class="search-container">
+    <div class="search-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <input type="text" id="search-input" placeholder="궁금한 내용을 검색해보세요...">
     </div>
   </div>
 
-  <div class="faq-accordion" id="faq-list">
+  <div class="faq-list" id="faq-list">
     {% for item in faq_data %}
-    <div class="faq-item" data-cat="{{ item.category }}" id="{{ item.id }}">
-      <button class="faq-q" aria-expanded="false">
-        <span class="q-left">
-          <span class="badge-cat">
-            {% for cat in categories %}{% if cat.key == item.category %}{{ cat.label }}{% endif %}{% endfor %}
-          </span>
-          {{ item.question }}
-        </span>
-        <span class="chev">▶</span>
-      </button>
-      <div class="faq-a" role="region" aria-labelledby="{{ item.id }}">
-        <div class="faq-a-inner">
-          {{ item.answer }}
-        </div>
+    <div class="faq-item" data-question="{{ item.question|lower }}" data-answer="{{ item.answer|lower }}">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <span class="question-text">{{ item.question }}</span>
+        <span class="toggle-icon">+</span>
       </div>
-      <div class="faq-footer">
-        <span>항목 링크를 복사해 공유할 수 있어요.</span>
-        <button class="copy-link" data-anchor="#{{ item.id }}">링크 복사</button>
+      <div class="faq-answer">
+        <div class="answer-content">{{ item.answer }}</div>
       </div>
     </div>
     {% endfor %}
   </div>
-</section>
 
-<!-- Coming Soon Modal -->
-<div id="comingSoonModal" class="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:2000;">
-  <div style="background:white; color: #333; padding:30px; width:90%; max-width:400px; border-radius:12px; text-align:center; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
-    <h2 style="margin-top:0; margin-bottom:15px; font-weight:600;">알림</h2>
-    <p style="margin-bottom:25px; line-height:1.6;">추후 업데이트 예정인 기능입니다.</p>
-    <button id="closeComingSoonModal" style="padding:10px 20px; border:none; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border-radius:8px; cursor:pointer; font-weight:600;">확인</button>
+  <div class="no-results" id="no-results" style="display: none;">
+    <div class="no-results-icon">🔍</div>
+    <div class="no-results-text">검색 결과가 없습니다</div>
+    <div class="no-results-subtext">다른 키워드로 검색해보세요</div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
 <script>
-document.addEventListener('DOMContentLoaded', function(){
-  const list = document.getElementById('faq-list');
-  const search = document.getElementById('faq-search');
-  const chips = document.getElementById('faq-chips');
-  const expandAll = document.getElementById('expand-all');
-  const collapseAll = document.getElementById('collapse-all');
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('search-input');
+  const faqList = document.getElementById('faq-list');
+  const noResults = document.getElementById('no-results');
+  const faqItems = document.querySelectorAll('.faq-item');
 
-  function setOpen(item, open){
-    item.classList.toggle('open', open);
-    const q = item.querySelector('.faq-q');
-    const a = item.querySelector('.faq-a');
-    if (q) q.setAttribute('aria-expanded', String(open));
-    if (a){
-      a.style.maxHeight = open ? (a.scrollHeight + 'px') : '0px';
-    }
-  }
+  // 검색 기능
+  searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    let visibleCount = 0;
 
-  // open/close on click
-  list.addEventListener('click', function(e){
-    const btn = e.target.closest('.faq-q');
-    if (!btn) return;
-    const item = btn.closest('.faq-item');
-    setOpen(item, !item.classList.contains('open'));
-  });
-
-  function filter(){
-    const q = (search?.value || '').toLowerCase();
-    const activeChip = chips.querySelector('.chip.active');
-    const cat = activeChip ? activeChip.dataset.cat : 'all';
-    let any = false;
-    list.querySelectorAll('.faq-item').forEach(item => {
-      const matchesCat = (cat === 'all') || (item.dataset.cat === cat);
-      const text = item.textContent.toLowerCase();
-      const matches = matchesCat && (!q || text.includes(q));
-      item.style.display = matches ? '' : 'none';
-      if (matches) any = true;
-    });
-    return any;
-  }
-  search?.addEventListener('input', filter);
-
-  chips.addEventListener('click', function(e){
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    chips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    filter();
-  });
-
-  // expand/collapse visible only
-  expandAll?.addEventListener('click', function(){
-    list.querySelectorAll('.faq-item').forEach(item => {
-      if (item.style.display !== 'none') setOpen(item, true);
-    });
-  });
-  collapseAll?.addEventListener('click', function(){
-    list.querySelectorAll('.faq-item').forEach(item => setOpen(item, false));
-  });
-
-  // Deep-link open
-  if (location.hash){
-    const t = document.querySelector(location.hash);
-    if (t && t.classList.contains('faq-item')){
-      setOpen(t, true);
-      t.scrollIntoView({behavior:'smooth', block:'start'});
-    }
-  }
-
-  // Copy link
-  list.addEventListener('click', function(e){
-    const btn = e.target.closest('.copy-link');
-    if (!btn) return;
-    const anchor = btn.dataset.anchor || '';
-    const url = location.origin + location.pathname + anchor;
-    navigator.clipboard.writeText(url).then(()=>{
-      btn.textContent = '복사됨!';
-      setTimeout(()=> btn.textContent = '링크 복사', 1200);
-    });
-  });
-
-  // initial
-  filter();
-
-  // Coming Soon Modal Logic
-  const inquireBtn = document.getElementById('inquire-btn');
-  const comingSoonModal = document.getElementById('comingSoonModal');
-  const closeComingSoonModalBtn = document.getElementById('closeComingSoonModal');
-
-  if (inquireBtn) {
-    inquireBtn.addEventListener('click', function(e) {
-      e.preventDefault(); // Prevent default link behavior
-      comingSoonModal.style.display = 'flex';
-    });
-  }
-
-  if (closeComingSoonModalBtn) {
-    closeComingSoonModalBtn.addEventListener('click', function() {
-      comingSoonModal.style.display = 'none';
-    });
-  }
-
-  // Close modal when clicking outside
-  if (comingSoonModal) {
-    comingSoonModal.addEventListener('click', function(e) {
-      if (e.target === comingSoonModal) {
-        comingSoonModal.style.display = 'none';
+    faqItems.forEach(item => {
+      const question = item.dataset.question;
+      const answer = item.dataset.answer;
+      const isVisible = !searchTerm || question.includes(searchTerm) || answer.includes(searchTerm);
+      
+      if (isVisible) {
+        item.style.display = 'block';
+        visibleCount++;
+      } else {
+        item.style.display = 'none';
       }
     });
-  }
+
+    // 검색 결과가 없을 때
+    if (searchTerm && visibleCount === 0) {
+      noResults.style.display = 'block';
+      faqList.style.display = 'none';
+    } else {
+      noResults.style.display = 'none';
+      faqList.style.display = 'block';
+    }
+  });
 });
+
+// FAQ 토글 기능
+function toggleFAQ(element) {
+  const faqItem = element.parentElement;
+  const answer = faqItem.querySelector('.faq-answer');
+  const icon = element.querySelector('.toggle-icon');
+  
+  if (faqItem.classList.contains('active')) {
+    faqItem.classList.remove('active');
+    answer.style.maxHeight = '0';
+    icon.textContent = '+';
+  } else {
+    faqItem.classList.add('active');
+    answer.style.maxHeight = answer.scrollHeight + 'px';
+    icon.textContent = '−';
+  }
+}
 </script>
 {% endblock %}

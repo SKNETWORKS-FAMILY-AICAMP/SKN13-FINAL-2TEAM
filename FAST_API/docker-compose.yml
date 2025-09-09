@@ -9,7 +9,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      # - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - fastapi-app
     restart: unless-stopped
@@ -24,6 +24,8 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     expose: ["8000"]
     environment:
+      - QDRANT_URL=http://qdrant:6333
+
       # FASTAPI용 SSL 인증서는 유지
       - FASTAPI_SSL_CERT_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/fullchain.pem
       - FASTAPI_SSL_KEY_FILE=/etc/letsencrypt/live/43.201.185.192.nip.io/privkey.pem
@@ -36,7 +38,6 @@ services:
       - GOOGLEMAP_API_KEY=${GOOGLEMAP_API_KEY:-}
       - WEATHER_API_KEY=${WEATHER_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - QDRANT_URL=http://qdrant:6333 # ADDED: Qdrant URL for internal Docker network communication
     env_file:
       - .env
     volumes:
@@ -51,6 +52,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    # --- qdrant가 먼저 실행되도록 의존성 추가 ---
+    depends_on:
+      - qdrant
     networks:
       - app-network
 

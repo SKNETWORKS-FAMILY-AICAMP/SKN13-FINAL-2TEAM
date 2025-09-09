@@ -126,19 +126,14 @@ def update_recommendation_feedback(
     feedback_reason: str = None
 ) -> bool:
     """추천에 대한 피드백을 업데이트합니다."""
-    print(f"CRUD: 피드백 업데이트 시작 - recommendation_id={recommendation_id}, user_id={user_id}")
-    
     recommendation = db.query(Recommendation).filter(
         Recommendation.id == recommendation_id,
         Recommendation.user_id == user_id
     ).first()
     
-    print(f"CRUD: 추천 기록 조회 결과 - {recommendation is not None}")
-    
     if recommendation:
         # 코멘트가 있는 경우와 일반 피드백을 구분하여 처리
         if feedback_reason and feedback_reason.strip():  # 코멘트가 있는 경우
-            print(f"CRUD: 코멘트 추가/업데이트 - reason={feedback_reason}")
             # 코멘트는 기존 코멘트에 추가 (덮어쓰지 않음)
             if recommendation.feedback_reason:
                 # 기존 코멘트가 있으면 새 줄로 추가
@@ -147,22 +142,17 @@ def update_recommendation_feedback(
                 # 기존 코멘트가 없으면 새로 저장
                 recommendation.feedback_reason = feedback_reason
             db.commit()
-            print(f"CRUD: 코멘트 업데이트 완료")
             return True
         else:  # 일반 피드백만 있는 경우
             # 이미 피드백이 있는지 확인
             if recommendation.feedback_rating is not None:
-                print(f"CRUD: 이미 피드백이 존재함 - 기존 rating={recommendation.feedback_rating}")
                 # 기존 피드백이 있으면 업데이트하지 않고 True 반환 (중복 방지)
                 return True
             
-            print(f"CRUD: 새로운 피드백 추가 - rating={feedback_rating}")
             recommendation.feedback_rating = feedback_rating
             db.commit()
-            print(f"CRUD: 피드백 업데이트 완료")
             return True
     else:
-        print(f"CRUD: 추천 기록을 찾을 수 없음")
         return False
 
 def get_recommendation_feedback_stats(

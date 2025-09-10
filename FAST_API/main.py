@@ -63,8 +63,8 @@ from starlette.responses import Response
 
 def url_for(request: StarletteRequest, name: str, **path_params: str) -> str:
     if name == "static":
-        scheme = "https" if request.headers.get("X-Forwarded-Proto") == "https" else "https"
-        host = request.headers.get("Host", "43.201.185.192")
+        scheme = "https" 
+        host = request.headers.get("Host", os.getenv("DEFAULT_HOST", "localhost"))
         return f"{scheme}://{host}/static/{path_params.get('path', '')}"
     return request.url_for(name, **path_params)
 

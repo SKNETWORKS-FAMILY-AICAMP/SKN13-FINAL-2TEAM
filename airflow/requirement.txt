@@ -1,0 +1,36 @@
+# --- 필수 ---
+setuptools
+wheel
+
+# --- Airflow (2.9.x 안정버전, Celery + Postgres + Redis) ---
+apache-airflow[celery,postgres,redis]==2.9.*
+# constraints는 설치 명령어에 따로 넣어야 함
+
+# --- 크롤링 & 파싱 ---
+selenium
+requests
+beautifulsoup4
+lxml
+
+# --- 데이터 처리 & ML ---
+pandas
+numpy
+scikit-learn
+matplotlib
+
+# --- YOLO & CV ---
+ultralytics
+torch
+torchvision
+opencv-python-headless
+
+# --- 클라우드/S3 ---
+boto3
+
+# --- LLM / 임베딩 ---
+openai
+faiss-cpu
+
+# --- DB 연동 & 유틸 ---
+psycopg2-binary
+python-dotenv

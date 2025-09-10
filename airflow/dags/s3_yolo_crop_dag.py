@@ -1,0 +1,167 @@
+from __future__ import annotations
+from datetime import datetime, timedelta
+import os, io, tempfile, shutil, logging
+import pandas as pd
+import requests
+import boto3
+from airflow import DAG
+from airflow.decorators import task
+from airflow.models import Variable
+from ultralytics import YOLO
+from PIL import Image
+
+# === 로거 ===
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# === Variables ===
+AWS_ACCESS_KEY_ID     = Variable.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = Variable.get("AWS_SECRET_ACCESS_KEY")
+AWS_REGION            = Variable.get("AWS_REGION", default_var="ap-northeast-2")
+S3_BUCKET             = Variable.get("S3_BUCKET_NAME")
+
+CSV_KEY        = Variable.get("S3_CSV_KEY",   default_var="product_info.csv")
+MODEL_KEY      = Variable.get("S3_MODEL_KEY", default_var="best.pt")
+# 플레이스홀더 지원: {대분류}, {label}, {category}
+OUTPUT_PREFIX  = Variable.get("S3_OUTPUT_PREFIX", default_var="crop_image/")
+ROW_LIMIT      = int(Variable.get("ROW_LIMIT", default_var="0"))
+
+CONF_TH = float(Variable.get("YOLO_CONF", default_var="0.5"))
+IOU_TH  = float(Variable.get("YOLO_IOU",  default_var="0.45"))
+
+LABEL_MAP = {
+    "상의": "top",
+    "바지": "pants",
+    "원피스": "dress",
+    "스커트": "skirt",
+}
+
+default_args = {"owner": "airflow", "retries": 1, "retry_delay": timedelta(minutes=3)}
+
+def s3_client():
+    session = boto3.session.Session(
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION,
+    )
+    return session.client("s3")
+
+def resolve_prefix(category_kr: str, target_label: str) -> str:
+    """S3_OUTPUT_PREFIX에서 플레이스홀더를 실제 값으로 치환하고 끝에 / 보장"""
+    p = OUTPUT_PREFIX
+    p = p.replace("{대분류}", category_kr)
+    p = p.replace("{category}", category_kr)
+    p = p.replace("{label}", target_label)
+    if p and not p.endswith("/"):
+        p += "/"
+    return p
+
+with DAG(
+    dag_id="s3_yolo_crop",
+    start_date=datetime(2025, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+    default_args=default_args,
+    tags=["s3", "yolo", "crop"],
+) as dag:
+
+    @task()
+    def download_model_from_s3() -> str:
+        s3 = s3_client()
+        tmpdir = tempfile.mkdtemp(prefix="yolo_model_")
+        model_path = os.path.join(tmpdir, "best.pt")
+        s3.download_file(S3_BUCKET, MODEL_KEY, model_path)
+        logger.info("[MODEL] downloaded from s3://%s/%s → %s", S3_BUCKET, MODEL_KEY, model_path)
+        return model_path
+
+    @task()
+    def process_and_upload_crops(model_path: str) -> int:
+        model = YOLO(model_path)
+        model.to("cpu")
+        s3 = s3_client()
+
+        # CSV 로드
+        obj = s3.get_object(Bucket=S3_BUCKET, Key=CSV_KEY)
+        df = pd.read_csv(io.BytesIO(obj["Body"].read()))
+        if ROW_LIMIT > 0:
+            df = df.head(ROW_LIMIT)
+
+        total = len(df)
+        logger.info("[CSV] loaded %d rows from s3://%s/%s", total, S3_BUCKET, CSV_KEY)
+
+        saved = 0
+        workdir = tempfile.mkdtemp(prefix="yolo_work_")
+        try:
+            # enumerate로 진행률 표시 (1부터 시작)
+            for i, (_, row) in enumerate(df.iterrows(), start=1):
+                product_id  = str(row["상품코드"])
+                category_kr = str(row["대분류"]).strip()
+                url         = str(row["이미지URL"]).strip()
+
+                logger.info("[PROGRESS] %d/%d processing product_id=%s category=%s",
+                            i, total, product_id, category_kr)
+
+                target = LABEL_MAP.get(category_kr)
+                if not target:
+                    logger.warning("[SKIP] Unsupported category=%s (product_id=%s)", category_kr, product_id)
+                    continue
+
+                # 이미지 다운로드
+                try:
+                    r = requests.get(url, timeout=12)
+                    r.raise_for_status()
+                    img = Image.open(io.BytesIO(r.content)).convert("RGB")
+                    logger.info("[DL] OK product_id=%s url=%s", product_id, url[:80])
+                except Exception as e:
+                    logger.error("[SKIP] Download fail product_id=%s url=%s err=%s", product_id, url[:80], e)
+                    continue
+
+                # YOLO 추론
+                results = model(img, conf=CONF_TH, iou=IOU_TH, verbose=False)
+                best = None
+                for res in results:
+                    if res.boxes is None:
+                        continue
+                    for box, cls, conf in zip(res.boxes.xyxy, res.boxes.cls, res.boxes.conf):
+                        label = model.names[int(cls)].lower()
+                        c = float(conf)
+                        if label == target and c >= CONF_TH:
+                            if (best is None) or (c > best[0]):
+                                best = (c, box)
+
+                if best is None:
+                    logger.warning("[SKIP] product_id=%s target=%s → no detection >= %.2f",
+                                   product_id, target, CONF_TH)
+                    continue
+
+                # 크롭 (최소 한 변 필터링 제거됨)
+                _, best_box = best
+                x1, y1, x2, y2 = map(int, best_box.tolist())
+                cropped = img.crop((x1, y1, x2, y2))
+
+                # 저장 + 업로드
+                fname = f"crop_{category_kr}_{product_id}.jpg"
+                local = os.path.join(workdir, fname)
+                cropped.save(local, format="JPEG", quality=95)
+
+                prefix = resolve_prefix(category_kr, target)
+                key = f"{prefix}{fname}"
+
+                s3.upload_file(local, S3_BUCKET, key, ExtraArgs={"ContentType": "image/jpeg"})
+                saved += 1
+                logger.info("[SAVED] %s (conf=%.2f) | progress %d/%d | saved=%d",
+                            f"s3://{S3_BUCKET}/{key}", best[0], i, total, saved)
+
+            logger.info("[DONE] total saved=%d of %d", saved, total)
+            return saved
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
+
+    @task()
+    def report(n: int):
+        logger.info("[REPORT] Uploaded crop images: %d", n)
+        print(f"[DONE] 업로드된 크롭 이미지 수: {n}")
+
+    model_file = download_model_from_s3()
+    n = process_and_upload_crops(model_file)
+    report(n)

@@ -30,12 +30,12 @@
 <!-- Content Rows -->
         {% for section_title, section_items in [
             ("USER_CONTENT_TITLE", section1_items),
-            ("지금 뜨는 콘텐츠", section2_items),
-            ("새로 추가된 콘텐츠", section3_items)
+            ("지금 뜨는 상품", section2_items),
+            ("새로 추가된 상품", section3_items)
         ] %}
         <section class="content-row">
         {% if section_title == "USER_CONTENT_TITLE" %}
-            <h2>{{ request.session.user_name }}님이 좋아할 만한 콘텐츠</h2>
+            <h2>{{ request.session.user_name }}님이 좋아할 만한 상품 </h2>
         {% else %}
             <h2>{{ section_title }}</h2>
         {% endif %}

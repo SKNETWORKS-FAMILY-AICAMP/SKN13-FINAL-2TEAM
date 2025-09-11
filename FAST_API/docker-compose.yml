@@ -90,6 +90,16 @@ services:
     networks:
       - app-network
 
+  locust:
+    image: locustio/locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./locustfile.py:/mnt/locust/locustfile.py
+    command: -f /mnt/locust/locustfile.py --host=https://43.201.185.192.nip.io
+    depends_on:
+      - fastapi-app
+
   # Optional: Add PostgreSQL service for local development
   # postgres:
   #   image: postgres:15

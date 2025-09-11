@@ -1,12 +1,17 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
-import os, io, tempfile, shutil, logging, importlib
-import json 
+import os, io, tempfile, shutil, logging
+import json
 import boto3
 import pandas as pd
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models import Variable
+from typing import List, Tuple, Dict
+from itertools import islice
+import importlib  # [ADD]
+from airflow.operators.python import get_current_context
+
 
 # --- Qdrant imports (version-safe) ---
 from qdrant_client import QdrantClient
@@ -35,10 +40,19 @@ OUTPUT_KEY  = Variable.get("S3_EMBED_KEY",  default_var="embeddings/embedding_fi
 # 상품 정보 CSV (예: "29cm_1000.csv")
 PRODUCT_CSV_KEY = Variable.get("S3_CSV_KEY", default_var="product_info.csv")
 
-# Qdrant 연결 정보 
+# Qdrant 연결 정보
 QDRANT_URL        = Variable.get("QDRANT_URL", default_var="http://43.201.185.192:6333")
 QDRANT_COLLECTION = Variable.get("QDRANT_COLLECTION", default_var="ivlle")
-QDRANT_API_KEY    = Variable.get("QDRANT_API_KEY", default_var="") 
+QDRANT_API_KEY    = Variable.get("QDRANT_API_KEY", default_var="")
+
+# ---------- 배치 헬퍼 ----------
+def chunks(iterable, n):
+    it = iter(iterable)
+    while True:
+        batch = list(islice(it, n))
+        if not batch:
+            break
+        yield batch
 
 # === 모듈 매핑 (대분류 → 파이썬 모듈 경로) ===
 MODULE_MAP = {
@@ -58,9 +72,8 @@ def s3_client():
     )
     return session.client("s3")
 
-
 with DAG(
-    dag_id="embedding_pipeline",
+    dag_id="embedding_pipeline2",
     start_date=datetime(2025, 1, 1),
     schedule_interval=None,
     catchup=False,
@@ -91,20 +104,34 @@ with DAG(
         """
         - 상품 CSV 내려받아 (상품코드→(대분류, 소분류)) 매핑 구성
         - 파일명 crop_{대분류}_{상품코드}.jpg 파싱
-        - 모듈.process_one(image_path, product_id, category_kr, type_kr) 호출
+        - [MOD] 모듈.process_batch(image_path, product_id, category_kr, type_kr)만 호출
         - CSV 저장
         """
         # OpenAI 키 환경변수로 주입
         os.environ["OPENAI_API_KEY"] = Variable.get("OPENAI_API_KEY")
 
+        # 배치/동시성 설정을 Variable로 받기 (기본값 포함)
+        EMBED_BATCH_FILES = int(Variable.get("EMBED_BATCH_FILES", default_var="128"))
+        GPT_CONCURRENCY   = int(Variable.get("GPT_CONCURRENCY",   default_var="4"))
+
+        # ✨ 트리거 conf 우선
+        ctx = get_current_context()
+        dag_run = ctx.get("dag_run") if ctx else None
+        conf = dag_run.conf if dag_run else {}
+        product_csv_key = conf.get("csv_key") or PRODUCT_CSV_KEY
+
         # --- S3에서 상품 CSV 다운로드 & 매핑 생성
         s3 = s3_client()
-        obj = s3.get_object(Bucket=S3_BUCKET, Key=PRODUCT_CSV_KEY)
+        obj = s3.get_object(Bucket=S3_BUCKET, Key=product_csv_key)
         df_info = pd.read_csv(io.BytesIO(obj["Body"].read()), dtype=str).fillna("")
         if not set(["상품코드", "대분류", "소분류"]).issubset(df_info.columns):
             raise RuntimeError("상품 CSV에 '상품코드','대분류','소분류' 컬럼이 필요합니다.")
-        pid_map = dict(zip(df_info["상품코드"].astype(str), zip(df_info["대분류"].astype(str), df_info["소분류"].astype(str))))
-        logger.info("[PRODUCT CSV] rows=%d key=s3://%s/%s", len(df_info), S3_BUCKET, PRODUCT_CSV_KEY)
+        pid_map = dict(zip(
+            df_info["상품코드"].astype(str),
+            zip(df_info["대분류"].astype(str), df_info["소분류"].astype(str))
+        ))
+        logger.info("[PRODUCT CSV] rows=%d key=s3://%s/%s", len(df_info), S3_BUCKET, product_csv_key)
+
 
         # --- 처리 대상 파일 수집
         exts = (".jpg", ".jpeg", ".png")
@@ -114,44 +141,84 @@ with DAG(
             raise RuntimeError("No crop images found to embed")
         logger.info("[EMBED] start: files=%d, dir=%s", total, crop_dir)
 
-        records = []
+        # 파일 → (image_path, product_id, category_kr, type_kr) 리스트 빌드
+        items: List[Tuple[str, str, str, str]] = []
+        skipped = 0
         for idx, fname in enumerate(file_list, start=1):
             try:
                 _, category_kr, product_tail = fname.split("_", 2)
                 product_id = os.path.splitext(product_tail)[0]
             except Exception:
                 logger.warning("[SKIP] (%d/%d) unexpected filename=%s", idx, total, fname)
+                skipped += 1
                 continue
 
-            module_name = MODULE_MAP.get(category_kr)
-            if not module_name:
+            if category_kr not in MODULE_MAP:
                 logger.warning("[SKIP] (%d/%d) unknown category=%s file=%s", idx, total, category_kr, fname)
+                skipped += 1
                 continue
 
-            # CSV에서 소분류(type_kr) 조회 (없으면 빈 문자열)
-            major_kr, type_kr = pid_map.get(product_id, (category_kr, ""))
-            image_path = os.path.join(crop_dir, fname)
+            # [ADD] CSV에서 소분류(type_kr) 조회
+            _, type_kr = pid_map.get(product_id, (category_kr, ""))
 
-            # ▶ 진행상황 로그 (기존 한 줄을 더 또렷하게)
-            logger.info("[EMBED] %d/%d start id=%s (%s / %s)", idx, total, product_id, category_kr, (type_kr or "unknown"))
-            try:
-                module = importlib.import_module(module_name)
-                rec = module.process_one(image_path, product_id, category_kr, type_kr)
-                records.append(rec)
-                # 완료 로그
-                logger.info("[EMBED] %d/%d done id=%s", idx, total, product_id)                
-            except Exception as e:
-                logger.error("[FAIL] %d/%d id=%s (%s / %s) err=%s", idx, total, product_id, category_kr, type_kr, e)
-            # 10개 단위로 중간 집계
-            if idx % 10 == 0:
-                logger.info("[EMBED] progress: processed=%d/%d saved=%d", idx, total, len(records))
+            # [ADD] image_path 생성 후 items에 추가
+            image_path = os.path.join(crop_dir, fname)
+            items.append((image_path, product_id, category_kr, type_kr))  # [FIX]
+
+        if not items:
+            raise RuntimeError("No valid items to embed (all skipped)")
+
+        # [FIX] 카테고리 -> 모듈 버킷팅 (루프 밖에서 한 번만)
+        buckets: Dict[str, List[Tuple[str, str, str, str]]] = {}
+        for (image_path, product_id, category_kr, type_kr) in items:
+            module_name = MODULE_MAP[category_kr]
+            buckets.setdefault(module_name, []).append((image_path, product_id, category_kr, type_kr))
+
+        # 모듈별 batch 호출 (process_batch)
+        records: List[Dict] = []
+        total_planned = sum(len(v) for v in buckets.values())
+        logger.info(
+            "[EMBED] planned=%d (grouped by module: %s)",
+            total_planned,
+            ", ".join(f"{k}:{len(v)}" for k, v in buckets.items()),
+        )
+
+        processed = 0
+        for module_name, group in buckets.items():
+            module = importlib.import_module(module_name)
+            if not hasattr(module, "process_batch"):
+                raise RuntimeError(f"Module '{module_name}' must expose process_batch(items, gpt_concurrency=...).")
+
+            # 파일 청크 단위로 나눠 호출 (메모리 보호 & 진행률 로그)
+            for batch_idx, batch in enumerate(chunks(group, EMBED_BATCH_FILES), start=1):
+                try:
+                    logger.info(
+                        "[EMBED][%s] batch %d: %d files (gpt_concurrency=%d)",
+                        module_name, batch_idx, len(batch), GPT_CONCURRENCY
+                    )
+                    recs = module.process_batch(batch, gpt_concurrency=GPT_CONCURRENCY)  # [MOD] process_one → process_batch
+                    if not isinstance(recs, list):
+                        raise RuntimeError(f"{module_name}.process_batch must return List[Dict], got {type(recs)}")
+                    records.extend(recs)
+                    processed += len(batch)
+                    logger.info(
+                        "[EMBED][%s] batch %d done → total processed: %d / %d",
+                        module_name, batch_idx, processed, total_planned
+                    )
+                except Exception as e:
+                    logger.exception("[EMBED][%s] batch %d failed: %s", module_name, batch_idx, e)
+                    raise
+
         if not records:
             raise RuntimeError("No embedding results produced")
 
         df = pd.DataFrame(records)
         local_csv = os.path.join(crop_dir, "embedding_final.csv")
         df.to_csv(local_csv, index=False, encoding="utf-8")
-        logger.info("[SAVE] local embedding CSV: %s rows=%d (saved=%d/%d)", local_csv, len(df), len(records), total)
+        logger.info(
+            "[SAVE] local embedding CSV: %s rows=%d (files=%d, skipped=%d)",
+            local_csv, len(df), total, skipped
+        )
         return local_csv
 
     @task()
@@ -161,7 +228,7 @@ with DAG(
             rows = pd.read_csv(local_csv, nrows=0)
             row_count = sum(1 for _ in open(local_csv, "rb")) - 1
         except Exception:
-            row_count = -1 
+            row_count = -1
         size_mb = os.path.getsize(local_csv) / (1024 * 1024)
         logger.info("[UPLOAD] source=%s size=%.2fMB rows~=%s", local_csv, size_mb, (row_count if row_count>=0 else "unknown"))
 
@@ -169,7 +236,6 @@ with DAG(
         s3.upload_file(local_csv, S3_BUCKET, OUTPUT_KEY)
         logger.info("[UPLOAD] s3://%s/%s", S3_BUCKET, OUTPUT_KEY)
         print(f"✅ Embedding CSV uploaded: s3://{S3_BUCKET}/{OUTPUT_KEY} (≈{row_count} rows)")
-
 
     @task()
     def ingest_to_qdrant():
@@ -187,7 +253,7 @@ with DAG(
         s3 = s3_client()
         tmpdir = tempfile.mkdtemp(prefix="qdr_dl_")
         local_csv = os.path.join(tmpdir, "embedding_final.csv")
-        
+
         # Airflow Variables (없으면 기본값)
         QDRANT_URL         = Variable.get("QDRANT_URL")
         QDRANT_API_KEY     = Variable.get("QDRANT_API_KEY", default_var="") or None
@@ -225,9 +291,10 @@ with DAG(
         # ----- 배치 업서트 -----
         total = len(df)
         bsz = max(1, QDRANT_BATCH)
-        logger.info("[QDRANT] upsert start: rows=%d, batch=%d, url=%s, col=%s",
-                    total, bsz, QDRANT_URL, QDRANT_COLLECTION)
-
+        logger.info(
+            "[QDRANT] upsert start: rows=%d, batch=%d, url=%s, col=%s",
+            total, bsz, QDRANT_URL, QDRANT_COLLECTION
+        )
 
         done = 0
         for i in range(0, total, bsz):
@@ -241,10 +308,10 @@ with DAG(
                     pid = rid  # string id 허용
 
                 payload = {
-                        "category": row.get("category", ""),
-                        "type": row.get("type", ""),
-                        "information": row.get("information", ""),
-                    }
+                    "category": row.get("category", ""),
+                    "type": row.get("type", ""),
+                    "information": row.get("information", ""),
+                }
 
                 vec = {}
                 if has_text and row.get("text", ""):
@@ -261,14 +328,13 @@ with DAG(
             if points:
                 client.upsert(collection_name=QDRANT_COLLECTION, points=points)
                 logger.info("[QDRANT] batch upserted: %d points (rows %d-%d)", len(points), i+1, i+len(sl))
-            else: 
+            else:
                 logger.info("[QDRANT] batch skipped (no valid points) rows %d-%d", i+1, i+len(sl))
             done += len(sl)
             pct = (done/total*100.0) if total else 100.0
             logger.info("[QDRANT] progress: %d/%d (%.1f%%)", done, total, pct)
         shutil.rmtree(tmpdir, ignore_errors=True)
         logger.info("✅ Qdrant upsert complete: %d rows → %s", total, QDRANT_COLLECTION)
-
 
     # 의존성
     crop_dir = download_crop_images()

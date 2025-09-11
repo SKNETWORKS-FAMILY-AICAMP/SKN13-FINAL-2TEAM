@@ -205,7 +205,7 @@ with DAG(
 
     trigger_embedding = TriggerDagRunOperator(
         task_id="trigger_embedding",
-        trigger_dag_id="embedding_pipeline2",
+        trigger_dag_id="embedding_pipeline",
         conf={
             "bucket": S3_BUCKET,
             "output_prefix": OUTPUT_PREFIX,

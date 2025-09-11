@@ -357,7 +357,8 @@
 }
 
 .widget-form input {
-    flex: 1;
+    flex: 1 1 120px;
+    min-width: 120px;
     padding: 10px 15px;
     border: 2px solid #e9ecef;
     border-radius: 20px;
@@ -390,6 +391,8 @@
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 3px 12px rgba(118, 75, 162, 0.3);
+    flex-shrink: 0;
+    white-space:nowrap;
 }
 
 .widget-form button:hover {
@@ -821,7 +824,9 @@
 
 /* 입력창 위의 첨부 파일 미리보기 */
 #chatbot-image-attachment-preview {
-    padding: 0 15px 10px 15px;
+    width: 100%;
+    padding:0;
+    margin:0;
 }
 
 .chatbot-image-attachment-item {

@@ -22,18 +22,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # FashionCLIP 모델 초기화
 fclip = FashionCLIP("fashion-clip")
 try:
-    fclip.to(device)
+    fclip.model.to(device)
 except Exception as e:
     print(f"FashionCLIP 모델을 디바이스({device})로 이동 중 오류: {e}")
     pass
-
-# ================== Skirt용 토큰 키 (15개) ==================
-TOK_KEYS = [
-    "color.main","color.sub","color.tone","pattern","pattern_scale",
-    "material.fabric","silhouette","pleated","flare_level","wrap",
-    "closure","details.pockets","details.slit","details.hem_finish",
-    "style"
-]
 
 # ================== Skirt용 GPT 프롬프트 ==================
 PROMPT = """
@@ -100,16 +92,51 @@ FORMAT RULES
 
 """
 
+# ================== Skirt용 토큰 키 (15개) ==================
+TOK_KEYS = [
+    "color.main","color.sub","color.tone","pattern","pattern_scale",
+    "material.fabric","silhouette","pleated","flare_level","wrap",
+    "closure","details.pockets","details.slit","details.hem_finish",
+    "style"
+]
+
+
+# 카테고리/타입 매핑 (ko → en)
+def map_categories_to_en(major_ko: str, sub_ko: str) -> Tuple[str, str]:
+    major_map = {"스커트": "skirt"}
+
+    sub_map = {
+        "미니스커트": "miniskirt",
+        "미디스커트": "midiskirt",
+        "롱스커트": "longskirt",
+    }
+    major_en = major_map.get(major_ko or "", "unknown")
+    type_en  = sub_map.get(sub_ko or "", "unknown")
+    return major_en, type_en
+
+
 # ----------------- 유틸리티 함수 (다른 모듈과 공통) -----------------
 def normalize_caption_skirt15(text: str) -> str:
     if not isinstance(text, str):
         text = str(text)
     text = " ".join(text.splitlines()).strip().strip('"').strip("'")
+
     parts = [p.strip().lower() for p in text.split(",") if p]
-    if len(parts) < 15:
-        parts += ["unknown"] * (15 - len(parts))
-    elif len(parts) > 15:
-        parts = parts[:15]
+    vals = []
+    temp_kv = {}
+    for p in parts:
+        if "=" in p:
+            k, v = p.split("=", 1)
+            temp_kv[k.strip()] = v.strip()
+        else:
+            if len(vals) < len(TOK_KEYS):
+                vals.append(p)
+    
+    if temp_kv:
+        vals = [temp_kv.get(k, "unknown") for k in TOK_KEYS]
+    
+    if len(vals) < 15: vals += ["unknown"] * (15 - len(vals))
+    elif len(vals) > 15: vals = vals[:15]
 
     i = {name: idx for idx, name in enumerate(TOK_KEYS)}
 
@@ -129,27 +156,10 @@ def normalize_caption_skirt15(text: str) -> str:
         parts[i["pleated"]] = "yes"
     if parts[i["wrap"]] == "yes":
         parts[i["closure"]] = "none"
-    return ",".join(parts)
+    
+    return ",".join(f"{k}={v}" for k, v in zip(TOK_KEYS, vals))
 
-def tokens_to_combined_text(tokens_csv: str, category_en: str, type_en: str) -> str:
-    fixed = []
-    parts = [p.strip() for p in tokens_csv.split(",")]
-    for i, tok in enumerate(parts):
-        if "=" in tok: fixed.append(tok)
-        else: fixed.append(f"{TOK_KEYS[i]}={tok}")
-    return f"category={category_en} | type={type_en} | " + " | ".join(fixed)
-
-def map_categories_to_en(major_ko: str, sub_ko: str) -> Tuple[str, str]:
-    major_map = {"스커트": "skirt"}
-    sub_map = {
-        "미니스커트": "miniskirt",
-        "미디스커트": "midiskirt",
-        "롱스커트": "longskirt",
-    }
-    major_en = major_map.get(major_ko or "", "unknown")
-    type_en  = sub_map.get(sub_ko or "", "unknown")
-    return major_en, type_en
-
+# ================== 임베딩 유틸 ================
 def l2_normalize(x: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     x = np.asarray(x, dtype=np.float32)
     if x.ndim == 1: x = x[None, :]
@@ -168,6 +178,28 @@ def combine_embeddings(text_emb: np.ndarray, img_emb: np.ndarray, alpha: float =
     t = l2_normalize(text_emb); v = l2_normalize(img_emb)
     return l2_normalize(alpha*t + (1.0-alpha)*v)
 
+
+def _split_skirt_attributes(tokens: List[str]) -> Tuple[List[str], List[str]]:
+    """상의 18개 속성을 caption1, caption2 그룹으로 분리"""
+
+    # caption1에 포함될 속성 키 리스트
+    caption1_attribute_keys = [
+        "category", "type", "skirt.length", "silhouette",
+        "material.fabric", "pattern", "pattern_scale",
+        "color.main", "color.sub", "color.tone"
+    ]
+
+    attrs1, attrs2 = [], []
+    for part in tokens:
+        key = part.split("=")[0].strip()
+        if key in caption1_attribute_keys:
+            attrs1.append(part)
+        else:
+            attrs2.append(part)
+    
+    return attrs1, attrs2
+
+
 # =========================================================
 # 공개 단일 API: process_single_item (FastAPI용)
 # =========================================================
@@ -175,6 +207,7 @@ async def process_single_item(image_bytes: bytes, product_id: str, category_kr: 
     """
     단일 이미지 바이트를 입력받아 임베딩을 생성.
     """
+    # 1) GPT 태깅 (비동기 실행)
     async def _gpt_tag_single_bytes(img_bytes: bytes) -> str:
         b64 = base64.b64encode(img_bytes).decode("utf-8")
         messages = [{
@@ -198,26 +231,51 @@ async def process_single_item(image_bytes: bytes, product_id: str, category_kr: 
         print(f"Skirt GPT 태깅 오류: {e}")
         cap15 = ",".join([f'{k}=unknown' for k in TOK_KEYS])
 
+    # 2) 캡션 분할
     major_en, type_en = map_categories_to_en(category_kr, type_kr)
-    combined_text = tokens_to_combined_text(cap15, major_en, type_en)
-    print(f"Combined Text: {combined_text}") # ADDED LOG
+    attribute_tokens = [p.strip() for p in cap15.split(",")]
+
+    # 헬퍼 함수를 사용해 속성을 두 그룹으로 분리
+    attr_parts1, attr_parts2 = _split_skirt_attributes(attribute_tokens)
+
+    # text1, text2 문자열 생성
+    base_info = [f"category={major_en}", f"type={type_en}"]
+    text1= " | ".join(base_info + attr_parts1)
+    text2= " | ".join(base_info + attr_parts2)
+
+    # 로깅 및 정보 저장용 전체 캡션
+    full_information = " | ".join(base_info + attribute_tokens)
+    print(f"Full combined caption: {full_information}")
+
+    # 3) 이미지 로드
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     except Exception:
         return None
-
+    
+    # 4) F-CLIP 임베딩 (분할 인코딩 및 평균)
     with torch.no_grad():
-        t_emb = fclip.encode_text([combined_text], batch_size=1)
+        # 두 캡션을 배치로 한번에 인코딩
+        text_embeddings_np = fclip.encode_text([text1, text2],batch_size=2)
+
+        # Numpy 배열을 Pytorch 텐서로 변환 
+        text_embeddings_tensor = torch.from_numpy(text_embeddings_np).to(device)
+
+        # 텍스트 임베딩 평균 계산
+        avg_text_emb = torch.mean(text_embeddings_tensor,dim=0, keepdim=True)
+
+        # 이미지 임베딩
         v_emb = fclip.encode_images([img], batch_size=1)
 
-    t_vec = l2_normalize(_to_numpy_2d(t_emb))[0]
-    m_vec = combine_embeddings(_to_numpy_2d(t_emb), _to_numpy_2d(v_emb), alpha=ALPHA)[0]
+    # 5. 최종 임베딩 결합 및 반환
+    t_vec = l2_normalize(_to_numpy_2d(avg_text_emb))[0]
+    m_vec = combine_embeddings(_to_numpy_2d(avg_text_emb), _to_numpy_2d(v_emb), alpha=ALPHA)[0]
 
     return {
         "id": product_id,
         "category": major_en,
         "type": type_en,
-        "information": combined_text,
+        "information": full_information,
         "text": t_vec.tolist(),
         "multi": m_vec.tolist()
     }

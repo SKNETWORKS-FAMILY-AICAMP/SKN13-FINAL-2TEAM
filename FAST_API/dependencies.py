@@ -106,34 +106,30 @@ async def _get_major_category_from_gpt(user_input: str) -> str:
 
 async def get_category_info(user_input: str) -> Tuple[str | None, str | None]:
     """
-    사용자 입력을 분석하여 (대분류, 소분류) 정보를 반환합니다.
-
-    - 시나리오 1 (소분류 입력): "후드티" -> ('top', '후드티')
-    - 시나리오 2 (대분류 입력): "윗옷" -> ('top', None)
-    - 시나리오 3 (GPT 필요): "이 잠바" -> ('top', None)
-
+    로직
+    1. (가장 구체적인) 소분류 키워드가 문장에 포함되어 있는지 먼저 확인합니다. (예: "청바지 추천" → "청바지" 발견)
+    2. 소분류가 없으면, (더 일반적인) 대분류 키워드가 문장에 포함되어 있는지 확인합니다. (예: "바지 추천" → "바지" 발견)
+    3. 키워드를 전혀 찾지 못하면 GPT에게 분류를 요청합니다.
     Returns:
         Tuple[str | None, str | None]: (대분류 영문명, 소분류 한글명 또는 None)
     """
     user_input_norm = user_input.lower().strip()
 
-    # 1. 소분류 맵에서 직접 조회 (시나리오 2)
-    if user_input_norm in SUB_TO_MAJOR_MAP:
-        major_cat = SUB_TO_MAJOR_MAP[user_input_norm]
-        return major_cat, user_input # 원본 소분류명 반환
-
-    # 2. 대분류 동의어 맵에서 조회 (시나리오 1의 일부)
+    # 1. 소분류 키워드 포함 여부 확인 (가장 구체적인 것부터)
+    for sub_cat_keyword, major_cat in SUB_TO_MAJOR_MAP.items():
+        if sub_cat_keyword in user_input_norm:
+            return major_cat, sub_cat_keyword
+        
+    # 2. 대분류 동의어 포함 여부 확인
     for major_cat, synonyms in MAJOR_SYNONYM_MAP.items():
-        if user_input_norm in [s.lower() for s in synonyms]:
-            return major_cat, None # 대분류만 확정, 소분류는 모름
-
-    # 3. GPT로 대분류 추론 (시나리오 1의 일부)
+        for s in synonyms:
+            if s.lower() in user_input_norm:
+                return major_cat, None
+            
+    # 3. GPT로 대분류 추론 (위에서 키워드를 못찾았을 경우)
     major_cat_gpt = await _get_major_category_from_gpt(user_input)
     if major_cat_gpt != 'unknown':
-        return major_cat_gpt, None # 대분류만 확정, 소분류는 모름
+        return major_cat_gpt, None
 
     # 4. 어느 것에도 해당하지 않음
     return None, None
-
-
-

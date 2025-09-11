@@ -27,7 +27,7 @@ else:
 
 fclip = FashionCLIP("fashion-clip")
 try:
-    fclip.to(device)
+    fclip.model.to(device)
 except Exception:
     pass
 
@@ -107,34 +107,6 @@ TOK_KEYS = [
     "sleeve.cuff","shoulder"
 ]
 
-# ----------------------- 유틸 ----------------------
-
-
-def image_to_b64(image_path: str, max_side: int = MAX_SIDE, jpeg_quality: int = JPEG_QUALITY):
-    im = Image.open(image_path).convert("RGB")
-    w, h = im.size
-    scale = max(w, h) / float(max_side)
-    if scale > 1.0:
-        try: resample = Image.Resampling.BICUBIC
-        except AttributeError: resample = Image.BICUBIC
-        im = im.resize((int(w/scale), int(h/scale)), resample)
-    buf = io.BytesIO()
-    im.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
-    return base64.b64encode(buf.getvalue()).decode("utf-8"), "image/jpeg"
-
-# 파일명에서 product_id 추출 — tops 접두 허용
-PID_FROM_NAME = re.compile(r"^crop_top_([^.\\/]+)", re.IGNORECASE)
-def extract_product_id_from_filename(path: str) -> str:
-    base = os.path.basename(path)
-    m = PID_FROM_NAME.search(base)
-    return (m.group(1) if m else "").strip().lower()
-
-# 제품 CSV 불러오기 (상의만)
-def load_tops_map(csv_path: str) -> Dict[str, Tuple[str,str]]:
-    df = pd.read_csv(csv_path, dtype=str).fillna("")
-    df = df.apply(lambda col: col.str.strip().str.lower())
-    df_tops = df[df["대분류"].isin(["상의"])]
-    return dict(zip(df_tops["상품코드"], zip(df_tops["대분류"], df_tops["소분류"])))
 
 # 카테고리/타입 매핑 (ko → en)
 def map_categories_to_en(major: str, sub: str) -> Tuple[str, str]:
@@ -184,16 +156,24 @@ def normalize_caption_top18(text: str) -> str:
 
     return ",".join([f"{k}={kv[k]}" for k in TOK_KEYS])
 
+def _split_top_attributes(tokens: List[str]) -> Tuple[List[str], List[str]]:
+    """상의 18개 속성을 caption1, caption2 그룹으로 분리"""
 
-def tokens_to_combined_text(tokens_csv: str, category: str, type_: str) -> str:
-    vals = [p.strip() for p in tokens_csv.split(",")]
-    fixed = []
-    for i, tok in enumerate(vals):
-        if "=" in tok:
-            fixed.append(tok)
+    # caption1에 포함될 속성 키 리스트
+    caption1_attribute_keys = [
+        "color.main", "color.sub", "pattern", "pattern_scale", "material.fabric"
+    ]
+
+    attrs1, attrs2 = [], []
+    for part in tokens:
+        key = part.split("=")[0].strip()
+        if key in caption1_attribute_keys:
+            attrs1.append(part)
         else:
-            fixed.append(f"{TOK_KEYS[i]}={tok}")
-    return f"category={category} | type={type_} | " + " | ".join(fixed)
+            attrs2.append(part)
+    
+    return attrs1, attrs2
+
 
 # ================== 임베딩 유틸 ================
 def l2_normalize(x: np.ndarray, eps: float = 1e-12) -> np.ndarray:
@@ -213,147 +193,6 @@ def _to_numpy_2d(x) -> np.ndarray:
 def combine_embeddings(text_emb: np.ndarray, img_emb: np.ndarray, alpha: float = ALPHA) -> np.ndarray:
     t = l2_normalize(text_emb); v = l2_normalize(img_emb)
     return l2_normalize(alpha*t + (1.0-alpha)*v)
-
-# ---------- 공개 엔트리포인트 ----------
-_BS = None
-
-def determine_best_batch_size(start: int=64) -> int: 
-    """
-    OOM 피하면서 가장 큰 batch_size 선택 (1회만 탐색 후 캐시)
-    CPU 환경에서는 16~64 권장. 상황 따라 Variable로 조정해도 좋음.
-    """
-    global _BS
-    if _BS is not None: 
-        return _BS
-    
-    candidates = [start, 48, 32, 24, 16, 12, 8, 4, 2, 1]
-    if start not in candidates and start > 0:
-        candidates = [start] + candidates
-
-    try :
-        with torch.no_grad():
-            _ = fclip.encode_text(["warmup"] * candidates[0], batch_size=candidates[0])
-            dummy = Image.new("RGB", (224,224), (255,255,255))
-            _ = fclip.encode_images([dummy] * candidates[0], batch_size=candidates[0])
-        _BS = candidates[0]
-        return _BS 
-    except Exception:
-        pass 
-
-    for bs in candidates: 
-        try: 
-            with torch.no_grad(): 
-                _ = fclip.encode_text(['warmup'] * bs, batch_size=bs)
-                dummy = Image.new("RGB", (224,224),(255,255,255))
-                _ = fclip.encode_images([dummy] * bs, batch_size=bs)
-            _BS = bs 
-            return _BS 
-        except Exception: 
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            continue
-    
-    _BS = 1 
-    return _BS
-
-# =========================================================
-# 내부: GPT 태깅 (단건, async)
-# =========================================================
-async def _gpt_tag_one(image_path:str) -> str: 
-    b64, mime = image_to_b64(image_path)
-    messages = [{
-        "role": "user",
-        "content": [
-            {"type": "text", "text": PROMPT},
-            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
-        ]
-    }]
-    resp = await aclient.chat.completions.create(
-        model=MODEL, messages=messages,
-        max_tokens=200, temperature=0.0, top_p=1.0,seed=12345 
-    )
-    caption = resp.choices[0].message.content.strip()
-    return normalize_caption_top18(caption)
-
-# =========================================================
-# 공개 배치 API: process_batch
-# =========================================================
-def process_batch(items: List[Tup[str,str,str,str]], gpt_concurrency:int=4) -> List[Dict]: 
-    """
-    items: [(image_path, product_id, category_kr, type_kr), ...]
-    1) 각 이미지 GPT 태깅(동시 처리)
-    2) cap18 → (ko→en 매핑) → combined_text 리스트
-    3) fclip.encode_text / encode_images 배치 임베딩
-    4) dict 리스트 반환 (기존 process_one과 동일 필드)
-    """
-    if not items: 
-        return []
-    
-    # 1) GPT 동시 태깅
-    async def gather_all():
-        sem = asyncio.Semaphore(max(1, gpt_concurrency))
-        results = [None] * len(items)
-
-        async def worker(i,image_path):
-            async with sem: 
-                try:
-                    cap18 = await _gpt_tag_one(image_path)
-                except Exception as e:
-                    cap18 = ",".join([f'{k}=unknown' for k in TOK_KEYS])
-                results[i] = cap18
-            
-        tasks = []
-        for i, (image_path, _, _, _) in enumerate(items): 
-            tasks.append(asyncio.create_task(worker(i, image_path)))
-        await asyncio.gather(*tasks)
-        return results
-    
-    cap18_list: List[str] = run_async(gather_all())
-
-    # 2) combined_text / Image 로딩
-    texts: List[str] = []
-    images: List[Image.Image] = []
-    metas: List[Tup[str,str,str]] = []
-
-    for (cap18,
-         (image_path, product_id, category_kr, type_kr)) in zip(cap18_list, items):
-        try:
-            major_en, type_en = map_categories_to_en(category_kr, type_kr)
-            combined_text = tokens_to_combined_text(cap18, major_en, type_en)
-            print(f"Combined Text: {combined_text}") # ADDED LOG
-            im = Image.open(image_path).convert("RGB")
-        except Exception:
-            # 이미지 로딩 실패 시 이 항목 스킵
-            continue
-
-        texts.append(combined_text)
-        images.append(im)
-        metas.append((str(product_id), major_en, type_en))
-
-    if not texts:
-        return []
-    
-    # 3) F-CLIP 임베딩 (배치)
-    bs = determine_best_batch_size(64)
-    with torch.no_grad():
-        t_emb = fclip.encode_text(texts, batch_size=bs)
-        v_emb = fclip.encode_images(images, batch_size=bs)
-
-    t_vecs = l2_normalize(_to_numpy_2d(t_emb))
-    m_vecs = combine_embeddings(_to_numpy_2d(t_emb), _to_numpy_2d(v_emb), alpha=ALPHA)
-
-    # 4) 결과 dict 리스트로 반환 (기존 process_one과 동일 필드명)
-    out: List[Dict] = []
-    for (pid, major_en, type_en), t_vec, m_vec, info in zip(metas, t_vecs, m_vecs, texts):
-        out.append({
-            "id": pid,
-            "category": major_en,
-            "type": type_en,
-            "information": info,
-            "text": json.dumps(t_vec.tolist()),
-            "multi": json.dumps(m_vec.tolist())
-        })
-    return out
 
 # =========================================================
 # 공개 단일 API: process_single_item (FastAPI용)
@@ -386,28 +225,52 @@ async def process_single_item(image_bytes: bytes, product_id: str, category_kr: 
         # GPT 태깅 실패 시, unknown으로 채워서 진행
         cap18 = ",".join([f'{k}=unknown' for k in TOK_KEYS])
 
-    # 2) combined_text 생성 및 이미지 로드
+    # 2) 캡션 분할
     major_en, type_en = map_categories_to_en(category_kr, type_kr)
-    combined_text = tokens_to_combined_text(cap18, major_en, type_en)
+    attribute_tokens = [p.strip() for p in cap18.split(",")]
+
+    # 헬퍼 함수를 사용해 속성을 두 그룹으로 분리
+    attr_parts1, attr_parts2 = _split_top_attributes(attribute_tokens)
+
+    # text1, text2 문자열 생성
+    base_info = [f"category={major_en}", f"type={type_en}"]
+    text1= " | ".join(base_info + attr_parts1)
+    text2= " | ".join(base_info + attr_parts2)
+
+    # 로깅 및 정보 저장용 전체 캡션
+    full_information = " | ".join(base_info + attribute_tokens)
+    print(f"Full combined caption: {full_information}")
+
+    # 3) 이미지 로드
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     except Exception:
-        return None # 이미지 로드 실패
+        return None
 
-    # 3) F-CLIP 임베딩 (단일 항목)
+
+    # 4) F-CLIP 임베딩 (분할 인코딩 및 평균)
     with torch.no_grad():
-        t_emb = fclip.encode_text([combined_text], batch_size=1)
+        # 두 캡션을 배치로 한번에 인코딩
+        text_embeddings_np = fclip.encode_text([text1, text2],batch_size=2)
+
+        # Numpy 배열을 Pytorch 텐서로 변환 
+        text_embeddings_tensor = torch.from_numpy(text_embeddings_np).to(device)
+
+        # 텍스트 임베딩 평균 계산
+        avg_text_emb = torch.mean(text_embeddings_tensor,dim=0, keepdim=True)
+
+        # 이미지 임베딩
         v_emb = fclip.encode_images([img], batch_size=1)
 
-    t_vec = l2_normalize(_to_numpy_2d(t_emb))[0]
-    m_vec = combine_embeddings(_to_numpy_2d(t_emb), _to_numpy_2d(v_emb), alpha=ALPHA)[0]
+    # 5. 최종 임베딩 결합 및 반환
+    t_vec = l2_normalize(_to_numpy_2d(avg_text_emb))[0]
+    m_vec = combine_embeddings(_to_numpy_2d(avg_text_emb), _to_numpy_2d(v_emb), alpha=ALPHA)[0]
 
-    # 4) 결과 dict로 반환
     return {
         "id": product_id,
         "category": major_en,
         "type": type_en,
-        "information": combined_text,
+        "information": full_information, # 정보용으로는 전체 캡션 저장
         "text": t_vec.tolist(),
         "multi": m_vec.tolist()
     }

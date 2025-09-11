@@ -113,7 +113,7 @@ async def get_subcategory_from_gpt(image_bytes: bytes, major_category_en: str) -
             max_tokens=50,
             temperature=0.0,
         )
-        result = response.choices[0].message.content.strip().lower()
+        result = response.choices[0].message.content.strip().lower().strip('\"\'')
         logger.info(f"GPT 소분류 추론 결과: {result}")
         # 간단한 유효성 검사
         return result if result in [s.lower() for s in sub_cat_list_ko] else ""
@@ -168,7 +168,7 @@ async def get_embeddings_for_cropped_image(cropped_bytes: bytes, category_en: st
         "skirt": "modules.skirt",
         }
     module_name = MODULE_MAP.get(category_en)
-    
+
     if not module_name: 
         raise ValueError(f"지원하지 않는 카테고리입니다: {category_en}")
 

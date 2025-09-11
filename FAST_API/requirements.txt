@@ -55,6 +55,7 @@ rapidfuzz==3.5.2
 
 # Monitoring
 prometheus-client==0.19.0
+prometheus-fastapi-instrumentator==7.0.0
 
 # Image & visions
 fashion-clip==0.2.2

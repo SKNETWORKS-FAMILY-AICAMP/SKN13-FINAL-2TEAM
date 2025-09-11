@@ -19,6 +19,7 @@ from starlette.middleware.cors import CORSMiddleware
 from db import init_db, bootstrap_admin
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # 라우터 임포트
 from routers.router_home import router as home_router
@@ -36,6 +37,9 @@ from routers.oauth.google_oauth import router as google_oauth_router
 from routers.oauth.kakao_oauth import router as kakao_oauth_router
 
 app = FastAPI()
+
+instrumentator = Instrumentator()
+instrumentator.instrument(app).expose(app)
 
 # CORS 미들웨어 추가
 app.add_middleware(

@@ -95,22 +95,30 @@ with DAG(
         model.to("cpu")
         s3 = s3_client()
 
-        # CSV 로드
-        obj = s3.get_object(Bucket=S3_BUCKET, Key=CSV_KEY)
-        df = pd.read_csv(io.BytesIO(obj["Body"].read()))
+        # ✅ processed_data/ 안에서 최신 CSV 찾기
+        resp = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix="processed_data/")
+        if "Contents" not in resp:
+            raise FileNotFoundError("No files found in s3://%s/processed_data/" % S3_BUCKET)
 
-        # index 범위 (예시)
-        slice_start, slice_end = 10200,10210
-        df = df.iloc[slice_start:slice_end]
+        csv_files = [obj for obj in resp["Contents"] if obj["Key"].endswith(".csv")]
+        if not csv_files:
+            raise FileNotFoundError("No CSV files in processed_data/")
+
+        latest_csv = max(csv_files, key=lambda x: x["LastModified"])["Key"]
+        logger.info("[CSV] latest file selected: s3://%s/%s", S3_BUCKET, latest_csv)
+
+        # ✅ 최신 CSV 읽기
+        obj = s3.get_object(Bucket=S3_BUCKET, Key=latest_csv)
+        df = pd.read_csv(io.BytesIO(obj["Body"].read()))
 
         if ROW_LIMIT > 0:
             df = df.head(ROW_LIMIT)
 
         total = len(df)
-        logger.info("[CSV] loaded %d rows from s3://%s/%s (slice=%d:%d)", total, S3_BUCKET, CSV_KEY, slice_start, slice_end)
+        logger.info("[CSV] loaded %d rows from %s", total, latest_csv)
 
         saved = 0
-        cleared = False  # ✅ 첫 업로드 직전에 1회만 기존 프리픽스 삭제
+        cleared = False  # ✅ 첫 업로드 직전에 기존 프리픽스 삭제
         workdir = tempfile.mkdtemp(prefix="yolo_work_")
         try:
             for i, (_, row) in enumerate(df.iterrows(), start=1):
@@ -151,7 +159,7 @@ with DAG(
 
                 if best is None:
                     logger.warning("[SKIP] product_id=%s target=%s → no detection >= %.2f",
-                                   product_id, target, CONF_TH)
+                                product_id, target, CONF_TH)
                     continue
 
                 # 크롭
@@ -178,38 +186,39 @@ with DAG(
                             f"s3://{S3_BUCKET}/{key}", best[0], i, total, saved)
 
             logger.info("[DONE] total saved=%d of %d", saved, total)
-            return saved
+            return saved, latest_csv
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
 
+
     @task()
-    def report(n: int):
-        logger.info("[REPORT] Uploaded crop images: %d", n)
-        print(f"[DONE] 업로드된 크롭 이미지 수: {n}")
+    def report(result: tuple[int, str]):
+        n, latest_csv = result
+        logger.info("[REPORT] Uploaded crop images: %d (csv=%s)", n, latest_csv)
+        print(f"[DONE] 업로드된 크롭 이미지 수: {n}, CSV={latest_csv}")
+        return result  # 그대로 반환
 
     @task.short_circuit
-    def has_crops(n: int) -> bool:
-        # 업로드가 0이면 이후 임베딩 파이프라인은 스킵
+    def has_crops(result: tuple[int, str]) -> bool:
+        n, _ = result
         return (n or 0) > 0
 
     trigger_embedding = TriggerDagRunOperator(
         task_id="trigger_embedding",
-        trigger_dag_id="embedding_pipeline2",  # ✅ 임베딩 DAG
+        trigger_dag_id="embedding_pipeline2",
         conf={
             "bucket": S3_BUCKET,
             "output_prefix": OUTPUT_PREFIX,
-            "csv_key": CSV_KEY,
-            "slice_start": 10200,
-            "slice_end": 10210,
+            "csv_key": "{{ ti.xcom_pull(task_ids='process_and_upload_crops')[1] }}"
         },
         wait_for_completion=False,
         reset_dag_run=True,
     )
 
     model_file = download_model_from_s3()
-    n = process_and_upload_crops(model_file)
-    r = report(n)
-    c = has_crops(n)
+    result = process_and_upload_crops(model_file)
+    r = report(result)
+    c = has_crops(result)
 
-    model_file >> n >> r
+    model_file >> result >> r
     c >> trigger_embedding

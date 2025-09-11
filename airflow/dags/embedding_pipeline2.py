@@ -10,6 +10,8 @@ from airflow.models import Variable
 from typing import List, Tuple, Dict
 from itertools import islice
 import importlib  # [ADD]
+from airflow.operators.python import get_current_context
+
 
 # --- Qdrant imports (version-safe) ---
 from qdrant_client import QdrantClient
@@ -56,7 +58,7 @@ def chunks(iterable, n):
 MODULE_MAP = {
     "상의":   "modules.top",
     "바지":   "modules.pants",
-    "스커트": "modules.skirtv2",
+    "스커트": "modules.skirt",
     "원피스": "modules.dress",
 }
 
@@ -112,9 +114,14 @@ with DAG(
         EMBED_BATCH_FILES = int(Variable.get("EMBED_BATCH_FILES", default_var="128"))
         GPT_CONCURRENCY   = int(Variable.get("GPT_CONCURRENCY",   default_var="4"))
 
+        # ✨ 트리거 conf 우선
+        ctx = get_current_context()
+        conf = (ctx.get("dag_run") or {}).get("conf", {}) if ctx else {}
+        product_csv_key = conf.get("csv_key") or PRODUCT_CSV_KEY
+
         # --- S3에서 상품 CSV 다운로드 & 매핑 생성
         s3 = s3_client()
-        obj = s3.get_object(Bucket=S3_BUCKET, Key=PRODUCT_CSV_KEY)
+        obj = s3.get_object(Bucket=S3_BUCKET, Key=product_csv_key)
         df_info = pd.read_csv(io.BytesIO(obj["Body"].read()), dtype=str).fillna("")
         if not set(["상품코드", "대분류", "소분류"]).issubset(df_info.columns):
             raise RuntimeError("상품 CSV에 '상품코드','대분류','소분류' 컬럼이 필요합니다.")
@@ -122,7 +129,8 @@ with DAG(
             df_info["상품코드"].astype(str),
             zip(df_info["대분류"].astype(str), df_info["소분류"].astype(str))
         ))
-        logger.info("[PRODUCT CSV] rows=%d key=s3://%s/%s", len(df_info), S3_BUCKET, PRODUCT_CSV_KEY)
+        logger.info("[PRODUCT CSV] rows=%d key=s3://%s/%s", len(df_info), S3_BUCKET, product_csv_key)
+
 
         # --- 처리 대상 파일 수집
         exts = (".jpg", ".jpeg", ".png")

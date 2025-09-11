@@ -236,6 +236,25 @@ def map_categories_to_en(major_ko: str, sub_ko: str) -> Tuple[str, str]:
     type_en  = sub_map.get(sub_ko or "", "unknown")
     return major_en, type_en
 
+# caption1, caption2 분리
+def split_caption(combined_text: str) -> Tuple[str, str]:
+    if not combined_text:
+        return "", ""
+    parts = [p.strip() for p in combined_text.split("|")]
+    caption1_keys = [
+        "category", "type", "dress.length", "skirt.volume",
+        "material.fabric", "pattern", "pattern_scale",
+        "color.main", "color.sub"
+    ]
+    caption1, caption2 = [], []
+    for p in parts:
+        key = p.split("=")[0].strip()
+        if key in caption1_keys:
+            caption1.append(p)
+        else:
+            caption2.append(p)
+    return " | ".join(caption1), " | ".join(caption2)
+
 # ---------- 임베딩 유틸 ----------
 def l2_normalize(x: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     x = np.asarray(x, dtype=np.float32)
@@ -251,13 +270,10 @@ def _to_numpy_2d(x) -> np.ndarray:
     if arr.ndim == 1: arr = arr[None, :]
     return arr.astype(np.float32)
 
-def combine_embeddings(text_emb: np.ndarray, img_emb: np.ndarray, alpha: float = ALPHA) -> np.ndarray:
-    t = l2_normalize(text_emb); v = l2_normalize(img_emb)
-    return l2_normalize(alpha*t + (1.0-alpha)*v)
-
 
 # ---------- 배치용: 안전 배치 찾기 ----------
 _BS: int | None = None
+
 def determine_best_batch_size(start: int = 64) -> int:
     """
     OOM 피하면서 가장 큰 batch_size 선택 (1회 탐색 후 캐시)
@@ -332,7 +348,6 @@ def process_batch(items: List[Tup[str, str, str, str]], gpt_concurrency: int = 4
     async def gather_all():
         sem = asyncio.Semaphore(max(1, gpt_concurrency))
         results = [None] * len(items)
-
         async def worker(i: int, image_path: str):
             async with sem:
                 try:
@@ -340,47 +355,46 @@ def process_batch(items: List[Tup[str, str, str, str]], gpt_concurrency: int = 4
                 except Exception:
                     cap17 = ",".join(f"{k}=unknown" for k in TOK_KEYS)
                 results[i] = cap17
-
         tasks = []
         for i, (image_path, _, _, _) in enumerate(items):
             tasks.append(asyncio.create_task(worker(i, image_path)))
         await asyncio.gather(*tasks)
         return results
-
     cap17_list: List[str] = run_async(gather_all())
 
     # 2) combined_text / Image 로딩
-    texts: List[str] = []
-    images: List[Image.Image] = []
-    metas: List[Tup[str, str, str]] = []
-
-    for (cap17, (image_path, product_id, category_kr, type_kr)) in zip(cap17_list, items):
+    texts_combined, texts1, texts2, images, metas = [], [], [], [], []
+    for cap17, (image_path, product_id, category_kr, type_kr) in zip(cap17_list, items):
         try:
             major_en, type_en = map_categories_to_en(category_kr, type_kr)
             combined_text = tokens_to_combined_text(cap17, major_en, type_en)
+            c1, c2 = split_caption(combined_text)
             im = Image.open(image_path).convert("RGB")
         except Exception:
             continue
-
-        texts.append(combined_text)
+        texts_combined.append(combined_text)
+        texts1.append(c1)
+        texts2.append(c2)
         images.append(im)
         metas.append((str(product_id), major_en, type_en))
-
-    if not texts:
+    if not texts_combined:
         return []
 
-    # 3) F-CLIP 임베딩 (배치)
+    # 3) 임베딩
     bs = determine_best_batch_size(64)
     with torch.no_grad():
-        t_emb = fclip.encode_text(texts, batch_size=bs)
-        v_emb = fclip.encode_images(images, batch_size=bs)
+        t1 = fclip.encode_text(texts1, batch_size=bs)
+        t2 = fclip.encode_text(texts2, batch_size=bs)
+        v  = fclip.encode_images(images, batch_size=bs)
 
-    t_vecs = l2_normalize(_to_numpy_2d(t_emb))
-    m_vecs = combine_embeddings(_to_numpy_2d(t_emb), _to_numpy_2d(v_emb), alpha=ALPHA)
+    t1_np, t2_np, v_np = _to_numpy_2d(t1), _to_numpy_2d(t2), _to_numpy_2d(v)
+    text_only = l2_normalize((t1_np + t2_np) / 2)
+    multi = l2_normalize(0.5 * text_only + 0.5 * l2_normalize(v_np))
+    
 
     # 4) 결과 dict 리스트로 반환
     out: List[Dict] = []
-    for (pid, major_en, type_en), t_vec, m_vec, info in zip(metas, t_vecs, m_vecs, texts):
+    for (pid, major_en, type_en), info, t_vec, m_vec in zip(metas, texts_combined, text_only, multi):
         out.append({
             "id": pid,
             "category": major_en,

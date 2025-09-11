@@ -83,14 +83,22 @@ async def read_home(request: Request, db: Session = Depends(get_db)):
 
     # --- 섹션 2: "지금 뜨는 콘텐츠" (전체 인기 상품) ---
     trending_data = get_trending_products(db, limit=20)
-    trending_ids = {item['product_id'] for item in trending_data}
+    # 찜 횟수를 쉽게 조회할 수 있도록 상품 ID를 키로 하는 딕셔너리 생성
+    trending_ids_with_counts = {item['product_id']: item['jjim_count'] for item in trending_data}
+    
     section2_items = []
+    processed_ids = set()  # 중복 추가를 방지하기 위한 ID 세트
+
+    # clothing_data에서 인기 상품 정보를 찾되, 중복을 제거
     for product in clothing_data:
-        if product.get('상품코드') in trending_ids:
-            jjim_count = next((item['jjim_count'] for item in trending_data if item['product_id'] == product.get('상품코드')), 0)
+        product_id = product.get('상품코드')
+        if product_id in trending_ids_with_counts and product_id not in processed_ids:
             product_with_count = product.copy()
-            product_with_count['jjim_count'] = jjim_count
+            product_with_count['jjim_count'] = trending_ids_with_counts[product_id]
             section2_items.append(product_with_count)
+            processed_ids.add(product_id)  # 처리된 ID로 기록
+
+    # 찜 횟수 순으로 최종 정렬
     section2_items.sort(key=lambda x: x.get('jjim_count', 0), reverse=True)
 
     # --- 섹션 3 & 4: 랜덤 추천 (중복 방지) ---

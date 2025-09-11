@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 상품 카드 생성
         function createProductCard(product) {
             const card = document.createElement('div');
-            card.className = 'product-card';
+            card.className = 'category-product-card';
 
             // 데이터 속성 설정
             card.dataset.productId = product.상품코드 || '';
@@ -123,6 +123,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <img src="${product.이미지URL || product.대표이미지URL || ''}"
                      alt="${product.상품명 || ''}"
                      title="${product.상품명 || ''}: ${product.한글브랜드명 || product.브랜드 || ''}">
+                <div class="category-product-overlay">
+                    <div class="category-product-name">${product.상품명 || '상품명 없음'}</div>
+                    <div class="category-product-brand">${product.한글브랜드명 || product.브랜드 || '브랜드 정보 없음'}</div>
+                </div>
             `;
 
             // 클릭 이벤트 추가

@@ -219,9 +219,10 @@
     box-sizing: border-box;
 }
 
-/* === Product Card (Home-style) === */
-.product-card { 
+/* === Category Product Card === */
+.category-product-card { 
     position: relative;
+    display: block;
     cursor: pointer;
     transition: all 0.3s ease;
     border-radius: 14px;
@@ -231,22 +232,56 @@
     height: 350px;
 }
 
-.product-card:hover {
+.category-product-card:hover {
     transform: translateY(-6px);
     box-shadow: 0 18px 30px rgba(0,0,0,0.35);
 }
 
-.product-card img { 
+.category-product-card img { 
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: grayscale(0.32) contrast(1.02);
-    transition: filter 0.3s ease, transform 0.2s ease;
+    transition: transform 0.2s ease;
 }
 
-.product-card:hover img {
-    filter: grayscale(0);
+.category-product-card:hover img {
     transform: scale(1.05);
+}
+
+/* === Category Product Info Overlay === */
+.category-product-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
+    color: white;
+    padding: 15px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 0 0 8px 8px;
+    z-index: 10;
+}
+
+.category-product-card:hover .category-product-overlay {
+    opacity: 1;
+}
+
+.category-product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.category-product-brand {
+    font-size: 12px;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 

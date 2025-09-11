@@ -34,7 +34,7 @@ from routers.router_chatbot import router as chatbot_router
 from routers.router_cache_admin import router as cache_admin_router
 from routers.router_admin import router as admin_router
 from routers.oauth.google_oauth import router as google_oauth_router
-from routers.oauth.kakao_oauth import router as kakao_oauth_router
+# from routers.oauth.kakao_oauth import router as kakao_oauth_router
 
 app = FastAPI()
 
@@ -87,7 +87,7 @@ app.include_router(chatbot_router, prefix="/chat", tags=["Chatbot"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(cache_admin_router, prefix="/admin/api", tags=["Cache Admin API"])
 app.include_router(google_oauth_router, prefix="/auth", tags=["oauth-google"])
-app.include_router(kakao_oauth_router, prefix="/auth", tags=["oauth-kakao"])
+# app.include_router(kakao_oauth_router, prefix="/auth", tags=["oauth-kakao"])
 
 # 헬스 체크 라우트
 @app.get("/health", tags=["Health Check"])

@@ -31,9 +31,158 @@
                 </a>
 
             <!-- Kakao 로그인 버튼 -->
-                <a href="/auth/kakao/login">
+                <a href="javascript:void(0);" id="kakao-login-btn">
                     <img src="/static/img/kakao_icon.png" alt="Kakao 로그인" class="login-image-button">
                 </a>
+            </div> 
+        </form>
+    </div>
+
+    <!-- Gemini Kakao Modal -->
+    <div id="gemini-kakao-modal" class="gemini-modal-backdrop">
+        <div class="gemini-modal-content">
+            <div class="gemini-modal-header">
+                <span class="gemini-modal-close-btn">&times;</span>
+            </div>
+            <div class="gemini-modal-body">
+                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="gemini-modal-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <h2>서비스 준비 중</h2>
+                <p>현재 준비 중인 기능입니다.<br>이용에 불편을 드려 죄송합니다.</p>
+            </div>
+            <div class="gemini-modal-footer">
+                <button type="button" class="gemini-modal-confirm-btn">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .gemini-modal-backdrop {
+            display: none;
+            position: fixed;
+            z-index: 1050;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .gemini-modal-backdrop.show {
+            display: block; /* Changed to block for initial display */
+            opacity: 1;
+        }
+        .gemini-modal-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            background: #2c2c2c;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 7px 25px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid #444;
+        }
+        .gemini-modal-backdrop.show .gemini-modal-content {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        .gemini-modal-header {
+            padding: 15px 20px;
+            position: relative;
+            text-align: right;
+        }
+        .gemini-modal-close-btn {
+            color: #888;
+            font-size: 32px;
+            font-weight: 300;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .gemini-modal-close-btn:hover {
+            color: #fff;
+        }
+        .gemini-modal-body {
+            padding: 0px 30px 20px; /* Adjusted padding */
+            text-align: center;
+        }
+        .gemini-modal-icon {
+            margin-bottom: 15px;
+        }
+        .gemini-modal-body h2 {
+            font-size: 1.6em;
+            font-weight: 600;
+            color: #fff;
+            margin: 0 0 10px;
+        }
+        .gemini-modal-body p {
+            font-size: 1em;
+            color: #bbb;
+            line-height: 1.6;
+            margin: 0;
+        }
+        .gemini-modal-footer {
+            padding: 20px 30px;
+            text-align: center;
+        }
+        .gemini-modal-confirm-btn {
+            background-color: #e50914;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 0;
+            width: 100%;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .gemini-modal-confirm-btn:hover {
+            background-color: #f40612;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 기존 챗봇 초기화 로직
+            const chatbotKeys = ['chatbot_session_id', 'chatbot_messages', 'chatbot_state'];
+            chatbotKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            // --- New Gemini Modal Logic ---
+            const kakaoLoginButton = document.getElementById('kakao-login-btn');
+            const kakaoModal = document.getElementById('gemini-kakao-modal');
+            const closeTriggers = kakaoModal.querySelectorAll('.gemini-modal-close-btn, .gemini-modal-confirm-btn');
+
+            if (kakaoLoginButton) {
+                kakaoLoginButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    kakaoModal.classList.add('show');
+                });
+            }
+
+            function closeModal() {
+                kakaoModal.classList.remove('show');
+            }
+
+            closeTriggers.forEach(trigger => {
+                trigger.addEventListener('click', closeModal);
+            });
+
+            kakaoModal.addEventListener('click', function(event) {
+                if (event.target === kakaoModal) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
             </div> 
         </form>
     </div>

@@ -176,10 +176,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
             removeLoadingIndicator();
 
-            if (data.message) {
-                addMessage(data.message, "bot");
-                if (data.products && data.products.length > 0) {
-                    addRecommendations(data.products, data.recommendation_id);
+            // message 또는 answer 필드 체크 (팔로우업 에이전트 호환성)
+            const responseMessage = data.message || data.answer;
+            const responseProducts = data.products || data.related_products;
+            
+            if (responseMessage) {
+                addMessage(responseMessage, "bot");
+                if (responseProducts && responseProducts.length > 0) {
+                    addRecommendations(responseProducts, data.recommendation_id);
                 }
             } else {
                 addMessage("죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.", "bot");

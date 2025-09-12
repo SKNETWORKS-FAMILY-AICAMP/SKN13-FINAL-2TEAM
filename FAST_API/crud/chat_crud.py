@@ -310,12 +310,18 @@ def get_session_messages(db: Session, session_id: str, user_id: int) -> List[dic
     
     result = []
     for msg in messages:
-        result.append({
+        message_data = {
             "id": msg.id,
             "type": msg.message_type,
             "text": msg.text,
             "created_at": msg.created_at.isoformat() if msg.created_at else None
-        })
+        }
+        
+        # products_data가 있으면 상품 데이터 추가
+        if msg.products_data and len(msg.products_data) > 0:
+            message_data["products_data"] = msg.products_data
+            
+        result.append(message_data)
     
     return result
 

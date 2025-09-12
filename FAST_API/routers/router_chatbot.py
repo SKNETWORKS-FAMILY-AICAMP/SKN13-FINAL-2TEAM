@@ -187,16 +187,34 @@ async def chat_recommend(
             recent_recommendations = get_user_recommendations(db, user.id, limit=50)
             recent_item_ids = {rec.item_id for rec in recent_recommendations}
             
-            new_recs_data = [
-                {"item_id": p.get("상품코드") or p.get("id"), "query": user_input, "reason": f"챗봇 추천 - {user_input}"}
-                for p in products if (p.get("상품코드") or p.get("id")) and (p.get("상품코드") or p.get("id")) not in recent_item_ids
-            ]
+            new_recs_data = []
+            for p in products:
+                product_code = p.get("상품코드") or p.get("id")
+                if product_code and product_code not in recent_item_ids:
+                    # 상품코드를 정수로 변환 (문자열이면 해시값 사용)
+                    if isinstance(product_code, str):
+                        # 문자열을 해시값으로 변환하여 정수로 만들기
+                        item_id = abs(hash(product_code)) % (10**9)  # 9자리 정수로 제한
+                    else:
+                        item_id = int(product_code)
+                    
+                    new_recs_data.append({
+                        "item_id": item_id, 
+                        "query": user_input, 
+                        "reason": f"챗봇 추천 - {user_input}"
+                    })
             
             if new_recs_data:
                 created_recs = create_multiple_recommendations(db, user.id, new_recs_data)
                 rec_map = {rec.item_id: rec.id for rec in created_recs}
                 for p in products:
-                    item_id = p.get("상품코드") or p.get("id")
+                    product_code = p.get("상품코드") or p.get("id")
+                    # 상품코드를 정수로 변환 (위와 동일한 로직)
+                    if isinstance(product_code, str):
+                        item_id = abs(hash(product_code)) % (10**9)
+                    else:
+                        item_id = int(product_code)
+                    
                     if item_id in rec_map:
                         p['recommendation_id'] = rec_map[item_id]
                 recommendation_ids = [str(rec_id) for rec_id in rec_map.values()]
@@ -216,8 +234,20 @@ async def chat_recommend(
     except Exception as e:
         print(f"텍스트 챗봇 오류: {e}")
         traceback.print_exc() # ADDED: Print full traceback
+        
+        # 데이터베이스 트랜잭션 롤백
+        try:
+            db.rollback()
+            print("✅ 데이터베이스 트랜잭션 롤백 완료")
+        except Exception as rollback_error:
+            print(f"⚠️ 롤백 중 오류: {rollback_error}")
+        
         error_message = "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요."
-        create_chat_message(db, session_id, "bot", error_message)
+        try:
+            create_chat_message(db, session_id, "bot", error_message)
+        except Exception as msg_error:
+            print(f"⚠️ 에러 메시지 저장 실패: {msg_error}")
+            
         return JSONResponse(content={"message": error_message, "products": [], "session_id": session_id})
 
 

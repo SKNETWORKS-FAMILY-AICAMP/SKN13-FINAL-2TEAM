@@ -73,6 +73,28 @@ class GeneralAgent:
             "코트", "재킷", "니트", "후드", "티셔츠", "청바지", "운동복", 
             "정장", "데이트", "면접", "파티", "결혼식", "졸업식"
         ]
+        
+        # 지원하지 않는 카테고리 (모자, 액세서리, 신발 등)
+        self.unsupported_categories = {
+            # 모자류
+            "모자", "캡", "야구모자", "비니", "베레모", "헬멧", "hat", "cap", "beanie", "beret",
+            
+            # 액세서리
+            "목걸이", "팔찌", "반지", "귀걸이", "시계", "벨트", "넥타이", "bow tie", "스카프", "머플러",
+            "necklace", "bracelet", "ring", "earring", "watch", "belt", "tie", "scarf", "muffler",
+            
+            # 신발류
+            "신발", "구두", "운동화", "부츠", "샌들", "슬리퍼", "로퍼", "힐", "플랫", "스니커즈",
+            "shoes", "sneakers", "boots", "sandals", "slippers", "loafers", "heels", "flats",
+            
+            # 가방류
+            "가방", "백팩", "핸드백", "클러치", "토트백", "크로스백", "숄더백", "지갑",
+            "bag", "backpack", "handbag", "clutch", "tote", "crossbody", "shoulder bag", "wallet",
+            
+            # 기타 액세서리
+            "선글라스", "안경", "마스크", "장갑", "양말", "스타킹", "속옷", "언더웨어",
+            "sunglasses", "glasses", "mask", "gloves", "socks", "stockings", "underwear"
+        }
     
     def process_general_request(self, user_input: str, extracted_info: Dict,
                               context_summaries: Optional[List[str]] = None) -> GeneralAgentResult:
@@ -93,7 +115,18 @@ class GeneralAgent:
         try:
             user_input_lower = safe_lower(user_input)
             
-            # 1. 미리 정의된 응답 확인
+            # 1. 지원하지 않는 카테고리 체크
+            unsupported_detected = self._check_unsupported_categories(user_input_lower)
+            if unsupported_detected:
+                response = self._get_unsupported_category_response(unsupported_detected)
+                return GeneralAgentResult(
+                    success=True,
+                    message=response,
+                    products=[],
+                    metadata={"response_type": "unsupported_category", "agent_type": "general", "detected_category": unsupported_detected}
+                )
+            
+            # 2. 미리 정의된 응답 확인
             predefined_response = self._check_predefined_responses(user_input_lower)
             if predefined_response:
                 return GeneralAgentResult(
@@ -128,6 +161,66 @@ class GeneralAgent:
             if keyword in user_input_lower:
                 return response
         return None
+    
+    def _check_unsupported_categories(self, user_input_lower: str) -> Optional[str]:
+        """지원하지 않는 카테고리 키워드 감지"""
+        for category in self.unsupported_categories:
+            if category.lower() in user_input_lower:
+                return category
+        return None
+    
+    def _get_unsupported_category_response(self, detected_category: str) -> str:
+        """지원하지 않는 카테고리에 대한 응답 생성"""
+        # 카테고리별 맞춤 응답
+        category_responses = {
+            # 모자류
+            "모자": "아쉽게도 모자나 캡은 현재 추천해드리지 않아요. 😅 대신 멋진 상의나 바지를 추천해드릴까요?",
+            "캡": "캡은 아직 서비스에 포함되어 있지 않아요! 😊 셔츠나 후드티 같은 상의는 어떠신가요?",
+            "hat": "Sorry, we don't have hats available yet! 😅 How about some stylish tops or shirts?",
+            "cap": "Caps aren't in our current catalog! 😊 Would you like to see some cool shirts or hoodies instead?",
+            
+            # 액세서리
+            "목걸이": "목걸이나 액세서리는 아직 서비스에 없어요! 😊 대신 예쁜 상의나 원피스를 추천해드릴까요?",
+            "팔찌": "팔찌 같은 액세서리는 현재 추천하지 않아요. 😅 멋진 옷으로 스타일링해보시는 건 어떨까요?",
+            "시계": "시계는 아직 서비스에 포함되어 있지 않아요! 😊 패션 아이템 중에서는 어떤 걸 찾고 계신가요?",
+            "necklace": "We don't have necklaces available yet! 😅 How about some beautiful dresses or tops?",
+            "watch": "Watches aren't in our current catalog! 😊 What kind of clothing are you looking for?",
+            
+            # 신발류
+            "신발": "신발은 아직 추천해드리지 않아요! 😅 대신 멋진 상의나 바지를 추천해드릴까요?",
+            "운동화": "운동화는 현재 서비스에 없어요! 😊 셔츠나 후드티 같은 상의는 어떠신가요?",
+            "shoes": "We don't have shoes available yet! 😅 How about some stylish tops or pants?",
+            "sneakers": "Sneakers aren't in our current catalog! 😊 Would you like to see some cool shirts or hoodies?",
+            
+            # 가방류
+            "가방": "가방은 아직 서비스에 포함되어 있지 않아요! 😊 멋진 옷으로 스타일링해보시는 건 어떨까요?",
+            "백팩": "백팩은 현재 추천하지 않아요! 😅 대신 예쁜 상의나 원피스를 추천해드릴까요?",
+            "bag": "We don't have bags available yet! 😅 How about some beautiful clothing items?",
+            "backpack": "Backpacks aren't in our current catalog! 😊 What kind of clothes are you interested in?",
+            
+            # 기타 액세서리
+            "선글라스": "선글라스는 아직 서비스에 없어요! 😊 대신 멋진 상의나 바지를 추천해드릴까요?",
+            "장갑": "장갑은 현재 추천하지 않아요! 😅 따뜻한 상의나 아우터는 어떠신가요?",
+            "sunglasses": "We don't have sunglasses available yet! 😅 How about some stylish tops or pants?",
+            "gloves": "Gloves aren't in our current catalog! 😊 Would you like to see some warm tops or jackets?"
+        }
+        
+        # 직접 매칭되는 응답이 있으면 사용
+        if detected_category in category_responses:
+            return category_responses[detected_category]
+        
+        # 기본 응답
+        return f"""아쉽게도 '{detected_category}'는 현재 추천해드리지 않아요! 😅
+
+저희는 현재 **상의, 바지, 스커트, 원피스**만 추천하고 있어요.
+
+**추천 가능한 아이템:**
+• 상의: 셔츠, 블라우스, 티셔츠, 후드티, 니트 등
+• 바지: 청바지, 슬랙스, 코튼팬츠, 트레이닝팬츠 등  
+• 스커트: 미니스커트, 미디스커트, 롱스커트 등
+• 원피스: 미니원피스, 미디원피스, 맥시원피스 등
+
+어떤 의류를 찾고 계신가요? ✨"""
     
     def _has_clothing_context(self, user_input_lower: str) -> bool:
         """의류 관련 컨텍스트 확인"""

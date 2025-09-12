@@ -44,6 +44,7 @@ class LangGraphState:
     agent_result: Any = None
     final_message: str = ""
     products: List[Dict] = None
+    available_products: List[Dict] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     
@@ -76,12 +77,51 @@ class MainAnalyzer:
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o"
+        
+        # 지원하지 않는 카테고리 키워드들 (모자, 액세서리, 신발 등)
+        self.unsupported_categories = {
+            # 모자류
+            "모자", "캡", "야구모자", "비니", "베레모", "헬멧", "hat", "cap", "beanie", "beret",
+            
+            # 액세서리
+            "목걸이", "팔찌", "반지", "귀걸이", "시계", "벨트", "넥타이", "bow tie", "스카프", "머플러",
+            "necklace", "bracelet", "ring", "earring", "watch", "belt", "tie", "scarf", "muffler",
+            
+            # 신발류
+            "신발", "구두", "운동화", "부츠", "샌들", "슬리퍼", "로퍼", "힐", "플랫", "스니커즈",
+            "shoes", "sneakers", "boots", "sandals", "slippers", "loafers", "heels", "flats",
+            
+            # 가방류
+            "가방", "백팩", "핸드백", "클러치", "토트백", "크로스백", "숄더백", "지갑",
+            "bag", "backpack", "handbag", "clutch", "tote", "crossbody", "shoulder bag", "wallet",
+            
+            # 기타 액세서리
+            "선글라스", "안경", "마스크", "장갑", "양말", "스타킹", "속옷", "언더웨어",
+            "sunglasses", "glasses", "mask", "gloves", "socks", "stockings", "underwear"
+        }
+        
+        # 지원하는 카테고리 (확인용)
+        self.supported_categories = {
+            "상의", "바지", "스커트", "원피스", "top", "pants", "skirt", "dress",
+            "긴소매", "반소매", "후드티", "니트", "스웨터", "셔츠", "블라우스", "피케", "카라", "슬리브리스",
+            "데님팬츠", "코튼팬츠", "슈트팬츠", "슬랙스", "카고팬츠", "트레이닝팬츠", "조거팬츠", "숏팬츠",
+            "미니스커트", "미디스커트", "롱스커트", "맥시원피스", "미니원피스", "미디원피스"
+        }
     
     def analyze_with_prompt(self, user_input: str, context: str = "", session_summary: str = "") -> Dict:
         """프롬프트 기반으로 intent 분류만 수행"""
         
         print(f"🔍 Intent 분류 시작: '{user_input}'")
         print(f"📝 컨텍스트: {context[:100]}..." if context else "📝 컨텍스트: 없음")
+        
+        # 지원하지 않는 카테고리 체크
+        unsupported_detected = self._check_unsupported_categories(user_input)
+        if unsupported_detected:
+            print(f"🚫 지원하지 않는 카테고리 감지: {unsupported_detected}")
+            return {
+                "intent": "general",
+                "analysis_summary": f"지원하지 않는 카테고리({unsupported_detected}) 요청으로 general intent로 분류"
+            }
         
         system_prompt = """당신은 의류 추천 시스템의 intent 분류기입니다.
 사용자의 입력을 분석하여 intent만 분류해주세요.
@@ -104,11 +144,9 @@ Intent 분류 기준:
 - general: 단순 인사/잡담 ("안녕", "고마워", "ㅎㅎ") → 추천/검색/날씨/후속질문이 전혀 아닐 때만 해당
 
 **중요**: 
-1. 의류/옷/패션과 관련된 모든 질문은 search, conversation, followup 중 하나로 분류하세요.
-2. 색상, 브랜드, 카테고리 등이 언급되면 search로 분류하세요.
-3. 상황이나 용도가 언급되면 conversation으로 분류하세요.
-4. 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요.
-5. general은 정말 단순한 인사나 의류와 전혀 관련 없는 질문일 때만 사용하세요.
+1. 날씨와 상황이 함께 언급될 시 weather로 분류하세요.
+2. 컨텍스트에서 이전에 상품 추천과 연관이 있는 질문이라면, 그 상품들에 대한 질문은 반드시 'followup'으로 분류하세요.
+3. general은 정말 단순한 인사나 의류와 전혀 관련 없는 질문일 때만 사용하세요.
 """
         messages = [
             {"role": "system", "content": system_prompt.format(
@@ -148,6 +186,17 @@ Intent 분류 기준:
                 "intent": "search",  # 오류 시 search로 fallback
                 "analysis_summary": f"분석 중 오류 발생: {str(e)}"
             }
+    
+    def _check_unsupported_categories(self, user_input: str) -> Optional[str]:
+        """사용자 입력에서 지원하지 않는 카테고리 키워드를 감지"""
+        user_lower = user_input.lower()
+        
+        # 지원하지 않는 카테고리 키워드 체크
+        for category in self.unsupported_categories:
+            if category.lower() in user_lower:
+                return category
+        
+        return None
 
 
 
@@ -182,6 +231,7 @@ class LLMService:
             user_input=user_input,
             session_id=session_id,
             user_id=user_id,
+            available_products=available_products,
             latitude=latitude,
             longitude=longitude
         )
@@ -256,7 +306,9 @@ class LLMService:
                     state.user_input, 
                     db, 
                     state.user_id,
-                    state.session_id
+                    state.session_id,
+                    search_agent=self.search_agent,
+                    available_products=state.available_products
                 )
                 
                 state.agent_result = result

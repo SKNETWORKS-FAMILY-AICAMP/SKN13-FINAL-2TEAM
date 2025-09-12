@@ -19,9 +19,9 @@ services:
 
   fastapi-app:
     build: .
-    # deploy:
-    #   replicas: 2  # 1개 -> 2개로 확장
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    deploy:
+      replicas: 2  # 1개 -> 2개로 확장
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 
     expose: ["8000"]
     environment:
       # FASTAPI용 SSL 인증서는 유지
@@ -33,9 +33,9 @@ services:
       - OPENAI_SSL_CERT_FILE=""
       - OPENAI_SSL_KEY_FILE=""
       # 환경 변수 기본값 설정 (개발용)
-      - GOOGLEMAP_API_KEY=${GOOGLEMAP_API_KEY:-}
-      - WEATHER_API_KEY=${WEATHER_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # - GOOGLEMAP_API_KEY=${GOOGLEMAP_API_KEY:-}
+      # - WEATHER_API_KEY=${WEATHER_API_KEY:-}
+      # - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     env_file:
       - .env
     volumes:

@@ -166,9 +166,14 @@ async def startup_event():
 if __name__ == "__main__":
     import uvicorn
     import os
+    import asyncio
+    from services.error_monitor import ErrorMonitor    
 
     workers = int(os.getenv("UVICORN_WORKERS", "2"))
     print(f"워커 수: {workers}")
+
+    monitor = ErrorMonitor()
+    asyncio.create_task(monitor.start_monitoring())
 
     ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
     ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")

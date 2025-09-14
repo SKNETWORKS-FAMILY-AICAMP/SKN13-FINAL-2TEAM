@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Airflow logs, db, pid
+logs/
+airflow.db
+airflow-webserver.pid
+
+# Python cache
+__pycache__/
+*.pyc
+

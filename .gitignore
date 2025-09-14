@@ -39,6 +39,18 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# macOS
+.DS_Store
+
+# Airflow logs, db, pid
+logs/
+airflow.db
+airflow-webserver.pid
+
+# Python cache
+__pycache__/
+*.pyc
+
 # Unit test / coverage reports
 htmlcov/
 .tox/

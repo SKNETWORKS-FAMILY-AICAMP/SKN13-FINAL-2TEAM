@@ -43,42 +43,42 @@
   <tr>
     <td align="center" width="16%">
       <a href="https://github.com/Koojh99">
-        <img src="https://img.shields.io/badge/GitHub-Koojh99-C7CDE5?logo=github" alt="구자현 GitHub"/>
+        <img src="https://img.shields.io/badge/GitHub-Koojh99-DFA4B3?logo=github" alt="구자현 GitHub"/>
       </a>
     </td>
     <td align="center" width="16%">
       <a href="https://github.com/Gogimin">
-        <img src="https://img.shields.io/badge/GitHub-Gogimin-FAC8D1?logo=github" alt="김지민 GitHub"/>
+        <img src="https://img.shields.io/badge/GitHub-Gogimin-FBB795?logo=github" alt="김지민 GitHub"/>
       </a>
     </td>
     <td align="center" width="16%">
       <a href="https://github.com/rudwo524">
-        <img src="https://img.shields.io/badge/GitHub-rudwo524-FECC99?logo=github" alt="민경재 GitHub"/>
+        <img src="https://img.shields.io/badge/GitHub-rudwo524-FBD284?logo=github" alt="민경재 GitHub"/>
       </a>
     </td>
     <td align="center" width="16%">
       <a href="https://github.com/subin0821">
-        <img src="https://img.shields.io/badge/GitHub-subin0821-FFF2A3?logo=github" alt="박수빈 GitHub"/>
+        <img src="https://img.shields.io/badge/GitHub-subin0821-B7D9CC?logo=github" alt="박수빈 GitHub"/>
       </a>
     </td>
     <td align="center" width="16%">
       <a href="https://github.com/yunawawa">
-        <img src="https://img.shields.io/badge/GitHub-yunawawa-EFE1F8?logo=github" alt="이유나 GitHub"/>
+        <img src="https://img.shields.io/badge/GitHub-yunawawa-ABC8DB?logo=github" alt="이유나 GitHub"/>
       </a>
     </td>
     <td align="center" width="16%">
       <a href="https://github.com/seonguihong">
-        <img src="https://img.shields.io/badge/GitHub-seonguihong-BAD7E7?logo=github" alt="홍성의 GitHub"/>
+        <img src="https://img.shields.io/badge/GitHub-seonguihong-CCB0E0?logo=github" alt="홍성의 GitHub"/>
       </a>
     </td>
   </tr>
   <tr>
-    <td align="center">역할</td>
-    <td align="center">역할</td>
-    <td align="center">역할</td>
-    <td align="center">역할</td>
-    <td align="center">역할</td>
-    <td align="center">역할</td>
+    <td align="center">AI / ML 엔지니어</td>
+    <td align="center">백엔드</td>
+    <td align="center">서버 관리 및 배포</td>
+    <td align="center">PM & 프론트엔드</td>
+    <td align="center">AI / ML 엔지니어</td>
+    <td align="center">데이터 엔지니어</td>
   </tr>
 </table>
 

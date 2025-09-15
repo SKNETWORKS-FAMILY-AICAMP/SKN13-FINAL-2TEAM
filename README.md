@@ -73,12 +73,12 @@
     </td>
   </tr>
   <tr>
-    <td align="center">AI / ML 엔지니어</td>
+    <td align="center">AI/ML </td>
     <td align="center">백엔드</td>
-    <td align="center">서버 관리 및 배포</td>
-    <td align="center">PM & 프론트엔드</td>
-    <td align="center">AI / ML 엔지니어</td>
-    <td align="center">데이터 엔지니어</td>
+    <td align="center">서버 관리</td>
+    <td align="center">PM/프론트엔드</td>
+    <td align="center">AI/ML</td>
+    <td align="center">데이터</td>
   </tr>
 </table>
 

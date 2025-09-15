@@ -8,6 +8,83 @@
 
 </div>
 
+---
+
+## 👥 팀원
+
+<table>
+  <tr>
+    <td align=center><b>구자현</b></td>
+    <td align=center><b>김지민</b></td>
+    <td align=center><b>민경재</b></td>
+    <td align=center><b>박수빈</b></td>
+    <td align=center><b>이유나</b></td>
+    <td align=center><b>홍성의</b></td>
+  <tr>
+    <td align="center" width="16%">
+      <b><img src="이미지 넣는 공간"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="이미지 넣는 공간"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="이미지 넣는 공간"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="이미지 넣는 공간"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="이미지 넣는 공간"/></b>
+    </td>
+    <td align="center" width="16%">
+      <b><img src="이미지 넣는 공간"/></b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="16%">
+      <a href="https://github.com/Koojh99">
+        <img src="https://img.shields.io/badge/GitHub-Koojh99-C7CDE5?logo=github" alt="구자현 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/Gogimin">
+        <img src="https://img.shields.io/badge/GitHub-Gogimin-FAC8D1?logo=github" alt="김지민 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/rudwo524">
+        <img src="https://img.shields.io/badge/GitHub-rudwo524-FECC99?logo=github" alt="민경재 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/subin0821">
+        <img src="https://img.shields.io/badge/GitHub-subin0821-FFF2A3?logo=github" alt="박수빈 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/yunawawa">
+        <img src="https://img.shields.io/badge/GitHub-yunawawa-EFE1F8?logo=github" alt="이유나 GitHub"/>
+      </a>
+    </td>
+    <td align="center" width="16%">
+      <a href="https://github.com/seonguihong">
+        <img src="https://img.shields.io/badge/GitHub-seonguihong-BAD7E7?logo=github" alt="홍성의 GitHub"/>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+    <td align="center">역할</td>
+  </tr>
+</table>
+
+---
+
+
 ## 📑 목차
 
 - [📋 프로그램 설명](#-프로그램-설명)
@@ -225,5 +302,26 @@ FAST_API/
 - **`routers/`**: 각 기능별 API 엔드포인트
 - **`templates/`**: 웹 페이지 템플릿
 - **`static/`**: CSS, JavaScript, 이미지 파일
+
+---
+### 🎬 시연 영상
+
+<div align="center">
+  
+[![Ivle Malle 시연](https://img.youtube.com/vi/DNN0Q7pK3cI/0.jpg)](https://www.youtube.com/watch?v=DNN0Q7pK3cI)
+
+</div>
+
+---
+
+### 📋 회고록
+| 팀원 | 한줄 회고 |
+|:---|:---|
+| 구자현 |  |
+| 김지민 |  |
+| 민경재 |  |
+| 박수빈 |  |
+| 이유나 |  |
+| 홍성의 |  |
 
 ---

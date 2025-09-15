@@ -57,11 +57,12 @@ def feels_like_c(temp_c: float, humidity: int) -> float:
     return temp_c + 0.01 * (h - 40)  # ~0~1.5℃ 가산
 
 def describe_weather_safe(weather: Dict) -> str:
-    """모순 표현 방지(우선순위: 강수>바람>습도), 안전한 문장 생성"""
+    """모순 표현 방지(우선순위: 강수>하늘>바람>습도), 안전한 문장 생성"""
     t = float(weather.get("temperature")) if weather.get("temperature") is not None else None
     h = int(weather.get("humidity", 50))
     wind = float(weather.get("wind_speed", 0))
     ptype = weather.get("precipitation_type", "강수 없음")
+    sky = weather.get('sky_status', '알 수 없음')  # 하늘 상태 추가
 
     fl = round(feels_like_c(t, h), 1) if t is not None else None
 
@@ -81,6 +82,12 @@ def describe_weather_safe(weather: Dict) -> str:
     # 보정 우선순위 적용
     if ptype not in ("강수 없음", None):
         desc = f"{'눈 내리는' if '눈' in ptype else '비 오는'} {base}"
+    elif sky == '맑음':
+        desc = f"화창한 {base}"
+    elif sky == '흐림':
+        desc = f"흐린 {base}"
+    elif sky == '구름 많음': 
+        desc = f"구름이 많은 {base}"
     elif wind >= 7:
         desc = f"바람이 강한 {base}"
     elif h >= 70 and (fl is not None and fl >= 24):
@@ -91,8 +98,8 @@ def describe_weather_safe(weather: Dict) -> str:
         desc = base
 
     if t is None or fl is None:
-        return f"{desc} (습도 {h}%, 풍속 {wind:.1f}m/s, 강수: {ptype})"
-    return f"{desc} (현재 {t:.1f}℃, 체감 {fl:.1f}℃, 습도 {h}%, 풍속 {wind:.1f}m/s, 강수: {ptype})"
+        return f"{desc} (하늘: {sky}, 습도 {h}%, 풍속 {wind:.1f}m/s, 강수: {ptype})"
+    return f"{desc} (현재 {t:.1f}℃, 체감 {fl:.1f}℃, 하늘: {sky}, 습도 {h}%, 풍속 {wind:.1f}m/s, 강수:{ptype})"
 
 class WeatherService:
     """

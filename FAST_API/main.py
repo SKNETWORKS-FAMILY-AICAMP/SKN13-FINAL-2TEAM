@@ -168,12 +168,16 @@ if __name__ == "__main__":
     import os
     import asyncio
     from services.error_monitor import ErrorMonitor    
-
+    from services.slack_monitor import SlackMonitor
+    
     workers = int(os.getenv("UVICORN_WORKERS", "2"))
     print(f"워커 수: {workers}")
 
     monitor = ErrorMonitor()
+    slack_monitor = SlackMonitor()
+
     asyncio.create_task(monitor.start_monitoring())
+    asyncio.create_task(slack_monitor.start_monitoring())
 
     ssl_cert_file = os.getenv("FASTAPI_SSL_CERT_FILE")
     ssl_key_file = os.getenv("FASTAPI_SSL_KEY_FILE")

@@ -20,7 +20,7 @@ services:
   fastapi-app:
     build: .
     deploy:
-      replicas: 2  # 1개 -> 2개로 확장
+      replicas: 3  # 1개 -> 2개로 확장
     command: uvicorn main:app --host 0.0.0.0 --port 8000 
     expose: ["8000"]
     environment:

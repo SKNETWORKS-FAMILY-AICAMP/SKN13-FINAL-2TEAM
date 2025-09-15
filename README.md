@@ -244,6 +244,12 @@ QDRANT_COLLECTION=ivlle
 
 ---
 
+## 📦 모델
+훈련된 YOLOv8 가중치는 Hugging Face Hub에서 다운로드할 수 있습니다:  
+👉 [Download best.pt](https://huggingface.co/yunawawa/ivle_yolo/resolve/main/best.pt)
+
+---
+
 ## 🚀 로컬 개발 환경 설정
 
 ### 1. 저장소 클론 및 환경 설정

@@ -59,3 +59,6 @@ prometheus-fastapi-instrumentator==7.0.0
 
 # Image & visions
 fashion-clip==0.2.2
+
+# slack
+slack-sdk==3.21.3

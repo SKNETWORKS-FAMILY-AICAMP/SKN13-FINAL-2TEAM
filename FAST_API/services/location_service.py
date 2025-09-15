@@ -5,9 +5,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+<<<<<<< Updated upstream
 # 기본 위치 설정 (서울 금천구)
 DEFAULT_LAT, DEFAULT_LON = 37.455, 126.893
 LOCATION_NAME = "서울 금천구"
+=======
+>>>>>>> Stashed changes
 
 class LocationService:
     """
@@ -198,6 +201,7 @@ class LocationService:
             print(f"Nominatim API 응답 처리 오류: {e}")
             return None
 
+<<<<<<< Updated upstream
     def get_default_location(self) -> Dict[str, float]:
         """기본 위치 반환"""
         return {"latitude": DEFAULT_LAT, "longitude": DEFAULT_LON}
@@ -205,3 +209,29 @@ class LocationService:
     def get_default_location_name(self) -> str:
         """기본 위치명 반환"""
         return LOCATION_NAME
+=======
+    
+    async def get_current_location_from_ip(self) -> Optional[Dict[str, float]]:
+        """IP 기반으로 현재 위치의 좌표를 가져옵니다."""
+        try:
+            async with httpx.AsyncClient() as client:
+                # ipapi.co 서비스 사용 (무료, 1000회/월)
+                response = await client.get("http://ipapi.co/json/", timeout=5.0)
+                response.raise_for_status()
+                
+                data = response.json()
+                
+                if "latitude" in data and "longitude" in data:
+                    lat = float(data["latitude"])
+                    lon = float(data["longitude"])
+                    
+                    print(f"IP 기반 현재 위치: 위도={lat}, 경도={lon}")
+                    return {"latitude": lat, "longitude": lon}
+                else:
+                    print("IP 기반 위치 정보를 가져올 수 없습니다.")
+                    return None
+                    
+        except Exception as e:
+            print(f"IP 기반 위치 조회 오류: {e}")
+            return None
+>>>>>>> Stashed changes

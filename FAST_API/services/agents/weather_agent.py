@@ -9,6 +9,11 @@ from dataclasses import dataclass
 from openai import OpenAI
 from dotenv import load_dotenv
 
+<<<<<<< Updated upstream
+=======
+from services.location_service import LocationService
+
+>>>>>>> Stashed changes
 load_dotenv()
 
 # 의류 카탈로그 정의
@@ -33,6 +38,10 @@ class WeatherAgent:
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o-mini"
+<<<<<<< Updated upstream
+=======
+        self.location_service = LocationService()
+>>>>>>> Stashed changes
     
     async def process_weather_request(self, user_input: str, extracted_info: Dict,
                                     latitude: Optional[float] = None,
@@ -88,6 +97,7 @@ class WeatherAgent:
                     location_display_name = "현재 위치"
                 coords = {"latitude": latitude, "longitude": longitude}
             
+<<<<<<< Updated upstream
             # 3. 좌표도, 지역명도 없는 경우
             else:
                 return WeatherAgentResult(
@@ -96,6 +106,28 @@ class WeatherAgent:
                     products=[],
                     metadata={"error": "no_location_provided", "agent_type": "weather"}
                 )
+=======
+            # 3. 좌표도, 지역명도 없는 경우 - IP 기반 현재 위치 찾기
+            else:
+                print("🔍 IP 기반 현재 위치 조회 시작...")
+                coords = await self.location_service.get_current_location_from_ip()
+                
+                if coords:
+                    # IP 기반 위치를 찾았으면 해당 지역명도 가져오기
+                    city_name_from_ip = await self.location_service.get_city_name_from_coords(
+                        coords["latitude"], coords["longitude"]
+                    )
+                    if city_name_from_ip:
+                        location_display_name = f"'{city_name_from_ip}'"
+                    else:
+                        location_display_name = "현재 위치"
+                    print(f"✅ IP 기반 위치 조회 성공: {location_display_name}")
+                else:
+                    # IP 기반 위치 조회 실패 시 기본 위치(서울) 사용
+                    print("❌ IP 기반 위치 조회 실패, 기본 위치(서울) 사용")
+                    coords = {"latitude": 37.5665, "longitude": 126.9780}
+                    location_display_name = "서울"
+>>>>>>> Stashed changes
             
             # 날씨 정보 조회 (고급 기능 사용)
             weather_data = await self._get_advanced_weather(coords["latitude"], coords["longitude"])
@@ -192,6 +224,7 @@ class WeatherAgent:
         wind_speed = weather_data.get('wind_speed')
         raining_now = weather_data.get('raining_now')
         
+<<<<<<< Updated upstream
         message = f"{location_display_name}의 날씨를 알려드릴게요! ☀️\n\n"
         
         if temp is not None:
@@ -227,6 +260,107 @@ class WeatherAgent:
         
         return message
     
+=======
+        # 날씨 상태 이모지 선택
+        weather_emoji = self._get_weather_emoji(weather_data)
+        
+        # 메인 헤더
+        message = f"📍 **{location_display_name}** {weather_emoji}\n"
+        
+        # 온도 정보 (가장 중요하므로 상단에)
+        if temp is not None:
+            try:
+                temp_float = float(temp)
+                temp_style = self._get_temperature_style(temp_float)
+                message += f"🌡️ **현재 기온** {temp_style} **{temp}°C**\n"
+                
+                # 체감온도 표시
+                if feels_like is not None:
+                    message += f"🌡️ **체감온도** {temp_style} **{feels_like}°C**\n"
+                message += "\n"
+            except ValueError:
+                message += f"🌡️ **기온**: {temp}°C (온도 정보 처리 중 오류 발생)\n"
+        
+        # 날씨 상태 (새로 추가된 부분)
+        weather_status = self._get_weather_status(weather_data)
+        if weather_status:
+            status_emoji = self._get_status_emoji(weather_status)
+            message += f"{status_emoji} **날씨 상태** {weather_status}\n"
+        
+        # 강수 정보
+        if precip_type and precip_type != "강수 없음":
+            precip_emoji = "🌧️" if "비" in str(precip_type) else "❄️" if "눈" in str(precip_type) else "🌦️"
+            message += f"{precip_emoji} **강수 형태** {precip_type}\n"
+        
+        # 강수량이 있고, 0mm가 아닐 때만 표시
+        if precip_amount and float(precip_amount) > 0:
+            message += f"☔ **시간당 강수량** {precip_amount}mm\n"
+        
+        # 비 오는지 여부
+        if raining_now:
+            message += f"🌧️ **현재 상태** 비가 오고 있어요!\n"
+        
+        # 습도와 바람 정보 (한 줄에)
+        info_parts = []
+        if humidity is not None:
+            info_parts.append(f"💧 습도 {humidity}%")
+        
+        if wind_speed is not None:
+            info_parts.append(f"💨 풍속 {wind_speed}m/s")
+        
+        if info_parts:
+            message += f"\n📊 {' | '.join(info_parts)}"
+        
+        return message
+    
+    def _get_weather_emoji(self, weather_data: Dict) -> str:
+        """날씨 상태에 따른 이모지 선택"""
+        weather_status = self._get_weather_status(weather_data)
+        
+        emoji_map = {
+            "맑음": "☀️",
+            "구름 조금": "🌤️", 
+            "구름 많음": "⛅",
+            "흐림": "☁️",
+            "비": "🌧️",
+            "눈": "❄️",
+            "강수": "🌦️",
+            "날씨": "🌤️"
+        }
+        
+        return emoji_map.get(weather_status, "🌤️")
+    
+    def _get_temperature_style(self, temp: float) -> str:
+        """온도에 따른 스타일 선택"""
+        if temp >= 30:
+            return "🔥"
+        elif temp >= 25:
+            return "😅"
+        elif temp >= 20:
+            return "😊"
+        elif temp >= 15:
+            return "😌"
+        elif temp >= 10:
+            return "🥶"
+        else:
+            return "🧊"
+    
+    def _get_status_emoji(self, status: str) -> str:
+        """상태에 따른 이모지 선택"""
+        status_map = {
+            "맑음": "☀️",
+            "구름 조금": "🌤️",
+            "구름 많음": "⛅", 
+            "흐림": "☁️",
+            "비": "🌧️",
+            "눈": "❄️",
+            "강수": "🌦️",
+            "날씨": "🌤️"
+        }
+        
+        return status_map.get(status, "🌤️")
+    
+>>>>>>> Stashed changes
 
     
     def extract_weather_info_from_message(self, message: str) -> Optional[Dict]:
@@ -355,6 +489,14 @@ class WeatherAgent:
         """날씨 데이터를 종합하여 향상된 날씨 설명 생성"""
         enhanced_parts = []
         
+<<<<<<< Updated upstream
+=======
+        # 날씨 상태 정보 추가
+        weather_status = self._get_weather_status(weather_data)
+        if weather_status:
+            enhanced_parts.append(weather_status)
+        
+>>>>>>> Stashed changes
         # 온도 정보 추가
         temp = weather_data.get('temperature')
         feels_like = weather_data.get('feels_like')
@@ -386,6 +528,45 @@ class WeatherAgent:
             enhanced_parts.append("강수 있음")
         
         return ", ".join(enhanced_parts)
+<<<<<<< Updated upstream
+=======
+    
+    def _get_weather_status(self, weather_data: Dict) -> str:
+        """날씨 상태(맑음, 흐림, 비 등) 판단"""
+        try:
+            # 강수 정보 우선 확인
+            raining_now = weather_data.get('raining_now')
+            precip_type = weather_data.get('precipitation_type')
+            
+            if raining_now or (precip_type and precip_type != "강수 없음"):
+                if "눈" in str(precip_type):
+                    return "눈"
+                elif "비" in str(precip_type) or precip_type == "강수 있음":
+                    return "비"
+                else:
+                    return "강수"
+            
+            # 강수 없으면 습도와 온도로 판단
+            humidity = weather_data.get('humidity')
+            temp = weather_data.get('temperature')
+            
+            if humidity is not None:
+                if humidity >= 80:
+                    return "흐림"
+                elif humidity >= 60:
+                    return "구름 많음"
+                elif humidity <= 30:
+                    return "맑음"
+                else:
+                    return "구름 조금"
+            
+            # 습도 정보가 없으면 기본값
+            return "날씨"
+            
+        except Exception as e:
+            print(f"날씨 상태 판단 오류: {e}")
+            return "날씨"
+>>>>>>> Stashed changes
 
     async def _search_weather_products(self, recommended_clothing: Dict) -> List[Dict]:
         """날씨 기반 추천 의류의 실제 상품 검색 - 의미적으로 연결된 조합 지원"""

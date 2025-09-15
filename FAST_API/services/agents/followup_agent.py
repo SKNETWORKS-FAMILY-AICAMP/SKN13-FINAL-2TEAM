@@ -560,6 +560,7 @@ class FollowUpAgent:
     def _generate_search_explanation(self, user_input: str, search_query: str, products: List[Dict]) -> str:
         """검색 결과에 대한 설명을 생성합니다."""
         try:
+<<<<<<< Updated upstream
             prompt = f"""사용자의 질문과 검색 결과를 바탕으로 친근한 설명을 생성해주세요.
 
 사용자 질문: {user_input}
@@ -590,6 +591,13 @@ class FollowUpAgent:
         except Exception as e:
             print(f"검색 설명 생성 오류: {e}")
             return f"'{search_query}' 관련 상품들을 찾았습니다!"
+=======
+            return f"'{search_query}'를 추천해드릴게요"
+            
+        except Exception as e:
+            print(f"검색 설명 생성 오류: {e}")
+            return f"'{search_query}'를 추천해드릴게요"
+>>>>>>> Stashed changes
 
     def _check_recent_recommendations(self, db, user_id: int) -> bool:
         """최근 추천이 있는지 확인 (간소화 버전)"""
